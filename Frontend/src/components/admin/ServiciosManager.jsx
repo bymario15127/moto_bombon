@@ -1,0 +1,280 @@
+// src/components/admin/ServiciosManager.jsx
+import { useState, useEffect } from "react";
+import serviciosService, { uploadImagen } from "../../services/serviciosService";
+
+export default function ServiciosManager() {
+  const [servicios, setServicios] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [formData, setFormData] = useState({
+    nombre: "",
+    duracion: "",
+    precio: "",
+    descripcion: "",
+    imagen: "/img/default.jpg"
+  });
+
+  useEffect(() => {
+    loadServicios();
+  }, []);
+
+  const loadServicios = async () => {
+    try {
+      const data = await serviciosService.getServicios();
+      setServicios(data);
+    } catch (error) {
+      console.error("Error al cargar servicios:", error);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const url = editingService 
+        ? `/api/servicios/${editingService.id}`
+        : "/api/servicios";
+      
+      const method = editingService ? "PUT" : "POST";
+      
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          duracion: parseInt(formData.duracion),
+          precio: parseFloat(formData.precio)
+        })
+      });
+
+      if (response.ok) {
+        loadServicios();
+        resetForm();
+        alert(editingService ? "Servicio actualizado" : "Servicio creado");
+      }
+    } catch (error) {
+      console.error("Error al guardar servicio:", error);
+      alert("Error al guardar el servicio");
+    }
+  };
+
+  const handleEdit = (servicio) => {
+    setEditingService(servicio);
+    setFormData({
+      nombre: servicio.nombre,
+      duracion: servicio.duracion.toString(),
+      precio: servicio.precio.toString(),
+      descripcion: servicio.descripcion || "",
+      imagen: servicio.imagen || "/img/default.jpg"
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("¿Eliminar este servicio?")) return;
+    
+    try {
+      const response = await fetch(`/api/servicios/${id}`, {
+        method: "DELETE"
+      });
+      
+      if (response.ok) {
+        loadServicios();
+        alert("Servicio eliminado");
+      }
+    } catch (error) {
+      console.error("Error al eliminar servicio:", error);
+      alert("Error al eliminar el servicio");
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      nombre: "",
+      duracion: "",
+      precio: "",
+      descripcion: "",
+      imagen: "/img/default.jpg"
+    });
+    setEditingService(null);
+    setShowForm(false);
+  };
+
+  // Manejar selección de archivo local y cargarlo al backend
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Previsualización rápida
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const dataUrl = ev.target.result;
+        const { url } = await uploadImagen(dataUrl);
+        setFormData((prev) => ({ ...prev, imagen: url }));
+      } catch (err) {
+        console.error('Error subiendo imagen:', err);
+        alert('No se pudo subir la imagen');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const formatPrecio = (precio) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0
+    }).format(precio);
+  };
+
+  return (
+    <div className="servicios-manager">
+      <div className="servicios-header">
+        <h1>💅 Gestión de Servicios</h1>
+        <button 
+          className="btn-primary"
+          onClick={() => setShowForm(true)}
+        >
+          + Nuevo Servicio
+        </button>
+      </div>
+
+      {/* Modal de formulario */}
+      {showForm && (
+        <div className="modal-overlay" onClick={resetForm}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{editingService ? 'Editar Servicio' : 'Nuevo Servicio'}</h2>
+              <button className="modal-close" onClick={resetForm}>×</button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="service-form">
+              <div className="form-group">
+                <label>Nombre del servicio</label>
+                <input
+                  type="text"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Duración (minutos)</label>
+                  <input
+                    type="number"
+                    value={formData.duracion}
+                    onChange={(e) => setFormData({...formData, duracion: e.target.value})}
+                    min="15"
+                    max="300"
+                    step="15"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Precio (COP)</label>
+                  <input
+                    type="number"
+                    value={formData.precio}
+                    onChange={(e) => setFormData({...formData, precio: e.target.value})}
+                    min="0"
+                    step="1000"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Descripción</label>
+                <textarea
+                  value={formData.descripcion}
+                  onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
+                  rows="3"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Imagen del servicio</label>
+                <input type="file" accept="image/*" onChange={handleFileChange} />
+                <div style={{ marginTop: 10 }}>
+                  <small>También puedes usar una URL:</small>
+                  <input
+                    type="text"
+                    value={formData.imagen}
+                    onChange={(e) => setFormData({ ...formData, imagen: e.target.value })}
+                    placeholder="/img/servicio.jpg"
+                  />
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <img src={formData.imagen} alt="preview" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee' }} />
+                    <span style={{ fontSize: 12, color: '#6b7280' }}>Previsualización</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button type="button" onClick={resetForm} className="btn-secondary">
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary">
+                  {editingService ? 'Actualizar' : 'Crear'} Servicio
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Lista de servicios */}
+      <div className="servicios-grid">
+        {servicios.map(servicio => (
+          <div key={servicio.id} className="service-card">
+            <div className="service-image">
+              <img src={servicio.imagen} alt={servicio.nombre} />
+            </div>
+            
+            <div className="service-content">
+              <h3>{servicio.nombre}</h3>
+              <p className="service-description">{servicio.descripcion}</p>
+              
+              <div className="service-details">
+                <div className="service-detail">
+                  <span className="detail-icon">⏱️</span>
+                  <span>{servicio.duracion} min</span>
+                </div>
+                <div className="service-detail">
+                  <span className="detail-icon">💰</span>
+                  <span>{formatPrecio(servicio.precio)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="service-actions">
+              <button 
+                className="btn-edit"
+                onClick={() => handleEdit(servicio)}
+              >
+                ✏️ Editar
+              </button>
+              <button 
+                className="btn-delete"
+                onClick={() => handleDelete(servicio.id)}
+              >
+                🗑️ Eliminar
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {servicios.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">💅</div>
+          <h3>No hay servicios registrados</h3>
+          <p>Comienza agregando tu primer servicio</p>
+        </div>
+      )}
+    </div>
+  );
+}
