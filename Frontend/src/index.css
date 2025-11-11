@@ -698,22 +698,108 @@ button:disabled:hover {
 
 /* Estilos mejorados para el calendario admin */
 .calendar-container { display:flex; justify-content:center; }
-.calendar-container .react-datepicker {
-  width: auto;
-  border: none;
-  font-family: inherit;
+
+/* Calendario personalizado */
+.custom-calendar {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 400px;
   margin: 0 auto;
 }
 
-.calendar-container .react-datepicker__day.has-appointment {
-  background-color: #EB0463 !important;
-  color: white !important;
-  border-radius: 50%;
-  font-weight: bold;
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
-.calendar-container .react-datepicker__day.has-appointment:hover {
-  background-color: #C50356 !important;
+.calendar-month {
+  font-size: 18px;
+  font-weight: 600;
+  color: #EB0463;
+  text-transform: capitalize;
+  margin: 0;
+}
+
+.calendar-nav-btn {
+  background: transparent;
+  border: 2px solid #EB0463;
+  color: #EB0463;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 16px;
+}
+
+.calendar-nav-btn:hover {
+  background: #EB0463;
+  color: white;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-day:hover {
+  background: rgba(235, 4, 99, 0.1);
+  border-color: #EB0463;
+}
+
+.calendar-day.selected {
+  background: #EB0463;
+  border-color: #EB0463;
+  color: white;
+  font-weight: 700;
+}
+
+.calendar-day.has-citas {
+  font-weight: 700;
+}
+
+.cita-dot {
+  position: absolute;
+  bottom: 4px;
+  width: 5px;
+  height: 5px;
+  background: #EB0463;
+  border-radius: 50%;
+}
+
+.calendar-day.selected .cita-dot {
+  background: white;
 }
 
 /* ========== Calendario (Admin) UI mejorada ========== */

@@ -57,28 +57,39 @@ router.get("/ocupados/:fecha", async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
-
 // Helpers
 const toMinutes = (hhmm) => {
   const [h, m] = hhmm.split(":").map(n => parseInt(n, 10));
   return h * 60 + m;
 };
 
-// POST create con verificación de traslapes por duración
+// POST create (hora y fecha opcionales; si no se envían, se registra para HOY y sin hora)
 router.post("/", async (req, res) => {
   try {
-    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje } = req.body;
+    console.log("📥 [POST /api/citas] Payload recibido:", req.body);
+    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago } = req.body;
     
-    if (!cliente || !servicio || !fecha || !hora) {
-      return res.status(400).json({ error: "Campos obligatorios: cliente, servicio, fecha, hora" });
+    if (!cliente || !servicio) {
+      return res.status(400).json({ error: "Campos obligatorios: cliente, servicio" });
     }
     
-    if (!fecha.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      return res.status(400).json({ error: "Formato de fecha inválido. Use YYYY-MM-DD" });
-    }
+    // Calcular fecha por defecto (hoy) si no se envía
+    const todayStr = () => {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    };
+    const fechaFinal = (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) ? fecha : todayStr();
     
-    if (!hora.match(/^\d{2}:\d{2}$/)) {
-      return res.status(400).json({ error: "Formato de hora inválido. Use HH:MM" });
+    // Validar hora solo si viene
+    let horaFinal = null;
+    if (hora) {
+      if (!/^\d{2}:\d{2}$/.test(hora)) {
+        return res.status(400).json({ error: "Formato de hora inválido. Use HH:MM" });
+      }
+      horaFinal = hora;
     }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: "Correo electrónico inválido" });
@@ -92,44 +103,63 @@ router.post("/", async (req, res) => {
       }
     }
     
-    // Duración del nuevo servicio
-    const servicioRow = await db.get(
-      "SELECT duracion FROM servicios WHERE nombre = ?",
-      [servicio]
-    );
-    const duracionNueva = servicioRow?.duracion ? Number(servicioRow.duracion) : 60; // default 60
-    const inicioNueva = toMinutes(hora);
-    const finNueva = inicioNueva + duracionNueva;
+    // Validar método de pago
+    const metodosValidos = ["codigo_qr", "efectivo", null, "", undefined];
+    if (!metodosValidos.includes(metodo_pago)) {
+      return res.status(400).json({ error: "Método de pago inválido. Use 'codigo_qr' o 'efectivo'" });
+    }
 
-    // Buscar citas existentes del día y verificar traslape con su duración real
-    const existentes = await db.all(
-      `SELECT c.hora as hora, COALESCE(s.duracion, 60) as duracion
-       FROM citas c
-       LEFT JOIN servicios s ON s.nombre = c.servicio
-       WHERE c.fecha = ? AND (c.estado IS NULL OR c.estado != 'cancelada')`,
-      [fecha]
-    );
+    // Si no se envía hora, no aplicamos verificación de traslapes
+    if (horaFinal) {
+      // Duración del nuevo servicio
+      const servicioRow = await db.get(
+        "SELECT duracion FROM servicios WHERE nombre = ?",
+        [servicio]
+      );
+      const duracionNueva = servicioRow?.duracion ? Number(servicioRow.duracion) : 60; // default 60
+      const inicioNueva = toMinutes(horaFinal);
+      const finNueva = inicioNueva + duracionNueva;
 
-    const hayTraslape = existentes.some((c) => {
-      const inicio = toMinutes(c.hora);
-      const fin = inicio + Number(c.duracion || 60);
-      return inicioNueva < fin && finNueva > inicio; // overlap
-    });
+      // Buscar citas existentes del día y verificar traslape con su duración real
+      const existentes = await db.all(
+        `SELECT c.hora as hora, COALESCE(s.duracion, 60) as duracion
+         FROM citas c
+         LEFT JOIN servicios s ON s.nombre = c.servicio
+         WHERE c.fecha = ? AND (c.estado IS NULL OR c.estado != 'cancelada')`,
+        [fechaFinal]
+      );
 
-    if (hayTraslape) {
-      return res.status(409).json({
-        error: "El horario seleccionado se traslapa con otra cita. Elige otra hora."
+      const hayTraslape = existentes.some((c) => {
+        if (!c.hora) return false;
+        const inicio = toMinutes(c.hora);
+        const fin = inicio + Number(c.duracion || 60);
+        return inicioNueva < fin && finNueva > inicio; // overlap
       });
+
+      if (hayTraslape) {
+        return res.status(409).json({
+          error: "El horario seleccionado se traslapa con otra cita. Elige otra hora."
+        });
+      }
     }
     
-    const result = await db.run(
-      "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [cliente, servicio, fecha, hora, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null]
-    );
-    
-    res.status(201).json({ id: result.lastID, message: "Cita creada exitosamente" });
+    try {
+      const result = await db.run(
+        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null]
+      );
+      console.log("✅ Cita insertada ID=", result.lastID);
+      return res.status(201).json({ id: result.lastID, message: "Cita creada exitosamente" });
+    } catch (dbError) {
+      console.error("❌ Error ejecutando INSERT en citas:", dbError);
+      if (dbError.message?.includes("NOT NULL") || dbError.code === 'SQLITE_CONSTRAINT') {
+        return res.status(400).json({ error: "Error de datos: " + dbError.message });
+      }
+      return res.status(500).json({ error: "Error guardando la cita" });
+    }
   } catch (error) {
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("🔥 Error inesperado en POST /api/citas:", error);
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
@@ -145,7 +175,7 @@ router.put("/:id", async (req, res) => {
     
     const updates = [];
     const values = [];
-  const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje'];
+  const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago'];
     
     for (const key of Object.keys(fields)) {
       if (!allowedFields.includes(key)) {
@@ -157,6 +187,14 @@ router.put("/:id", async (req, res) => {
         const cc = Number(fields[key]);
         if (isNaN(cc) || cc < 50 || cc > 2000) {
           return res.status(400).json({ error: "Cilindraje inválido. Debe estar entre 50 y 2000 cc" });
+        }
+      }
+
+      // Validar método de pago si se actualiza
+      if (key === 'metodo_pago' && fields[key]) {
+        const metodosValidosUpdate = ["codigo_qr", "efectivo"];
+        if (!metodosValidosUpdate.includes(fields[key])) {
+          return res.status(400).json({ error: "Método de pago inválido. Use 'codigo_qr' o 'efectivo'" });
         }
       }
       

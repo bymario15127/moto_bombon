@@ -1,7 +1,4 @@
 import { useState, useEffect } from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { es } from "date-fns/locale";
 import { addCita, getCitas } from "../../services/citasService";
 import serviciosService from "../../services/serviciosService";
 
@@ -15,12 +12,11 @@ export default function ReservaForm() {
     modelo: "",
     cilindraje: "",
     servicio: "",
-    fechaHora: null,
     comentarios: "",
+    metodo_pago: "",
   });
   
   const [servicios, setServicios] = useState([]);
-  const [bloquesOcupados, setBloquesOcupados] = useState([]); // [{inicio: min, fin: min}]
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
 
@@ -58,30 +54,6 @@ export default function ReservaForm() {
     );
   }
 
-  const cargarBloquesOcupados = async (fecha) => {
-    if (!fecha) return;
-    
-    try {
-      const fechaStr = fecha.toISOString().split("T")[0];
-      const todas = await getCitas();
-      // Mapa de duración por servicio
-      const mapDuracion = new Map(servicios.map(s => [s.nombre, Number(s.duracion || 60)]));
-      const delDia = (todas || []).filter(c => c.fecha === fechaStr && c.estado !== 'cancelada');
-      const toMin = (hhmm) => {
-        const [h, m] = hhmm.split(":").map(n => parseInt(n, 10));
-        return h * 60 + m;
-      };
-      const bloques = delDia.map(c => {
-        const inicio = toMin(c.hora);
-        const dur = mapDuracion.get(c.servicio) || 60;
-        return { inicio, fin: inicio + dur };
-      });
-      setBloquesOcupados(bloques);
-    } catch (error) {
-      console.error("Error al cargar bloques ocupados:", error);
-    }
-  };
-
   const mostrarMensaje = (texto, tipo) => {
     setMensaje({ texto, tipo });
     setTimeout(() => setMensaje({ texto: "", tipo: "" }), 5000);
@@ -92,13 +64,6 @@ export default function ReservaForm() {
 
   const handleServicioSelect = (nombre) => {
     setForm({ ...form, servicio: nombre });
-    // Si ya hay fecha seleccionada, recargar bloques para ese día
-    if (form.fechaHora) cargarBloquesOcupados(form.fechaHora);
-  };
-
-  const handleFechaChange = (fecha) => {
-    setForm({ ...form, fechaHora: fecha });
-    cargarBloquesOcupados(fecha);
   };
 
   const handleSubmit = async (e) => {
@@ -120,21 +85,34 @@ export default function ReservaForm() {
       return;
     }
 
-    if (!form.fechaHora) {
-      mostrarMensaje("Por favor selecciona fecha y hora", "error");
+    if (!form.metodo_pago) {
+      mostrarMensaje("Selecciona un método de pago", "error");
       setLoading(false);
       return;
     }
 
-    // Formato correcto de hora HH:MM (24 horas)
-    const hours = form.fechaHora.getHours().toString().padStart(2, '0');
-    const minutes = form.fechaHora.getMinutes().toString().padStart(2, '0');
-
+    // Generar solo fecha (hoy) y hora vacía (orden de llegada)
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    
     const citaData = {
-      ...form,
-      fecha: form.fechaHora.toISOString().split("T")[0],
-      hora: `${hours}:${minutes}`,
+      cliente: form.cliente,
+      telefono: form.telefono,
+      email: form.email,
+      placa: form.placa,
+      marca: form.marca,
+      modelo: form.modelo,
+      cilindraje: form.cilindraje,
+      servicio: form.servicio,
+      metodo_pago: form.metodo_pago,
+      comentarios: form.comentarios,
+      fecha: `${yyyy}-${mm}-${dd}`,
+      hora: null,
     };
+
+    console.log('📤 Enviando datos:', citaData);
 
     try {
       await addCita(citaData);
@@ -150,28 +128,15 @@ export default function ReservaForm() {
         modelo: "",
         cilindraje: "",
         servicio: "",
-        fechaHora: null,
         comentarios: "",
+        metodo_pago: "",
       });
-      setBloquesOcupados([]);
       
     } catch (error) {
       mostrarMensaje(error.message, "error");
     } finally {
       setLoading(false);
     }
-  };
-
-  const horasDisponibles = (time) => {
-    // Requiere seleccionar servicio para evaluar duración
-    const servicioSel = servicios.find(s => s.nombre === form.servicio);
-    const dur = servicioSel ? Number(servicioSel.duracion || 60) : 60;
-    const date = new Date(time);
-    const inicio = date.getHours() * 60 + date.getMinutes();
-    const fin = inicio + dur;
-    const enHorario = inicio >= 8 * 60 && fin <= 18 * 60; // 8:00 a 18:00
-    const solapa = bloquesOcupados.some(b => inicio < b.fin && fin > b.inicio);
-    return enHorario && !solapa;
   };
 
   return (
@@ -258,6 +223,30 @@ export default function ReservaForm() {
           required
         />
 
+        <h3>Método de pago</h3>
+        <div className="metodo-pago-group">
+          <label className={`opcion-pago ${form.metodo_pago === 'codigo_qr' ? 'selected' : ''}`}> 
+            <input
+              type="radio"
+              name="metodo_pago"
+              value="codigo_qr"
+              checked={form.metodo_pago === 'codigo_qr'}
+              onChange={handleChange}
+            />
+            <span>📲 Código QR</span>
+          </label>
+          <label className={`opcion-pago ${form.metodo_pago === 'efectivo' ? 'selected' : ''}`}> 
+            <input
+              type="radio"
+              name="metodo_pago"
+              value="efectivo"
+              checked={form.metodo_pago === 'efectivo'}
+              onChange={handleChange}
+            />
+            <span>💵 Efectivo</span>
+          </label>
+        </div>
+
         <h3>Selecciona tu servicio</h3>
         {(() => {
           const ccNumber = parseInt(form.cilindraje);
@@ -316,25 +305,9 @@ export default function ReservaForm() {
           );
         })()}
 
-        <h3>Selecciona fecha y hora</h3>
-        {form.fechaHora && bloquesOcupados.length > 0 && (
-          <div className="horarios-info">
-            <p className="text-sm text-gray-600">⚠️ Hay citas ocupando bloques en esta fecha</p>
-          </div>
-        )}
-        
-        <DatePicker
-          selected={form.fechaHora}
-          onChange={handleFechaChange}
-          showTimeSelect
-          timeIntervals={30}
-          minDate={new Date()}
-          filterTime={horasDisponibles}
-          dateFormat="dd/MM/yyyy h:mm aa"
-          locale={es}
-          placeholderText="Selecciona fecha y hora"
-          className="input-fecha"
-        />
+        <div className="aviso-orden" style={{marginTop: '8px', marginBottom: '16px', fontSize: '14px'}}>
+          ⏱️ Se atiende por <strong>orden de llegada</strong>. No necesitas elegir hora.
+        </div>
 
         <textarea
           name="comentarios"

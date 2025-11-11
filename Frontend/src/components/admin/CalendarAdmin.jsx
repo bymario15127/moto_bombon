@@ -1,12 +1,12 @@
 // src/components/admin/CalendarAdmin.jsx
 import { useState, useEffect } from 'react';
-import DatePicker from 'react-datepicker';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getCitas, updateCita } from '../../services/citasService';
 
 const CalendarAdmin = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [citas, setCitas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dayAppointments, setDayAppointments] = useState([]);
@@ -22,6 +22,8 @@ const CalendarAdmin = () => {
       const selectedKey = format(selectedDate, 'yyyy-MM-dd');
       const filtered = citas.filter(cita => cita.fecha === selectedKey);
       setDayAppointments(filtered);
+    } else {
+      setDayAppointments([]);
     }
   }, [selectedDate, citas]);
 
@@ -63,6 +65,30 @@ const CalendarAdmin = () => {
   // Helper para obtener la llave de fecha en formato YYYY-MM-DD
   const getDateKey = (date) => format(date, 'yyyy-MM-dd');
 
+  // Generar días del mes actual
+  const getDaysInMonth = () => {
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
+    return eachDayOfInterval({ start, end });
+  };
+
+  const hasAppointments = (date) => {
+    const dateKey = getDateKey(date);
+    return citas.some(cita => cita.fecha === dateKey);
+  };
+
+  const handlePreviousMonth = () => {
+    setCurrentMonth(prev => subMonths(prev, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(prev => addMonths(prev, 1));
+  };
+
+  const handleDayClick = (day) => {
+    setSelectedDate(day);
+  };
+
   return (
     <div className="calendar-page">
       <h2 className="page-title">📅 Calendario de Citas</h2>
@@ -71,18 +97,44 @@ const CalendarAdmin = () => {
         {/* Calendario */}
         <div className="card">
           <h3 className="card-title">Seleccionar Fecha</h3>
-          <div className="calendar-container">
-            <DatePicker
-              selected={selectedDate}
-              onChange={setSelectedDate}
-              inline
-              locale={es}
-              className="w-full"
-              dayClassName={(date) => {
-                const hasAppointment = citas.some(cita => cita.fecha === getDateKey(date));
-                return hasAppointment ? 'has-appointment' : '';
-              }}
-            />
+          <div className="custom-calendar">
+            {/* Header con mes y año */}
+            <div className="calendar-header">
+              <button onClick={handlePreviousMonth} className="calendar-nav-btn">◀</button>
+              <h4 className="calendar-month">
+                {format(currentMonth, 'MMMM yyyy', { locale: es })}
+              </h4>
+              <button onClick={handleNextMonth} className="calendar-nav-btn">▶</button>
+            </div>
+
+            {/* Días de la semana */}
+            <div className="calendar-weekdays">
+              <div>Dom</div>
+              <div>Lun</div>
+              <div>Mar</div>
+              <div>Mié</div>
+              <div>Jue</div>
+              <div>Vie</div>
+              <div>Sáb</div>
+            </div>
+
+            {/* Grid de días */}
+            <div className="calendar-days">
+              {getDaysInMonth().map((day, idx) => {
+                const isSelected = isSameDay(day, selectedDate);
+                const hasCitas = hasAppointments(day);
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleDayClick(day)}
+                    className={`calendar-day ${isSelected ? 'selected' : ''} ${hasCitas ? 'has-citas' : ''}`}
+                  >
+                    {format(day, 'd')}
+                    {hasCitas && <span className="cita-dot"></span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -112,8 +164,8 @@ const CalendarAdmin = () => {
                       <h4 className="apt-title">{cita.cliente}</h4>
                       <p className="apt-line">📞 {cita.telefono}</p>
                       {cita.email && <p className="apt-line">📧 {cita.email}</p>}
-                      <p className="apt-line">🕐 {formatTime(cita.hora)}</p>
-                      <p className="apt-line">💅 {cita.servicio}</p>
+                      <p className="apt-line">🕐 {cita.hora ? formatTime(cita.hora) : '— (orden de llegada)'}</p>
+                      <p className="apt-line">🏍️ {cita.servicio}</p>
                     </div>
                     <span className={`badge ${getStatusColor(cita.estado)}`}>
                       {cita.estado}
@@ -135,6 +187,11 @@ const CalendarAdmin = () => {
                         {cita.modelo && <div>Modelo: {cita.modelo}</div>}
                         {cita.cilindraje && <div>Cilindraje: {cita.cilindraje} cc</div>}
                       </div>
+                    </div>
+                  )}
+                  {cita.metodo_pago && (
+                    <div className="apt-notes" style={{borderTop: '1px dashed #e5e7eb', paddingTop: '8px', marginTop: '8px'}}>
+                      <strong>💳 Método de pago:</strong> {cita.metodo_pago === 'codigo_qr' ? 'Código QR' : 'Efectivo'}
                     </div>
                   )}
 

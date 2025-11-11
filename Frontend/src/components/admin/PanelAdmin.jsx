@@ -70,7 +70,7 @@ export default function PanelAdmin() {
               <div className="cita-details">
                 <div>
                   <p className="detail-item">📅 <strong>Fecha:</strong> {capitalizar(formatearFecha(c.fecha))}</p>
-                  <p className="detail-item">🕐 <strong>Hora:</strong> {c.hora}</p>
+                  <p className="detail-item">🕐 <strong>Hora:</strong> {c.hora || '— (orden de llegada)'}</p>
                 </div>
                 <div>
                   <p className="detail-item">📞 <strong>Teléfono:</strong> {c.telefono || 'No proporcionado'}</p>
@@ -88,6 +88,11 @@ export default function PanelAdmin() {
                     {c.marca && <p className="detail-item">🔧 <strong>Marca:</strong> {c.marca}</p>}
                     {c.modelo && <p className="detail-item">📋 <strong>Modelo:</strong> {c.modelo}</p>}
                     {c.cilindraje && <p className="detail-item">⚙️ <strong>Cilindraje:</strong> {c.cilindraje} cc</p>}
+                  </div>
+                )}
+                {c.metodo_pago && (
+                  <div style={{gridColumn: '1 / -1', borderTop: '1px dashed #e5e7eb', paddingTop: '12px', marginTop: '8px'}}>
+                    <p className="detail-item">💳 <strong>Método de pago:</strong> {c.metodo_pago === 'codigo_qr' ? 'Código QR' : 'Efectivo'}</p>
                   </div>
                 )}
               </div>
