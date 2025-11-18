@@ -1,0 +1,326 @@
+// backend/routes/nomina.js
+import express from "express";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+import path from "path";
+import { fileURLToPath } from "url";
+import * as XLSX from 'xlsx';
+
+const router = express.Router();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let db;
+(async () => {
+  db = await open({
+    filename: path.join(__dirname, "../database/database.sqlite"),
+    driver: sqlite3.Database,
+  });
+})();
+
+// GET /api/nomina?mes=11&anio=2025&quincena=1
+router.get("/", async (req, res) => {
+  try {
+    const { mes, anio, quincena } = req.query;
+    
+    // Si no se especifica, usar mes, año y quincena actual
+    const now = new Date();
+    const mesActual = mes || (now.getMonth() + 1);
+    const anioActual = anio || now.getFullYear();
+    const quincenaActual = quincena || (now.getDate() <= 15 ? 1 : 2);
+    
+    // Construir fechas de inicio y fin según la quincena
+    let fechaInicio, fechaFin;
+    if (quincenaActual == 1) {
+      // Quincena 1: día 1 al 15
+      fechaInicio = `${anioActual}-${String(mesActual).padStart(2, '0')}-01`;
+      fechaFin = `${anioActual}-${String(mesActual).padStart(2, '0')}-15`;
+    } else {
+      // Quincena 2: día 16 al último día del mes
+      const ultimoDia = new Date(anioActual, mesActual, 0).getDate();
+      fechaInicio = `${anioActual}-${String(mesActual).padStart(2, '0')}-16`;
+      fechaFin = `${anioActual}-${String(mesActual).padStart(2, '0')}-${ultimoDia}`;
+    }
+    
+    // Obtener todos los lavadores activos
+    const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1 ORDER BY nombre");
+    
+    // Obtener citas finalizadas O confirmadas de la quincena con información del servicio
+    const citasFinalizadas = await db.all(`
+      SELECT 
+        c.*,
+        s.precio as precio_servicio,
+        s.precio_bajo_cc,
+        s.precio_alto_cc,
+        l.nombre as lavador_nombre,
+        l.comision_porcentaje
+      FROM citas c
+      LEFT JOIN servicios s ON s.nombre = c.servicio
+      LEFT JOIN lavadores l ON l.id = c.lavador_id
+      WHERE c.estado IN ('finalizada', 'confirmada')
+        AND c.fecha >= ?
+        AND c.fecha <= ?
+        AND c.lavador_id IS NOT NULL
+      ORDER BY c.fecha, c.hora
+    `, [fechaInicio, fechaFin]);
+    
+    // Calcular estadísticas por lavador
+    const reportePorLavador = lavadores.map(lavador => {
+      const citasDelLavador = citasFinalizadas.filter(c => c.lavador_id === lavador.id);
+      
+      let totalGenerado = 0;
+      citasDelLavador.forEach(cita => {
+        // Determinar el precio según el cilindraje
+        let precio = cita.precio_servicio || 0;
+        if (cita.cilindraje && cita.precio_bajo_cc && cita.precio_alto_cc) {
+          const cc = parseInt(cita.cilindraje);
+          if (cc >= 100 && cc <= 405) {
+            precio = cita.precio_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precio = cita.precio_alto_cc;
+          }
+        }
+        totalGenerado += precio;
+      });
+      
+      const comision = totalGenerado * (lavador.comision_porcentaje / 100);
+      
+      return {
+        lavador_id: lavador.id,
+        nombre: lavador.nombre,
+        cedula: lavador.cedula,
+        comision_porcentaje: lavador.comision_porcentaje,
+        cantidad_servicios: citasDelLavador.length,
+        total_generado: totalGenerado,
+        comision_a_pagar: comision,
+        citas: citasDelLavador
+      };
+    });
+    
+    // Calcular totales generales
+    const totalServicios = citasFinalizadas.length;
+    const totalIngresos = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
+    const totalNomina = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
+    const gananciaNeta = totalIngresos - totalNomina;
+    
+    // Estadísticas por tipo de servicio
+    const serviciosUnicos = [...new Set(citasFinalizadas.map(c => c.servicio))];
+    const estadisticasPorServicio = serviciosUnicos.map(servicio => {
+      const citasDelServicio = citasFinalizadas.filter(c => c.servicio === servicio);
+      const ingreso = citasDelServicio.reduce((sum, c) => {
+        let precio = c.precio_servicio || 0;
+        if (c.cilindraje && c.precio_bajo_cc && c.precio_alto_cc) {
+          const cc = parseInt(c.cilindraje);
+          if (cc >= 100 && cc <= 405) {
+            precio = c.precio_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precio = c.precio_alto_cc;
+          }
+        }
+        return sum + precio;
+      }, 0);
+      
+      return {
+        servicio,
+        cantidad: citasDelServicio.length,
+        ingreso_total: ingreso,
+        porcentaje: totalIngresos > 0 ? ((ingreso / totalIngresos) * 100).toFixed(2) : 0
+      };
+    });
+    
+    res.json({
+      periodo: {
+        mes: mesActual,
+        anio: anioActual,
+        quincena: quincenaActual,
+        fecha_inicio: fechaInicio,
+        fecha_fin: fechaFin
+      },
+      resumen: {
+        total_servicios: totalServicios,
+        total_ingresos: totalIngresos,
+        total_nomina: totalNomina,
+        ganancia_neta: gananciaNeta,
+        margen_porcentaje: totalIngresos > 0 ? ((gananciaNeta / totalIngresos) * 100).toFixed(2) : 0
+      },
+      lavadores: reportePorLavador,
+      servicios: estadisticasPorServicio
+    });
+    
+  } catch (error) {
+    console.error("Error al generar reporte de nómina:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// GET /api/nomina/exportar-excel?mes=11&anio=2025
+router.get("/exportar-excel", async (req, res) => {
+  try {
+    const { mes, anio } = req.query;
+    
+    const now = new Date();
+    const mesActual = mes || (now.getMonth() + 1);
+    const anioActual = anio || now.getFullYear();
+    
+    const fechaInicio = `${anioActual}-${String(mesActual).padStart(2, '0')}-01`;
+    const ultimoDia = new Date(anioActual, mesActual, 0).getDate();
+    const fechaFin = `${anioActual}-${String(mesActual).padStart(2, '0')}-${ultimoDia}`;
+    
+    // Reutilizar la lógica del endpoint GET /
+    const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1 ORDER BY nombre");
+    
+    const citasFinalizadas = await db.all(`
+      SELECT 
+        c.*,
+        s.precio as precio_servicio,
+        s.precio_bajo_cc,
+        s.precio_alto_cc,
+        l.nombre as lavador_nombre,
+        l.comision_porcentaje
+      FROM citas c
+      LEFT JOIN servicios s ON s.nombre = c.servicio
+      LEFT JOIN lavadores l ON l.id = c.lavador_id
+      WHERE c.estado = 'finalizada'
+        AND c.fecha >= ?
+        AND c.fecha <= ?
+        AND c.lavador_id IS NOT NULL
+      ORDER BY c.fecha, c.hora
+    `, [fechaInicio, fechaFin]);
+    
+    const reportePorLavador = lavadores.map(lavador => {
+      const citasDelLavador = citasFinalizadas.filter(c => c.lavador_id === lavador.id);
+      
+      let totalGenerado = 0;
+      citasDelLavador.forEach(cita => {
+        let precio = cita.precio_servicio || 0;
+        if (cita.cilindraje && cita.precio_bajo_cc && cita.precio_alto_cc) {
+          const cc = parseInt(cita.cilindraje);
+          if (cc >= 100 && cc <= 405) {
+            precio = cita.precio_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precio = cita.precio_alto_cc;
+          }
+        }
+        totalGenerado += precio;
+      });
+      
+      const comision = totalGenerado * (lavador.comision_porcentaje / 100);
+      
+      return {
+        lavador_id: lavador.id,
+        nombre: lavador.nombre,
+        cedula: lavador.cedula,
+        comision_porcentaje: lavador.comision_porcentaje,
+        cantidad_servicios: citasDelLavador.length,
+        total_generado: totalGenerado,
+        comision_a_pagar: comision
+      };
+    });
+    
+    const totalServicios = citasFinalizadas.length;
+    const totalIngresos = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
+    const totalNomina = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
+    const gananciaNeta = totalIngresos - totalNomina;
+    
+    const serviciosUnicos = [...new Set(citasFinalizadas.map(c => c.servicio))];
+    const estadisticasPorServicio = serviciosUnicos.map(servicio => {
+      const citasDelServicio = citasFinalizadas.filter(c => c.servicio === servicio);
+      const ingreso = citasDelServicio.reduce((sum, c) => {
+        let precio = c.precio_servicio || 0;
+        if (c.cilindraje && c.precio_bajo_cc && c.precio_alto_cc) {
+          const cc = parseInt(c.cilindraje);
+          if (cc >= 100 && cc <= 405) {
+            precio = c.precio_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precio = c.precio_alto_cc;
+          }
+        }
+        return sum + precio;
+      }, 0);
+      
+      return {
+        servicio,
+        cantidad: citasDelServicio.length,
+        ingreso_total: ingreso,
+        porcentaje: totalIngresos > 0 ? ((ingreso / totalIngresos) * 100).toFixed(2) : 0
+      };
+    });
+    
+    // Crear el libro de Excel
+    const workbook = XLSX.utils.book_new();
+    
+    // HOJA 1: Resumen General
+    const resumenData = [
+      ['REPORTE DE NÓMINA - MOTOBOMBON'],
+      [`Período: ${getNombreMes(mesActual)} ${anioActual}`],
+      [`Del ${fechaInicio} al ${fechaFin}`],
+      [],
+      ['RESUMEN FINANCIERO'],
+      ['Total de Servicios', totalServicios],
+      ['Total Ingresos', `$${totalIngresos.toLocaleString('es-CO')}`],
+      ['Total Nómina a Pagar', `$${totalNomina.toLocaleString('es-CO')}`],
+      ['Ganancia Neta', `$${gananciaNeta.toLocaleString('es-CO')}`],
+      ['Margen de Ganancia', `${totalIngresos > 0 ? ((gananciaNeta / totalIngresos) * 100).toFixed(2) : 0}%`],
+    ];
+    const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+    XLSX.utils.book_append_sheet(workbook, wsResumen, 'Resumen General');
+    
+    // HOJA 2: Nómina Detallada
+    const nominaData = [
+      ['Lavador', 'Cédula', 'Servicios', 'Total Generado', '% Comisión', 'A Pagar']
+    ];
+    reportePorLavador.forEach(lav => {
+      nominaData.push([
+        lav.nombre,
+        lav.cedula || 'N/A',
+        lav.cantidad_servicios,
+        `$${lav.total_generado.toLocaleString('es-CO')}`,
+        `${lav.comision_porcentaje}%`,
+        `$${lav.comision_a_pagar.toLocaleString('es-CO')}`
+      ]);
+    });
+    nominaData.push([]);
+    nominaData.push(['TOTAL', '', totalServicios, `$${totalIngresos.toLocaleString('es-CO')}`, '', `$${totalNomina.toLocaleString('es-CO')}`]);
+    
+    const wsNomina = XLSX.utils.aoa_to_sheet(nominaData);
+    XLSX.utils.book_append_sheet(workbook, wsNomina, 'Nómina Detallada');
+    
+    // HOJA 3: Ingresos por Servicio
+    const serviciosData = [
+      ['Servicio', 'Cantidad', 'Ingreso Total', '% del Total']
+    ];
+    estadisticasPorServicio.forEach(srv => {
+      serviciosData.push([
+        srv.servicio,
+        srv.cantidad,
+        `$${srv.ingreso_total.toLocaleString('es-CO')}`,
+        `${srv.porcentaje}%`
+      ]);
+    });
+    
+    const wsServicios = XLSX.utils.aoa_to_sheet(serviciosData);
+    XLSX.utils.book_append_sheet(workbook, wsServicios, 'Ingresos por Servicio');
+    
+    // Generar el archivo Excel en formato buffer
+    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    // Enviar como descarga
+    const nombreArchivo = `Nomina_${getNombreMes(mesActual)}_${anioActual}.xlsx`;
+    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(excelBuffer);
+    
+  } catch (error) {
+    console.error("Error al generar Excel:", error);
+    res.status(500).json({ error: "Error al generar archivo Excel" });
+  }
+});
+
+function getNombreMes(mes) {
+  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return meses[parseInt(mes) - 1];
+}
+
+export default router;

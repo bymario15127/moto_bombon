@@ -9,6 +9,8 @@ export default function Sidebar({ activeView, setActiveView, onLogout }) {
     { id: 'calendar', icon: '📅', label: 'Calendario' },
     { id: 'appointments', icon: '📋', label: 'Citas' },
     { id: 'services', icon: '🏍️', label: 'Servicios' },
+    { id: 'lavadores', icon: '👤', label: 'Lavadores' },
+    { id: 'nomina', icon: '💰', label: 'Nómina' },
     { id: 'settings', icon: '⚙️', label: 'Ajustes' },
   ];
 

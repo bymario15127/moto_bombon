@@ -22,10 +22,24 @@ export default function ReservaForm() {
 
   const loadServicios = async () => {
     try {
+      console.log('🔍 Intentando cargar servicios desde API...');
       const data = await serviciosService.getServicios();
-      setServicios(data);
+      console.log('✅ Servicios cargados:', data);
+      
+      if (Array.isArray(data) && data.length > 0) {
+        setServicios(data);
+      } else {
+        console.warn('⚠️ No se obtuvieron servicios de la API, usando fallback');
+        // Fallback a servicios por defecto si no hay datos
+        const fallbackServicios = [
+          { id: 1, nombre: "Lavado Básico", precio: 15000, duracion: 30, descripcion: "Lavado exterior completo", img: "/img/lavado-basico.jpg" },
+          { id: 2, nombre: "Lavado Premium", precio: 25000, duracion: 60, descripcion: "Lavado + encerado y brillo", img: "/img/lavado-premium.jpg" },
+          { id: 3, nombre: "Lavado Detallado", precio: 40000, duracion: 90, descripcion: "Lavado completo + motor + protección", img: "/img/lavado-detallado.jpg" },
+        ];
+        setServicios(fallbackServicios);
+      }
     } catch (error) {
-      console.error('Error al cargar servicios:', error);
+      console.error('❌ Error al cargar servicios:', error);
       // Fallback a servicios por defecto si hay error
       const fallbackServicios = [
         { id: 1, nombre: "Lavado Básico", precio: 15000, duracion: 30, descripcion: "Lavado exterior completo", img: "/img/lavado-basico.jpg" },

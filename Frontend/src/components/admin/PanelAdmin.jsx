@@ -1,9 +1,11 @@
 // src/components/Admin/PanelAdmin.jsx
 import { useEffect, useState } from "react";
 import { getCitas, deleteCita, updateCita } from "../../services/citasService";
+import { getLavadoresActivos } from "../../services/lavadoresService";
 
 export default function PanelAdmin() {
   const [citas, setCitas] = useState([]);
+  const [lavadores, setLavadores] = useState([]);
 
   // Función para formatear fecha correctamente sin problemas de timezone
   const formatearFecha = (fechaStr) => {
@@ -25,8 +27,18 @@ export default function PanelAdmin() {
     setCitas(data);
   };
 
+  const loadLavadores = async () => {
+    try {
+      const data = await getLavadoresActivos();
+      setLavadores(data);
+    } catch (error) {
+      console.error('Error al cargar lavadores:', error);
+    }
+  };
+
   useEffect(() => {
     load();
+    loadLavadores();
   }, []);
 
   const handleDelete = async (id) => {
@@ -38,6 +50,16 @@ export default function PanelAdmin() {
   const changeEstado = async (id, nuevoEstado) => {
     await updateCita(id, { estado: nuevoEstado });
     load();
+  };
+
+  const updateCitaLavador = async (id, lavadorId) => {
+    try {
+      await updateCita(id, { lavador_id: lavadorId });
+      load();
+    } catch (error) {
+      console.error('Error al asignar lavador:', error);
+      alert('Error al asignar el lavador');
+    }
   };
 
   return (
@@ -95,6 +117,40 @@ export default function PanelAdmin() {
                     <p className="detail-item">💳 <strong>Método de pago:</strong> {c.metodo_pago === 'codigo_qr' ? 'Código QR' : 'Efectivo'}</p>
                   </div>
                 )}
+                {c.lavador_nombre && (
+                  <div style={{gridColumn: '1 / -1', borderTop: '1px solid #e5e7eb', paddingTop: '12px', marginTop: '8px'}}>
+                    <p className="detail-item">👤 <strong>Lavador asignado:</strong> {c.lavador_nombre}</p>
+                  </div>
+                )}
+                <div style={{gridColumn: '1 / -1', borderTop: '1px solid #e5e7eb', paddingTop: '12px', marginTop: '8px'}}>
+                  <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#374151'}}>
+                    👤 Asignar lavador:
+                  </label>
+                  <select
+                    value={c.lavador_id || ''}
+                    onChange={(e) => updateCitaLavador(c.id, e.target.value || null)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(102, 126, 234, 0.3)',
+                      fontSize: '14px',
+                      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                      color: '#1f2937',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      outline: 'none',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <option value="">Sin asignar</option>
+                    {lavadores.map(lav => (
+                      <option key={lav.id} value={lav.id}>
+                        {lav.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               
               <div className="cita-actions">

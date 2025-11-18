@@ -1,0 +1,400 @@
+// src/components/admin/LavadoresManager.jsx
+import { useState, useEffect } from 'react';
+import { getLavadores, addLavador, updateLavador, deleteLavador } from '../../services/lavadoresService';
+
+const LavadoresManager = () => {
+  const [lavadores, setLavadores] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingLavador, setEditingLavador] = useState(null);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    cedula: '',
+    activo: 1,
+    comision_porcentaje: 30.0
+  });
+
+  useEffect(() => {
+    loadLavadores();
+  }, []);
+
+  const loadLavadores = async () => {
+    try {
+      setLoading(true);
+      const data = await getLavadores();
+      setLavadores(data);
+    } catch (error) {
+      console.error('Error al cargar lavadores:', error);
+      alert('Error al cargar lavadores');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      if (editingLavador) {
+        await updateLavador(editingLavador.id, formData);
+        alert('✅ Lavador actualizado exitosamente');
+      } else {
+        await addLavador(formData);
+        alert('✅ Lavador creado exitosamente');
+      }
+      
+      setShowModal(false);
+      setEditingLavador(null);
+      setFormData({ nombre: '', cedula: '', activo: 1, comision_porcentaje: 30.0 });
+      loadLavadores();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const handleEdit = (lavador) => {
+    setEditingLavador(lavador);
+    setFormData({
+      nombre: lavador.nombre,
+      cedula: lavador.cedula || '',
+      activo: lavador.activo,
+      comision_porcentaje: lavador.comision_porcentaje || 30.0
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('¿Estás seguro de desactivar este lavador?')) return;
+    
+    try {
+      await deleteLavador(id);
+      alert('✅ Lavador desactivado');
+      loadLavadores();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingLavador(null);
+    setFormData({ nombre: '', cedula: '', activo: 1, comision_porcentaje: 30.0 });
+  };
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>👤 Gestión de Lavadores</h2>
+        <button
+          onClick={() => setShowModal(true)}
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          + Nuevo Lavador
+        </button>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <div style={{ 
+            border: '4px solid #f3f3f3',
+            borderTop: '4px solid #667eea',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto'
+          }}></div>
+          <p style={{ marginTop: '10px' }}>Cargando lavadores...</p>
+        </div>
+      ) : (
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+          gap: '20px' 
+        }}>
+          {lavadores.map((lavador) => (
+            <div
+              key={lavador.id}
+              style={{
+                background: 'linear-gradient(135deg, rgba(235, 4, 99, 0.05) 0%, rgba(166, 84, 149, 0.05) 100%)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                border: '2px solid #EB0463',
+                backdropFilter: 'blur(10px)',
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(235, 4, 99, 0.4)';
+                e.currentTarget.style.border = '2px solid #a65495';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                e.currentTarget.style.border = '2px solid #EB0463';
+              }}
+            >
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0, color: '#1f2937' }}>
+                    {lavador.nombre}
+                  </h3>
+                  <span style={{
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    background: lavador.activo ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: 'white',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                  }}>
+                    {lavador.activo ? '✓ Activo' : '✗ Inactivo'}
+                  </span>
+                </div>
+              </div>
+
+              {lavador.cedula && (
+                <p style={{ margin: '10px 0', color: '#4b5563', fontSize: '15px', fontWeight: '500' }}>
+                  🆔 {lavador.cedula}
+                </p>
+              )}
+
+              <p style={{ margin: '10px 0', color: '#10b981', fontSize: '16px', fontWeight: 'bold' }}>
+                💰 Comisión: {lavador.comision_porcentaje || 30}%
+              </p>
+
+              <p style={{ margin: '8px 0', fontSize: '13px', color: '#6b7280' }}>
+                📅 Registro: {new Date(lavador.created_at).toLocaleDateString()}
+              </p>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button
+                  onClick={() => handleEdit(lavador)}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    color: 'white',
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.3)';
+                  }}
+                >
+                  ✏️ Editar
+                </button>
+                {lavador.activo === 1 && (
+                  <button
+                    onClick={() => handleDelete(lavador.id)}
+                    style={{
+                      flex: 1,
+                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                      color: 'white',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)';
+                    }}
+                  >
+                    🗑️ Desactivar
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {lavadores.length === 0 && !loading && (
+        <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+          <p>No hay lavadores registrados</p>
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '90%',
+            maxWidth: '500px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ marginBottom: '20px', fontSize: '20px' }}>
+              {editingLavador ? '✏️ Editar Lavador' : '➕ Nuevo Lavador'}
+            </h3>
+
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
+                  Nombre completo *
+                </label>
+                <input
+                  type="text"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    backgroundColor: '#fff',
+                    color: '#000',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
+                  Cédula
+                </label>
+                <input
+                  type="text"
+                  value={formData.cedula}
+                  onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
+                  placeholder="1234567890"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    backgroundColor: '#fff',
+                    color: '#000',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
+                  💰 Comisión (%)
+                </label>
+                <input
+                  type="number"
+                  value={formData.comision_porcentaje}
+                  onChange={(e) => setFormData({ ...formData, comision_porcentaje: parseFloat(e.target.value) || 0 })}
+                  placeholder="30"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    backgroundColor: '#fff',
+                    color: '#000',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <small style={{ color: '#666', fontSize: '12px' }}>
+                  Porcentaje que gana el lavador por cada servicio completado
+                </small>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', color: '#333' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.activo === 1}
+                    onChange={(e) => setFormData({ ...formData, activo: e.target.checked ? 1 : 0 })}
+                    style={{ marginRight: '8px', width: '16px', height: '16px' }}
+                  />
+                  <span>Lavador activo</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    background: '#f3f4f6',
+                    color: '#374151',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '14px'
+                  }}
+                >
+                  {editingLavador ? 'Actualizar' : 'Crear'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default LavadoresManager;

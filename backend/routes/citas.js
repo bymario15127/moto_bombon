@@ -31,9 +31,15 @@ let db;
 // GET all
 router.get("/", async (req, res) => {
   try {
-    const citas = await db.all("SELECT * FROM citas ORDER BY fecha, hora");
+    const citas = await db.all(`
+      SELECT c.*, l.nombre as lavador_nombre 
+      FROM citas c
+      LEFT JOIN lavadores l ON c.lavador_id = l.id
+      ORDER BY c.fecha, c.hora
+    `);
     res.json(citas);
   } catch (error) {
+    console.error("Error al obtener citas:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
@@ -67,7 +73,7 @@ const toMinutes = (hhmm) => {
 router.post("/", async (req, res) => {
   try {
     console.log("📥 [POST /api/citas] Payload recibido:", req.body);
-    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago } = req.body;
+    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id } = req.body;
     
     if (!cliente || !servicio) {
       return res.status(400).json({ error: "Campos obligatorios: cliente, servicio" });
@@ -145,8 +151,8 @@ router.post("/", async (req, res) => {
     
     try {
       const result = await db.run(
-        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null]
+        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null]
       );
       console.log("✅ Cita insertada ID=", result.lastID);
       return res.status(201).json({ id: result.lastID, message: "Cita creada exitosamente" });
@@ -175,7 +181,7 @@ router.put("/:id", async (req, res) => {
     
     const updates = [];
     const values = [];
-  const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago'];
+  const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago', 'lavador_id'];
     
     for (const key of Object.keys(fields)) {
       if (!allowedFields.includes(key)) {

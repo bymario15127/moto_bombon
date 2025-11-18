@@ -195,6 +195,12 @@ const CalendarAdmin = () => {
                     </div>
                   )}
 
+                  {cita.lavador_nombre && (
+                    <div className="apt-notes" style={{borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '8px'}}>
+                      <strong>👤 Lavador asignado:</strong> {cita.lavador_nombre}
+                    </div>
+                  )}
+
                   <div className="apt-actions">
                     {cita.estado === 'pendiente' && (
                       <button
