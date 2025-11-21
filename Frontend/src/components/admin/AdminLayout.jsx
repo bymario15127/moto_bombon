@@ -5,6 +5,8 @@ import Dashboard from "./Dashboard";
 import CalendarAdmin from "./CalendarAdmin";
 import PanelAdmin from "./PanelAdmin";
 import ServiciosManager from "./ServiciosManager";
+import LavadoresManager from "./LavadoresManager";
+import NominaManager from "./NominaManager";
 
 export default function AdminLayout() {
   const [activeView, setActiveView] = useState('dashboard');
@@ -21,6 +23,8 @@ export default function AdminLayout() {
         case 'calendar': return 'Calendario';
         case 'appointments': return 'Citas';
         case 'services': return 'Servicios';
+        case 'lavadores': return 'Lavadores';
+        case 'nomina': return 'Nómina y CRM';
         case 'settings': return 'Ajustes';
         default: return 'Dashboard';
       }
@@ -36,6 +40,8 @@ export default function AdminLayout() {
             {activeView === 'calendar' && 'Gestiona las citas en el calendario'}
             {activeView === 'appointments' && 'Administra las reservas de clientes'}
             {activeView === 'services' && 'Configura servicios y precios'}
+            {activeView === 'lavadores' && 'Administra el equipo de trabajo'}
+            {activeView === 'nomina' && 'Control financiero y reportes de nómina'}
             {activeView === 'settings' && 'Preferencias y configuración del sistema'}
           </p>
         </div>
@@ -52,6 +58,10 @@ export default function AdminLayout() {
                 return <PanelAdmin />;
               case 'services':
                 return <ServiciosManager />;
+              case 'lavadores':
+                return <LavadoresManager />;
+              case 'nomina':
+                return <NominaManager />;
               case 'settings':
                 return <div className="bg-white rounded-lg shadow-md p-8 text-center">
                   <div className="text-6xl mb-4">🚧</div>

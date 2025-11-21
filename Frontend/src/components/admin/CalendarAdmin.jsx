@@ -41,6 +41,14 @@ const CalendarAdmin = () => {
 
   const updateCitaStatus = async (id, newStatus) => {
     try {
+      // Si se está finalizando, verificar que tenga lavador asignado
+      if (newStatus === 'finalizada') {
+        const cita = citas.find(c => c.id === id);
+        if (!cita.lavador_id) {
+          alert("⚠️ Debes asignar un lavador antes de finalizar la cita");
+          return;
+        }
+      }
       await updateCita(id, { estado: newStatus });
       await loadCitas(); // Recargar citas
     } catch (error) {
@@ -195,6 +203,20 @@ const CalendarAdmin = () => {
                     </div>
                   )}
 
+                  {cita.lavador_nombre && (
+                    <div className="apt-notes" style={{borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '8px'}}>
+                      <strong>👤 Lavador asignado:</strong> {cita.lavador_nombre}
+                    </div>
+                  )}
+                  {!cita.lavador_nombre && cita.estado !== 'cancelada' && (
+                    <div className="apt-notes" style={{borderTop: '1px solid #EF4444', paddingTop: '8px', marginTop: '8px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '4px', padding: '8px'}}>
+                      <strong style={{color: '#EF4444'}}>⚠️ Sin lavador asignado</strong>
+                      <div style={{fontSize: '12px', color: '#991B1B', marginTop: '4px'}}>
+                        Asigna un lavador desde el Panel Admin para poder finalizar esta cita
+                      </div>
+                    </div>
+                  )}
+
                   <div className="apt-actions">
                     {cita.estado === 'pendiente' && (
                       <button
@@ -209,6 +231,12 @@ const CalendarAdmin = () => {
                       <button
                         onClick={() => updateCitaStatus(cita.id, cita.estado === 'en curso' ? 'finalizada' : 'en curso')}
                         className="btn btn-primary btn-sm"
+                        disabled={cita.estado === 'en curso' && !cita.lavador_id}
+                        style={{
+                          opacity: (cita.estado === 'en curso' && !cita.lavador_id) ? 0.5 : 1,
+                          cursor: (cita.estado === 'en curso' && !cita.lavador_id) ? 'not-allowed' : 'pointer'
+                        }}
+                        title={cita.estado === 'en curso' && !cita.lavador_id ? 'Asigna un lavador antes de finalizar' : ''}
                       >
                         {cita.estado === 'en curso' ? '✨ Finalizar' : '🔄 En curso'}
                       </button>

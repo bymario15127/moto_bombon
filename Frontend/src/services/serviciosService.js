@@ -12,7 +12,8 @@ const UPLOAD_URL = import.meta.env.VITE_API_URL
 export async function getServicios() {
   const res = await fetch(API_URL);
   if (!res.ok) {
-    throw new Error("Error al obtener servicios");
+    console.error("Error fetching servicios:", res.status);
+    return []; // Return empty array on error instead of throwing
   }
   return res.json();
 }

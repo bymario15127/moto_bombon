@@ -6,6 +6,8 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import citasRouter from "./routes/citas.js";
 import serviciosRouter from "./routes/servicios.js";
+import lavadoresRouter from "./routes/lavadores.js";
+import nominaRouter from "./routes/nomina.js";
 
 const app = express();
 
@@ -51,6 +53,8 @@ app.use('/uploads', express.static(uploadsDir));
 
 app.use("/api/citas", citasRouter);
 app.use("/api/servicios", serviciosRouter);
+app.use("/api/lavadores", lavadoresRouter);
+app.use("/api/nomina", nominaRouter);
 
 // Subida de imagen vía base64 (evita dependencias externas)
 app.post('/api/upload-image', async (req, res) => {

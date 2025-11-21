@@ -6,6 +6,10 @@ const API_URL = import.meta.env.VITE_API_URL
 
 export async function getCitas() {
   const res = await fetch(API_URL);
+  if (!res.ok) {
+    console.error("Error fetching citas:", res.status);
+    return []; // Return empty array on error
+  }
   return res.json();
 }
 
