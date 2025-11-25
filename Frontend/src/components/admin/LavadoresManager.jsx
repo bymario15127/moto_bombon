@@ -82,9 +82,35 @@ const LavadoresManager = () => {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>👤 Gestión de Lavadores</h2>
+    <>
+      <style>{`
+        .lavador-modal-input {
+          width: 100%;
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          background-color: #fff !important;
+          color: #000 !important;
+          -webkit-text-fill-color: #000 !important;
+          box-sizing: border-box;
+        }
+        .lavador-modal-input:-webkit-autofill,
+        .lavador-modal-input:-webkit-autofill:hover,
+        .lavador-modal-input:-webkit-autofill:focus,
+        .lavador-modal-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px #fff inset !important;
+          -webkit-text-fill-color: #000 !important;
+          box-shadow: 0 0 0 30px #fff inset !important;
+        }
+        .lavador-modal-input::placeholder {
+          color: #999 !important;
+          -webkit-text-fill-color: #999 !important;
+        }
+      `}</style>
+      <div style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>👤 Gestión de Lavadores</h2>
         <button
           onClick={() => setShowModal(true)}
           style={{
@@ -279,16 +305,7 @@ const LavadoresManager = () => {
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                   required
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    backgroundColor: '#fff',
-                    color: '#000',
-                    boxSizing: 'border-box'
-                  }}
+                  className="lavador-modal-input"
                 />
               </div>
 
@@ -301,16 +318,7 @@ const LavadoresManager = () => {
                   value={formData.cedula}
                   onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
                   placeholder="1234567890"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    backgroundColor: '#fff',
-                    color: '#000',
-                    boxSizing: 'border-box'
-                  }}
+                  className="lavador-modal-input"
                 />
               </div>
 
@@ -326,16 +334,7 @@ const LavadoresManager = () => {
                   min="0"
                   max="100"
                   step="0.5"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    backgroundColor: '#fff',
-                    color: '#000',
-                    boxSizing: 'border-box'
-                  }}
+                  className="lavador-modal-input"
                 />
                 <small style={{ color: '#666', fontSize: '12px' }}>
                   Porcentaje que gana el lavador por cada servicio completado
@@ -394,6 +393,7 @@ const LavadoresManager = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 
