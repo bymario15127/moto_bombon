@@ -1,5 +1,5 @@
 {
-  "name": "elite-studio-backend",
+  "name": "motobombon-backend",
   "script": "index.js",
   "cwd": "./backend",
   "instances": 1,
