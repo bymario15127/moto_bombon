@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import logo from '../../assets/MOTOBOMBON.ico';
+import logo from '../../assets/motobombon.ico';
 
 export default function Sidebar({ activeView, setActiveView, onLogout }) {
   const [isOpen, setIsOpen] = useState(false);
