@@ -1,13 +1,7 @@
 // src/services/serviciosService.js
-// Use relative URL so Vite dev proxy can forward to backend
-// In production, will use VITE_API_URL from env vars
-const API_URL = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api/servicios`
-  : "/api/servicios";
-
-const UPLOAD_URL = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api/upload-image`
-  : "/api/upload-image";
+// Use relative URLs - works in both dev (via Vite proxy) and prod (via Nginx proxy)
+const API_URL = "/api/servicios";
+const UPLOAD_URL = "/api/upload-image";
 
 export async function getServicios() {
   const res = await fetch(API_URL);
