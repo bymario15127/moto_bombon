@@ -71,9 +71,11 @@ async function initAll() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nombre TEXT NOT NULL,
         duracion INTEGER NOT NULL,
-        precio REAL NOT NULL,
+        precio REAL,
         descripcion TEXT,
         imagen TEXT,
+        precio_bajo_cc REAL,
+        precio_alto_cc REAL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -84,39 +86,47 @@ async function initAll() {
     if (servicioCount.count === 0) {
       const serviciosDefault = [
         {
-          nombre: "Depilación de cejas",
+          nombre: "Lavado Básico Moto",
           duracion: 30,
-          precio: 25000,
-          descripcion: "Depilación profesional con técnicas precisas",
-          imagen: "/img/cejas.jpg"
+          precio: null,
+          precio_bajo_cc: 15000,
+          precio_alto_cc: 20000,
+          descripcion: "Lavado exterior completo de moto",
+          imagen: "/img/lavado-basico.jpg"
         },
         {
-          nombre: "Extensión de pestañas",
-          duracion: 90,
-          precio: 80000,
-          descripcion: "Extensiones de pestañas volumen ruso",
-          imagen: "/img/pestanas.jpg"
-        },
-        {
-          nombre: "Lifting de pestañas",
+          nombre: "Lavado Premium Moto",
           duracion: 60,
-          precio: 50000,
-          descripcion: "Levantamiento y rizamiento de pestañas",
-          imagen: "/img/lifting.jpg"
+          precio: null,
+          precio_bajo_cc: 25000,
+          precio_alto_cc: 35000,
+          descripcion: "Lavado completo con encerado y detalles",
+          imagen: "/img/lavado-premium.jpg"
         },
         {
-          nombre: "Diseño de cejas",
-          duracion: 45,
-          precio: 35000,
-          descripcion: "Diseño personalizado según el rostro",
-          imagen: "/img/diseno-cejas.jpg"
+          nombre: "Lavado Express",
+          duracion: 20,
+          precio: 10000,
+          precio_bajo_cc: null,
+          precio_alto_cc: null,
+          descripcion: "Lavado rápido exterior",
+          imagen: "/img/lavado-express.jpg"
+        },
+        {
+          nombre: "Detallado Completo",
+          duracion: 90,
+          precio: null,
+          precio_bajo_cc: 40000,
+          precio_alto_cc: 60000,
+          descripcion: "Lavado completo con pulido y protección",
+          imagen: "/img/detallado.jpg"
         }
       ];
 
       for (const servicio of serviciosDefault) {
         await db.run(
-          "INSERT INTO servicios (nombre, duracion, precio, descripcion, imagen) VALUES (?, ?, ?, ?, ?)",
-          [servicio.nombre, servicio.duracion, servicio.precio, servicio.descripcion, servicio.imagen]
+          "INSERT INTO servicios (nombre, duracion, precio, precio_bajo_cc, precio_alto_cc, descripcion, imagen) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [servicio.nombre, servicio.duracion, servicio.precio, servicio.precio_bajo_cc, servicio.precio_alto_cc, servicio.descripcion, servicio.imagen]
         );
       }
       console.log("✅ Servicios de ejemplo insertados");
