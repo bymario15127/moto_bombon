@@ -4,19 +4,18 @@ import { useState, useEffect } from 'react';
 const NominaManager = () => {
   const [reporteNomina, setReporteNomina] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth() + 1);
-  const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
-  const [quincenaSeleccionada, setQuincenaSeleccionada] = useState(new Date().getDate() <= 15 ? 1 : 2);
+  const [fechaInicio, setFechaInicio] = useState(new Date(new Date().setDate(1)).toISOString().split('T')[0]);
+  const [fechaFin, setFechaFin] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     cargarReporte();
-  }, [mesSeleccionado, anioSeleccionado, quincenaSeleccionada]);
+  }, [fechaInicio, fechaFin]);
 
   const cargarReporte = async () => {
     try {
       setLoading(true);
       const API_URL = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API_URL}/api/nomina?mes=${mesSeleccionado}&anio=${anioSeleccionado}&quincena=${quincenaSeleccionada}`);
+      const res = await fetch(`${API_URL}/api/nomina?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`);
       const data = await res.json();
       setReporteNomina(data);
     } catch (error) {
@@ -35,16 +34,10 @@ const NominaManager = () => {
     }).format(valor);
   };
 
-  const nombreMes = (mes) => {
-    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    return meses[mes - 1];
-  };
-
   const exportarExcel = async () => {
     try {
       const API_URL = import.meta.env.VITE_API_URL || '';
-      const url = `${API_URL}/api/nomina/exportar-excel?mes=${mesSeleccionado}&anio=${anioSeleccionado}&quincena=${quincenaSeleccionada}`;
+      const url = `${API_URL}/api/nomina/exportar-excel?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
       
       const response = await fetch(url);
       const blob = await response.blob();
@@ -53,7 +46,7 @@ const NominaManager = () => {
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = `Nomina_${nombreMes(mesSeleccionado)}_Q${quincenaSeleccionada}_${anioSeleccionado}.xlsx`;
+      link.download = `Nomina_${fechaInicio}_a_${fechaFin}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -98,102 +91,49 @@ const NominaManager = () => {
         marginBottom: '24px',
         border: '2px solid #EB0463'
       }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#1f2937' }}>📅 Seleccionar Período</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#1f2937' }}>📅 Seleccionar Rango de Fechas</h3>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <select
-            value={mesSeleccionado}
-            onChange={(e) => setMesSeleccionado(parseInt(e.target.value))}
-            style={{
-              padding: '12px 16px',
-              borderRadius: '10px',
-              border: '2px solid #EB0463',
-              fontSize: '15px',
-              fontWeight: '500',
-              background: 'linear-gradient(135deg, rgba(235, 4, 99, 0.05) 0%, rgba(166, 84, 149, 0.05) 100%)',
-              color: '#1f2937',
-              cursor: 'pointer',
-              minWidth: '150px',
-              transition: 'all 0.3s ease',
-              outline: 'none'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, rgba(235, 4, 99, 0.15) 0%, rgba(166, 84, 149, 0.15) 100%)';
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 4px 12px rgba(235, 4, 99, 0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, rgba(235, 4, 99, 0.05) 0%, rgba(166, 84, 149, 0.05) 100%)';
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = 'none';
-            }}
-          >
-            {Array.from({length: 12}, (_, i) => i + 1).map(mes => (
-              <option key={mes} value={mes}>{nombreMes(mes)}</option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontWeight: '600', color: '#1f2937' }}>Desde:</label>
+            <input
+              type="date"
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              style={{
+                padding: '12px 16px',
+                borderRadius: '10px',
+                border: '2px solid #EB0463',
+                fontSize: '15px',
+                fontWeight: '500',
+                background: 'white',
+                color: '#1f2937',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                outline: 'none'
+              }}
+            />
+          </div>
           
-          <select
-            value={anioSeleccionado}
-            onChange={(e) => setAnioSeleccionado(parseInt(e.target.value))}
-            style={{
-              padding: '12px 16px',
-              borderRadius: '10px',
-              border: '2px solid #a65495',
-              fontSize: '15px',
-              fontWeight: '500',
-              background: 'linear-gradient(135deg, rgba(166, 84, 149, 0.05) 0%, rgba(235, 4, 99, 0.05) 100%)',
-              color: '#1f2937',
-              cursor: 'pointer',
-              minWidth: '120px',
-              transition: 'all 0.3s ease',
-              outline: 'none'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, rgba(166, 84, 149, 0.15) 0%, rgba(235, 4, 99, 0.15) 100%)';
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 4px 12px rgba(166, 84, 149, 0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, rgba(166, 84, 149, 0.05) 0%, rgba(235, 4, 99, 0.05) 100%)';
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = 'none';
-            }}
-          >
-            {Array.from({length: 5}, (_, i) => new Date().getFullYear() - i).map(anio => (
-              <option key={anio} value={anio}>{anio}</option>
-            ))}
-          </select>
-
-          <select
-            value={quincenaSeleccionada}
-            onChange={(e) => setQuincenaSeleccionada(parseInt(e.target.value))}
-            style={{
-              padding: '12px 16px',
-              borderRadius: '10px',
-              border: '2px solid #10b981',
-              fontSize: '15px',
-              fontWeight: '500',
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%)',
-              color: '#1f2937',
-              cursor: 'pointer',
-              minWidth: '150px',
-              transition: 'all 0.3s ease',
-              outline: 'none'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%)';
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%)';
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = 'none';
-            }}
-          >
-            <option value={1}>Quincena 1 (1-15)</option>
-            <option value={2}>Quincena 2 (16-fin)</option>
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontWeight: '600', color: '#1f2937' }}>Hasta:</label>
+            <input
+              type="date"
+              value={fechaFin}
+              onChange={(e) => setFechaFin(e.target.value)}
+              style={{
+                padding: '12px 16px',
+                borderRadius: '10px',
+                border: '2px solid #a65495',
+                fontSize: '15px',
+                fontWeight: '500',
+                background: 'white',
+                color: '#1f2937',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                outline: 'none'
+              }}
+            />
+          </div>
 
           <button
             onClick={exportarExcel}
