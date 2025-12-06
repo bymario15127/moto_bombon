@@ -106,7 +106,7 @@ const NominaManager = () => {
                 fontSize: '15px',
                 fontWeight: '500',
                 background: '#f3f4f6',
-                color: '#1f2937',
+                color: '#000000',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 outline: 'none'
