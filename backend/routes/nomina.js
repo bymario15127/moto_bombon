@@ -118,11 +118,8 @@ router.get("/", async (req, res) => {
     
     res.json({
       periodo: {
-        mes: mesActual,
-        anio: anioActual,
-        quincena: quincenaActual,
-        fecha_inicio: fechaInicio,
-        fecha_fin: fechaFin
+        fecha_inicio: inicio,
+        fecha_fin: fin
       },
       resumen: {
         total_servicios: totalServicios,
