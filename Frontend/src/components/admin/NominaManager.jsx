@@ -226,7 +226,7 @@ const NominaManager = () => {
         border: '2px solid #EB0463'
       }}>
         <h2 style={{ margin: '0 0 20px 0', fontSize: '24px', color: '#1f2937' }}>
-          👥 Reporte de Nómina - {nombreMes(mesSeleccionado)} {anioSeleccionado} (Quincena {reporteNomina.periodo.quincena})
+          👥 Reporte de Nómina - {fechaInicio} a {fechaFin}
         </h2>
 
         <div style={{ overflowX: 'auto' }}>
