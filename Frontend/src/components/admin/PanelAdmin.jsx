@@ -48,6 +48,14 @@ export default function PanelAdmin() {
   };
 
   const changeEstado = async (id, nuevoEstado) => {
+    // Si se está finalizando una cita, verificar que tenga lavador asignado
+    if (nuevoEstado === "finalizada") {
+      const cita = citas.find(c => c.id === id);
+      if (!cita.lavador_id) {
+        alert("⚠️ Debes asignar un lavador antes de finalizar la cita");
+        return;
+      }
+    }
     await updateCita(id, { estado: nuevoEstado });
     load();
   };
@@ -77,7 +85,7 @@ export default function PanelAdmin() {
             <p className="text-gray-500 text-lg">📅 No hay citas registradas</p>
           </div>
         ) : (
-          citas.map(c => (
+          [...citas].reverse().map(c => (
             <div key={c.id} className="cita-card-admin">
               <div className="cita-header">
                 <div>
@@ -124,7 +132,7 @@ export default function PanelAdmin() {
                 )}
                 <div style={{gridColumn: '1 / -1', borderTop: '1px solid #e5e7eb', paddingTop: '12px', marginTop: '8px'}}>
                   <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#374151'}}>
-                    👤 Asignar lavador:
+                    👤 Asignar lavador: {!c.lavador_id && <span style={{color: '#EF4444', fontSize: '12px'}}>(Requerido para finalizar)</span>}
                   </label>
                   <select
                     value={c.lavador_id || ''}
@@ -133,9 +141,11 @@ export default function PanelAdmin() {
                       width: '100%',
                       padding: '10px 12px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(102, 126, 234, 0.3)',
+                      border: !c.lavador_id ? '2px solid #EF4444' : '1px solid rgba(102, 126, 234, 0.3)',
                       fontSize: '14px',
-                      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                      background: !c.lavador_id 
+                        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)'
+                        : 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
                       color: '#1f2937',
                       cursor: 'pointer',
                       fontWeight: '500',
@@ -143,7 +153,7 @@ export default function PanelAdmin() {
                       transition: 'all 0.3s ease'
                     }}
                   >
-                    <option value="">Sin asignar</option>
+                    <option value="">⚠️ Sin asignar</option>
                     {lavadores.map(lav => (
                       <option key={lav.id} value={lav.id}>
                         {lav.nombre}
@@ -169,6 +179,12 @@ export default function PanelAdmin() {
                 <button 
                   onClick={() => changeEstado(c.id, "finalizada")}
                   className="btn-action complete"
+                  disabled={!c.lavador_id}
+                  style={{
+                    opacity: !c.lavador_id ? 0.5 : 1,
+                    cursor: !c.lavador_id ? 'not-allowed' : 'pointer'
+                  }}
+                  title={!c.lavador_id ? 'Debes asignar un lavador primero' : 'Finalizar cita'}
                 >
                   ✨ Finalizar
                 </button>

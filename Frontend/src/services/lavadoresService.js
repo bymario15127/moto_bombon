@@ -1,7 +1,6 @@
 // src/services/lavadoresService.js
-const API_URL = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api/lavadores`
-  : "/api/lavadores";
+// Use relative URLs - works in both dev (via Vite proxy) and prod (via Nginx proxy)
+const API_URL = "/api/lavadores";
 
 export async function getLavadores() {
   const res = await fetch(API_URL);

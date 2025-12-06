@@ -35,7 +35,7 @@ router.get("/", async (req, res) => {
       SELECT c.*, l.nombre as lavador_nombre 
       FROM citas c
       LEFT JOIN lavadores l ON c.lavador_id = l.id
-      ORDER BY c.fecha, c.hora
+      ORDER BY c.fecha DESC, c.hora DESC
     `);
     res.json(citas);
   } catch (error) {

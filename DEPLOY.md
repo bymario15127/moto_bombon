@@ -30,7 +30,7 @@ sudo apt install certbot python3-certbot-nginx -y
 ## 📁 Estructura en servidor
 
 ```
-/var/www/elite-studio/
+/var/www/motobombon/
 ├── backend/                 # Backend Node.js
 │   ├── index.js
 │   ├── package.json
@@ -38,7 +38,7 @@ sudo apt install certbot python3-certbot-nginx -y
 │   │   └── database.sqlite  # Base de datos SQLite
 │   ├── uploads/            # Archivos subidos
 │   └── logs/               # Logs de PM2
-├── frontend/
+├── Frontend/
 │   └── dist/               # Build de React
 ├── ecosystem.config.json   # Configuración PM2
 └── deploy.sh              # Script de deploy
@@ -49,19 +49,19 @@ sudo apt install certbot python3-certbot-nginx -y
 ### 1. Preparar servidor
 ```bash
 # Crear usuario para la app
-sudo adduser elitestudio
-sudo usermod -aG sudo elitestudio
+sudo adduser motobombon
+sudo usermod -aG sudo motobombon
 
 # Crear directorio del proyecto
-sudo mkdir -p /var/www/elite-studio
-sudo chown elitestudio:elitestudio /var/www/elite-studio
+sudo mkdir -p /var/www/motobombon
+sudo chown motobombon:motobombon /var/www/motobombon
 ```
 
 ### 2. Subir código
 ```bash
 # Opción A: Git clone
-cd /var/www/elite-studio
-git clone https://github.com/tuusuario/elite-studio.git .
+cd /var/www/motobombon
+git clone https://github.com/bymario15127/moto_bombon.git .
 
 # Opción B: SCP/SFTP
 scp -r ./elite-studio/* user@servidor:/var/www/elite-studio/
@@ -70,7 +70,7 @@ scp -r ./elite-studio/* user@servidor:/var/www/elite-studio/
 ### 3. Configurar variables de entorno
 ```bash
 # Backend
-cd /var/www/elite-studio/backend
+cd /var/www/motobombon/backend
 cp .env.example .env
 nano .env  # Editar con valores de producción
 
@@ -82,7 +82,7 @@ nano .env.production.local  # Ajustar URLs de producción
 
 ### 4. Ejecutar deploy
 ```bash
-cd /var/www/elite-studio
+cd /var/www/motobombon
 chmod +x deploy.sh
 ./deploy.sh
 ```
@@ -90,8 +90,8 @@ chmod +x deploy.sh
 ### 5. Configurar Nginx
 ```bash
 # Copiar configuración
-sudo cp nginx.conf /etc/nginx/sites-available/elite-studio
-sudo ln -s /etc/nginx/sites-available/elite-studio /etc/nginx/sites-enabled/
+sudo cp nginx.conf /etc/nginx/sites-available/motobombon
+sudo ln -s /etc/nginx/sites-available/motobombon /etc/nginx/sites-enabled/
 
 # Probar configuración
 sudo nginx -t

@@ -1,8 +1,5 @@
-// Use relative URL so Vite dev proxy can forward to backend
-// In production, will use VITE_API_URL from env vars
-const API_URL = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api/citas`
-  : "/api/citas";
+// Use relative URLs - works in both dev (via Vite proxy) and prod (via Nginx proxy)
+const API_URL = "/api/citas";
 
 export async function getCitas() {
   const res = await fetch(API_URL);

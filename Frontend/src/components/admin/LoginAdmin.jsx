@@ -20,6 +20,13 @@ export default function LoginAdmin() {
     // Credenciales simples (cambiar en producción)
     if (user === "admin" && pass === "motobombon123") {
       localStorage.setItem("motobombon_is_admin", "true");
+      localStorage.setItem("motobombon_user_role", "admin");
+      localStorage.setItem("motobombon_user_name", "Paula Espinosa");
+      nav("/admin");
+    } else if (user === "supervisor" && pass === "supervisor123") {
+      localStorage.setItem("motobombon_is_admin", "true");
+      localStorage.setItem("motobombon_user_role", "supervisor");
+      localStorage.setItem("motobombon_user_name", "Supervisor");
       nav("/admin");
     } else {
       setErr("Usuario o contraseña incorrectos");
@@ -40,7 +47,8 @@ export default function LoginAdmin() {
           {/* Ayuda rápida si algo falla */}
           <div style={{ marginTop: 12 }}>
             <small style={{ color: "#6b7280" }}>
-              Usuario: <b>admin</b> — Contraseña: <b>motobombon123</b>
+              Admin: <b>admin</b> / <b>motobombon123</b><br />
+              Supervisor: <b>supervisor</b> / <b>supervisor123</b>
             </small>
           </div>
         </form>
