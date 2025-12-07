@@ -30,10 +30,17 @@ export default function TallerPage() {
   const loadTalleres = async () => {
     try {
       const data = await talleresService.getTalleres();
-      setTalleres(data);
+      console.log("Talleres cargados:", data);
+      if (data && data.length > 0) {
+        setTalleres(data);
+      } else {
+        setTalleres([]);
+        mostrarMensaje("⚠️ No hay talleres registrados aún. Contacta con administración.", "error");
+      }
     } catch (error) {
       console.error("Error al cargar talleres:", error);
-      mostrarMensaje("Error al cargar talleres", "error");
+      setTalleres([]);
+      mostrarMensaje("Error al cargar talleres: " + error.message, "error");
     }
   };
 
@@ -158,13 +165,39 @@ export default function TallerPage() {
     }
   };
 
-  if (!talleres.length) {
+  if (talleres.length === 0) {
     return (
-      <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6 mt-10">
-        <h2 className="text-xl font-bold text-center mb-4">🔄 Cargando...</h2>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#EB0463] mx-auto"></div>
-          <p className="mt-2 text-gray-600">Cargando formulario de talleres...</p>
+      <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", padding: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{
+          background: "white",
+          borderRadius: "12px",
+          padding: "40px",
+          textAlign: "center",
+          maxWidth: "500px",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+        }}>
+          <div style={{ fontSize: "48px", marginBottom: "20px" }}>🏢</div>
+          <h2 style={{ fontSize: "24px", color: "#333", marginBottom: "10px" }}>Portal de Talleres</h2>
+          <p style={{ fontSize: "16px", color: "#666", marginBottom: "20px", lineHeight: "1.6" }}>
+            ⚠️ No hay talleres registrados aún en el sistema.
+          </p>
+          <p style={{ fontSize: "14px", color: "#999", marginBottom: "20px" }}>
+            Contacta con la administración de MOTOBOMBON para registrar tu taller.
+          </p>
+          <button
+            onClick={() => window.location.href = "/"}
+            style={{
+              padding: "12px 24px",
+              background: "linear-gradient(135deg, #EB0463 0%, #a65495 100%)",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              fontWeight: "600",
+              cursor: "pointer"
+            }}
+          >
+            ← Volver al inicio
+          </button>
         </div>
       </div>
     );
