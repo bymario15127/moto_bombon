@@ -434,6 +434,9 @@ export default function TalleresManager() {
         .form-group label {
           font-weight: 600;
           font-size: 14px;
+          color: #333 !important;
+          display: block;
+          margin-bottom: 6px;
         }
 
         .form-group input {
