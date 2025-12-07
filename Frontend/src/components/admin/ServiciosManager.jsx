@@ -221,39 +221,6 @@ export default function ServiciosManager() {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Imagen General (por defecto)</label>
-                <input type="file" accept="image/*" onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = async (ev) => {
-                    try {
-                      const dataUrl = ev.target.result;
-                      const { url } = await uploadImagen(dataUrl);
-                      setFormData((prev) => ({ ...prev, imagen: url }));
-                    } catch (err) {
-                      console.error('Error subiendo imagen:', err);
-                      alert('No se pudo subir la imagen');
-                    }
-                  };
-                  reader.readAsDataURL(file);
-                }} />
-                <div style={{ marginTop: 10 }}>
-                  <small>También puedes usar una URL:</small>
-                  <input
-                    type="text"
-                    value={formData.imagen}
-                    onChange={(e) => setFormData({ ...formData, imagen: e.target.value })}
-                    placeholder="/img/servicio.jpg"
-                  />
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <img src={formData.imagen} alt="preview" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee' }} />
-                    <span style={{ fontSize: 12, color: '#6b7280' }}>Previsualización</span>
-                  </div>
-                </div>
-              </div>
-
               <div className="form-row">
                 <div className="form-group">
                   <label>Imagen para Bajo CC (100-405cc)</label>
