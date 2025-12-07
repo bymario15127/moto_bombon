@@ -413,6 +413,18 @@ export default function TalleresManager() {
           gap: 16px;
         }
 
+        .taller-form input,
+        .taller-form select {
+          background: white !important;
+          color: #000 !important;
+        }
+
+        .taller-form input:focus,
+        .taller-form select:focus {
+          background: white !important;
+          color: #000 !important;
+        }
+
         .form-group {
           display: flex;
           flex-direction: column;
@@ -426,20 +438,38 @@ export default function TalleresManager() {
 
         .form-group input {
           padding: 10px;
-          border: 2px solid #eee;
+          border: 2px solid #ddd;
           border-radius: 6px;
           font-size: 14px;
+          background: white !important;
+          color: #000 !important;
         }
 
         .form-group input:focus {
           outline: none;
           border-color: #EB0463;
+          background: white !important;
         }
 
         .form-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 12px;
+        }
+
+        .form-row input {
+          padding: 10px;
+          border: 2px solid #ddd;
+          border-radius: 6px;
+          font-size: 14px;
+          background: white !important;
+          color: #000 !important;
+        }
+
+        .form-row input:focus {
+          outline: none;
+          border-color: #EB0463;
+          background: white !important;
         }
 
         .form-actions {
