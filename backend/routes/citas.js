@@ -73,7 +73,7 @@ const toMinutes = (hhmm) => {
 router.post("/", async (req, res) => {
   try {
     console.log("📥 [POST /api/citas] Payload recibido:", req.body);
-    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id } = req.body;
+    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id } = req.body;
     
     if (!cliente || !servicio) {
       return res.status(400).json({ error: "Campos obligatorios: cliente, servicio" });
@@ -151,8 +151,8 @@ router.post("/", async (req, res) => {
     
     try {
       const result = await db.run(
-        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null]
+        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null, tipo_cliente || "cliente", taller_id || null]
       );
       console.log("✅ Cita insertada ID=", result.lastID);
       return res.status(201).json({ id: result.lastID, message: "Cita creada exitosamente" });

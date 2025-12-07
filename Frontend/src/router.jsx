@@ -4,6 +4,7 @@ import LandingPage from "./pages/LandingPage";
 import HomePage from "./pages/HomePage";
 import ClientePage from "./pages/ClientePage";
 import AdminPage from "./pages/AdminPage";
+import TallerPage from "./pages/TallerPage";
 import LoginAdmin from "./components/admin/LoginAdmin";
 
 function ProtectedRoute({ children }) {
@@ -19,6 +20,7 @@ export default function Router() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/cliente" element={<ClientePage />} />
         <Route path="/reserva" element={<ClientePage />} />
+        <Route path="/taller" element={<TallerPage />} />
         <Route path="/login" element={<LoginAdmin />} />
         <Route
           path="/admin"

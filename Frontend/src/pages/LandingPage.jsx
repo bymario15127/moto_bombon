@@ -54,6 +54,34 @@ export default function LandingPage() {
           </button>
 
           <button
+            onClick={() => navigate('/taller')}
+            style={{
+              padding: '1.2rem',
+              fontSize: '0.95rem',
+              fontWeight: '600',
+              borderRadius: '14px',
+              border: '2px solid #fbbf24',
+              background: '#fef3c7',
+              color: '#92400e',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(251,191,36,0.2)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.borderColor = '#92400e';
+              e.target.style.background = '#fde68a';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.borderColor = '#fbbf24';
+              e.target.style.background = '#fef3c7';
+            }}
+          >
+            🏢 Taller Aliado
+          </button>
+
+          <button
             onClick={() => navigate('/login')}
             style={{
               padding: '1.5rem',
