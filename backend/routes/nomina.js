@@ -234,8 +234,7 @@ router.get("/exportar-excel", async (req, res) => {
     // HOJA 1: Resumen General
     const resumenData = [
       ['REPORTE DE NÓMINA - MOTOBOMBON'],
-      [`Período: ${getNombreMes(mesActual)} ${anioActual}`],
-      [`Del ${fechaInicio} al ${fechaFin}`],
+      [`Período: Del ${inicio} al ${fin}`],
       [],
       ['RESUMEN FINANCIERO'],
       ['Total de Servicios', totalServicios],
@@ -287,7 +286,7 @@ router.get("/exportar-excel", async (req, res) => {
     const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     
     // Enviar como descarga
-    const nombreArchivo = `Nomina_${getNombreMes(mesActual)}_${anioActual}.xlsx`;
+    const nombreArchivo = `Nomina_${inicio}_${fin}.xlsx`;
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(excelBuffer);
@@ -297,11 +296,5 @@ router.get("/exportar-excel", async (req, res) => {
     res.status(500).json({ error: "Error al generar archivo Excel" });
   }
 });
-
-function getNombreMes(mes) {
-  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  return meses[parseInt(mes) - 1];
-}
 
 export default router;
