@@ -361,7 +361,18 @@ export default function ReservaForm() {
                     }`}
                     onClick={() => handleServicioSelect(s.nombre)}
                   >
-                    <img src={s.imagen || s.img || "/img/default.jpg"} alt={s.nombre} />
+                    {(() => {
+                      // Determinar qué imagen mostrar según el cilindraje
+                      let imagenMostrar = s.imagen || s.img || "/img/default.jpg";
+                      
+                      if (esBajoCC && s.imagen_bajo_cc) {
+                        imagenMostrar = s.imagen_bajo_cc;
+                      } else if (esAltoCC && s.imagen_alto_cc) {
+                        imagenMostrar = s.imagen_alto_cc;
+                      }
+                      
+                      return <img src={imagenMostrar} alt={s.nombre} />;
+                    })()}
                     <div className="servicio-info">
                       <p className="servicio-nombre">{s.nombre}</p>
                       {precioMostrar && (
