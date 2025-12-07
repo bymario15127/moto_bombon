@@ -8,6 +8,7 @@ import citasRouter from "./routes/citas.js";
 import serviciosRouter from "./routes/servicios.js";
 import lavadoresRouter from "./routes/lavadores.js";
 import nominaRouter from "./routes/nomina.js";
+import talleresRouter from "./routes/talleres.js";
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use("/api/citas", citasRouter);
 app.use("/api/servicios", serviciosRouter);
 app.use("/api/lavadores", lavadoresRouter);
 app.use("/api/nomina", nominaRouter);
+app.use("/api/talleres", talleresRouter);
 
 // Subida de imagen vía base64 (evita dependencias externas)
 app.post('/api/upload-image', async (req, res) => {
