@@ -6,6 +6,12 @@ import { getLavadoresActivos } from "../../services/lavadoresService";
 export default function PanelAdmin() {
   const [citas, setCitas] = useState([]);
   const [lavadores, setLavadores] = useState([]);
+  const [userRole, setUserRole] = useState('admin');
+
+  useEffect(() => {
+    const role = localStorage.getItem('motobombon_user_role') || 'admin';
+    setUserRole(role);
+  }, []);
 
   // Función para formatear fecha correctamente sin problemas de timezone
   const formatearFecha = (fechaStr) => {
@@ -188,12 +194,14 @@ export default function PanelAdmin() {
                 >
                   ✨ Finalizar
                 </button>
-                <button 
-                  onClick={() => handleDelete(c.id)}
-                  className="btn-action delete"
-                >
-                  🗑️ Eliminar
-                </button>
+                {userRole === 'admin' && (
+                  <button 
+                    onClick={() => handleDelete(c.id)}
+                    className="btn-action delete"
+                  >
+                    🗑️ Eliminar
+                  </button>
+                )}
               </div>
             </div>
           ))

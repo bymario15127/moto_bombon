@@ -16,10 +16,10 @@ export default function Sidebar({ activeView, setActiveView, onLogout }) {
 
   // Todos los items del menú
   const allMenuItems = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['admin'] },
+    { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['admin', 'supervisor'] },
     { id: 'calendar', icon: '📅', label: 'Calendario', roles: ['admin', 'supervisor'] },
     { id: 'appointments', icon: '📋', label: 'Citas', roles: ['admin', 'supervisor'] },
-    { id: 'services', icon: '🏍️', label: 'Servicios', roles: ['admin', 'supervisor'] },
+    { id: 'services', icon: '🏍️', label: 'Servicios', roles: ['admin'] },
     { id: 'talleres', icon: '🏢', label: 'Talleres Aliados', roles: ['admin'] },
     { id: 'lavadores', icon: '👤', label: 'Lavadores', roles: ['admin'] },
     { id: 'nomina', icon: '💰', label: 'Nómina', roles: ['admin'] },
