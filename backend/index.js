@@ -77,10 +77,10 @@ app.post('/api/upload-image', async (req, res) => {
     if (!allowed.has(mime)) {
       return res.status(400).json({ error: 'Tipo de imagen no permitido' });
     }
-    // Validar tamaño (máx 2 MB)
+    // Validar tamaño (máx 10 MB)
     const approxBytes = Math.ceil((base64Data.length * 3) / 4);
-    if (approxBytes > 2 * 1024 * 1024) {
-      return res.status(413).json({ error: 'Imagen demasiado grande (máx 2 MB)' });
+    if (approxBytes > 10 * 1024 * 1024) {
+      return res.status(413).json({ error: 'Imagen demasiado grande (máx 10 MB)' });
     }
     const ext = mime.split('/')[1].replace('jpeg', 'jpg');
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
