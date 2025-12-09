@@ -277,11 +277,17 @@ export default function TalleresManager() {
         }
 
         .taller-card {
-          background: white;
+          background: linear-gradient(135deg, rgba(235, 4, 99, 0.05) 0%, rgba(166, 84, 149, 0.05) 100%);
           border-radius: 12px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
           padding: 20px;
-          border-left: 4px solid #EB0463;
+          border: 2px solid #EB0463;
+          transition: all 0.3s ease;
+        }
+
+        .taller-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 20px rgba(235, 4, 99, 0.2);
         }
 
         .taller-header-card {
@@ -293,7 +299,9 @@ export default function TalleresManager() {
 
         .taller-header-card h3 {
           margin: 0;
-          font-size: 16px;
+          font-size: 18px;
+          color: #1f2937;
+          font-weight: 700;
         }
 
         .badge-inactivo {
@@ -308,17 +316,27 @@ export default function TalleresManager() {
         .taller-info {
           margin-bottom: 15px;
           font-size: 14px;
-          color: #666;
+          color: #374151;
         }
 
         .taller-info p {
           margin: 6px 0;
         }
 
+        .taller-info strong {
+          color: #EB0463;
+          font-weight: 600;
+        }
+
         .taller-precios {
           margin-top: 10px;
           padding-top: 10px;
-          border-top: 1px solid #eee;
+          border-top: 2px solid rgba(235, 4, 99, 0.2);
+        }
+
+        .taller-precios p {
+          color: #1f2937;
+          font-weight: 500;
         }
 
         .taller-actions {
@@ -329,30 +347,33 @@ export default function TalleresManager() {
         .btn-edit,
         .btn-delete {
           flex: 1;
-          padding: 8px;
+          padding: 10px;
           border: none;
           border-radius: 6px;
           cursor: pointer;
-          font-size: 12px;
+          font-size: 13px;
+          font-weight: 600;
           transition: all 0.3s;
         }
 
         .btn-edit {
-          background: #f0f0f0;
-          color: #333;
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
         }
 
         .btn-edit:hover {
-          background: #e0e0e0;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
 
         .btn-delete {
-          background: #fee;
-          color: #c33;
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
         }
 
         .btn-delete:hover {
-          background: #fdd;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
 
         .empty-state {
