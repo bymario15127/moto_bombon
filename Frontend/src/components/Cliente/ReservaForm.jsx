@@ -135,6 +135,9 @@ export default function ReservaForm() {
     const yyyy = hoy.getFullYear();
     const mm = String(hoy.getMonth() + 1).padStart(2, '0');
     const dd = String(hoy.getDate()).padStart(2, '0');
+    const hh = String(hoy.getHours()).padStart(2, '0');
+    const mi = String(hoy.getMinutes()).padStart(2, '0');
+    const horaActual = `${hh}:${mi}`;
     
     const citaData = {
       cliente: form.cliente,
@@ -148,7 +151,7 @@ export default function ReservaForm() {
       metodo_pago: form.metodo_pago,
       comentarios: form.comentarios,
       fecha: `${yyyy}-${mm}-${dd}`,
-      hora: null,
+      hora: horaActual,
     };
 
     console.log('📤 Enviando datos:', citaData);
