@@ -171,20 +171,23 @@ export default function TallerPage() {
 
   if (talleres.length === 0) {
     return (
-      <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", padding: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#050505", padding: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{
-          background: "white",
-          borderRadius: "12px",
+          background: "#0f0f14",
+          borderRadius: "16px",
           padding: "40px",
-          maxWidth: "500px",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+          maxWidth: "520px",
+          width: "100%",
+          boxShadow: "0 20px 60px rgba(235,4,99,0.25)",
+          border: "1px solid rgba(235,4,99,0.35)",
+          textAlign: "center"
         }}>
           <div style={{ fontSize: "48px", marginBottom: "20px" }}>🏢</div>
-          <h2 style={{ fontSize: "24px", color: "#333", marginBottom: "10px" }}>Portal de Talleres</h2>
-          <p style={{ fontSize: "16px", color: "#666", marginBottom: "20px", lineHeight: "1.6" }}>
+          <h2 style={{ fontSize: "24px", color: "#EB0463", marginBottom: "10px" }}>Portal de Talleres</h2>
+          <p style={{ fontSize: "16px", color: "#e5e7eb", marginBottom: "20px", lineHeight: "1.6" }}>
             ⚠️ No hay talleres registrados aún en el sistema.
           </p>
-          <p style={{ fontSize: "14px", color: "#999", marginBottom: "20px" }}>
+          <p style={{ fontSize: "14px", color: "#9ca3af", marginBottom: "20px" }}>
             Contacta con la administración de MOTOBOMBON para registrar tu taller.
           </p>
           <button
@@ -194,9 +197,10 @@ export default function TallerPage() {
               background: "linear-gradient(135deg, #EB0463 0%, #a65495 100%)",
               color: "white",
               border: "none",
-              borderRadius: "6px",
-              fontWeight: "600",
-              cursor: "pointer"
+              borderRadius: "8px",
+              fontWeight: "700",
+              cursor: "pointer",
+              boxShadow: "0 12px 30px rgba(235,4,99,0.35)"
             }}
           >
             ← Volver al inicio
@@ -207,8 +211,8 @@ export default function TallerPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", padding: "20px" }}>
-      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+    <div className="taller-page" style={{ minHeight: "100vh", background: "#050505", padding: "20px" }}>
+      <div className="taller-card" style={{ maxWidth: "900px", margin: "0 auto", background: "#0b0b0f", border: "1px solid #EB0463", borderRadius: "14px", boxShadow: "0 20px 60px rgba(235,4,99,0.25)", padding: "20px" }}>
         {mensaje.texto && (
           <div className={`notificacion ${mensaje.tipo}`}>
             {mensaje.texto}
@@ -216,47 +220,51 @@ export default function TallerPage() {
         )}
         
         <div style={{
-          background: "white",
+          background: "#0f0f14",
           borderRadius: "12px",
           padding: "20px",
           marginBottom: "20px",
-          textAlign: "center"
+          textAlign: "center",
+          border: "1px solid rgba(235,4,99,0.35)",
+          boxShadow: "0 15px 40px rgba(235,4,99,0.15)"
         }}>
-          <h1 style={{ fontSize: "28px", margin: "0 0 10px 0", color: "#333" }}>
+          <h1 style={{ fontSize: "28px", margin: "0 0 10px 0", color: "#EB0463", letterSpacing: "0.3px" }}>
             🏢 Portal de Talleres Aliados
           </h1>
-          <p style={{ color: "#666", margin: "0" }}>
+          <p style={{ color: "#e5e7eb", margin: "0" }}>
             Ingresa las motos para servicio
           </p>
         </div>
 
         {motosEnEspera > 0 && (
           <div style={{
-            backgroundColor: '#FEF3C7',
-            border: '2px solid #F59E0B',
-            borderRadius: '8px',
+            background: '#0f0f14',
+            border: '1px solid rgba(235,4,99,0.35)',
+            borderRadius: '10px',
             padding: '16px',
             marginBottom: '20px',
-            textAlign: 'center'
+            textAlign: 'center',
+            boxShadow: '0 12px 30px rgba(235,4,99,0.15)'
           }}>
             <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏍️</div>
-            <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#92400E', marginBottom: '4px' }}>
+            <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#EB0463', marginBottom: '4px' }}>
               {motosEnEspera} {motosEnEspera === 1 ? 'moto' : 'motos'} en espera
             </p>
-            <p style={{ fontSize: '14px', color: '#78350F' }}>
+            <p style={{ fontSize: '14px', color: '#e5e7eb' }}>
               {motosEnEspera === 1 ? 'Hay 1 moto antes de las nuevas' : `Hay ${motosEnEspera} motos antes de las nuevas`}
             </p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} style={{
-          background: "white",
+          background: "#0f0f14",
           borderRadius: "12px",
           padding: "20px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+          boxShadow: "0 15px 40px rgba(235,4,99,0.15)",
+          border: "1px solid rgba(235,4,99,0.35)"
         }}>
           <div style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+            <label style={{ display: "block", fontWeight: "700", marginBottom: "8px", color: "#e5e7eb" }}>
               🏢 Selecciona tu Taller
             </label>
             <select
@@ -266,11 +274,15 @@ export default function TallerPage() {
               required
               style={{
                 width: "100%",
-                padding: "10px",
-                border: "2px solid #EB0463",
-                borderRadius: "6px",
+                padding: "12px",
+                border: "1px solid rgba(235,4,99,0.5)",
+                borderRadius: "8px",
                 fontSize: "14px",
-                fontFamily: "inherit"
+                fontFamily: "inherit",
+                background: "#0b0b10",
+                color: "#f9fafb",
+                outline: "none",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
               }}
             >
               <option value="">-- Selecciona un taller --</option>
@@ -282,7 +294,7 @@ export default function TallerPage() {
             </select>
           </div>
 
-          <h3 style={{ fontSize: "16px", fontWeight: "600", marginTop: "20px", marginBottom: "12px" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: "700", marginTop: "20px", marginBottom: "12px", color: "#e5e7eb" }}>
             🏍️ Datos de la Moto
           </h3>
 
@@ -296,11 +308,13 @@ export default function TallerPage() {
               required
               style={{
                 width: "100%",
-                padding: "10px",
-                border: "2px solid #ddd",
-                borderRadius: "6px",
+                padding: "12px",
+                border: "1px solid rgba(235,4,99,0.5)",
+                borderRadius: "8px",
                 fontSize: "14px",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
+                background: "#0b0b10",
+                color: "#f9fafb"
               }}
             />
           </div>
@@ -315,11 +329,13 @@ export default function TallerPage() {
               required
               style={{
                 width: "100%",
-                padding: "10px",
-                border: "2px solid #ddd",
-                borderRadius: "6px",
+                padding: "12px",
+                border: "1px solid rgba(235,4,99,0.5)",
+                borderRadius: "8px",
                 fontSize: "14px",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
+                background: "#0b0b10",
+                color: "#f9fafb"
               }}
             />
           </div>
@@ -336,16 +352,18 @@ export default function TallerPage() {
               required
               style={{
                 width: "100%",
-                padding: "10px",
-                border: "2px solid #ddd",
-                borderRadius: "6px",
+                padding: "12px",
+                border: "1px solid rgba(235,4,99,0.5)",
+                borderRadius: "8px",
                 fontSize: "14px",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
+                background: "#0b0b10",
+                color: "#f9fafb"
               }}
             />
           </div>
 
-          <h3 style={{ fontSize: "16px", fontWeight: "600", marginTop: "20px", marginBottom: "12px" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: "700", marginTop: "20px", marginBottom: "12px", color: "#e5e7eb" }}>
             💰 Método de Pago
           </h3>
 
@@ -353,12 +371,14 @@ export default function TallerPage() {
             {['codigo_qr', 'efectivo'].map(metodo => (
               <label key={metodo} style={{
                 flex: 1,
-                padding: "10px",
-                border: `2px solid ${form.metodo_pago === metodo ? '#EB0463' : '#ddd'}`,
-                borderRadius: "6px",
+                padding: "12px",
+                border: `1px solid ${form.metodo_pago === metodo ? '#EB0463' : 'rgba(235,4,99,0.35)'}`,
+                borderRadius: "10px",
                 cursor: "pointer",
-                background: form.metodo_pago === metodo ? '#fff0f6' : 'white',
-                transition: "all 0.3s"
+                background: form.metodo_pago === metodo ? 'rgba(235,4,99,0.12)' : '#0b0b10',
+                transition: "all 0.3s",
+                color: '#f9fafb',
+                boxShadow: "0 8px 24px rgba(0,0,0,0.35)"
               }}>
                 <input
                   type="radio"
@@ -368,14 +388,14 @@ export default function TallerPage() {
                   onChange={handleChange}
                   style={{ marginRight: "6px" }}
                 />
-                <span style={{ fontWeight: "500" }}>
+                <span style={{ fontWeight: "600" }}>
                   {metodo === 'codigo_qr' ? '📲 Código QR' : '💵 Efectivo'}
                 </span>
               </label>
             ))}
           </div>
 
-          <h3 style={{ fontSize: "16px", fontWeight: "600", marginTop: "20px", marginBottom: "12px" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: "700", marginTop: "20px", marginBottom: "12px", color: "#e5e7eb" }}>
             🔧 Selecciona Servicio
           </h3>
 
@@ -389,18 +409,20 @@ export default function TallerPage() {
                   onClick={() => handleServicioSelect(s.nombre)}
                   style={{
                     padding: "12px",
-                    border: `2px solid ${form.servicio === s.nombre ? '#EB0463' : '#ddd'}`,
-                    borderRadius: "6px",
+                    border: `1px solid ${form.servicio === s.nombre ? '#EB0463' : 'rgba(235,4,99,0.35)'}`,
+                    borderRadius: "10px",
                     cursor: "pointer",
-                    background: form.servicio === s.nombre ? '#fff0f6' : 'white',
+                    background: form.servicio === s.nombre ? 'rgba(235,4,99,0.12)' : '#0b0b10',
                     textAlign: "center",
-                    transition: "all 0.3s"
+                    transition: "all 0.3s",
+                    color: '#f9fafb',
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.35)"
                   }}
                 >
                   <p style={{ margin: "0 0 4px 0", fontWeight: "600", fontSize: "14px" }}>
                     {s.nombre}
                   </p>
-                  <p style={{ margin: "0", fontSize: "12px", color: "#666" }}>
+                  <p style={{ margin: "0", fontSize: "12px", color: "#9ca3af" }}>
                     {s.duracion} min
                   </p>
                 </div>
@@ -417,12 +439,14 @@ export default function TallerPage() {
               rows="3"
               style={{
                 width: "100%",
-                padding: "10px",
-                border: "2px solid #ddd",
-                borderRadius: "6px",
+                padding: "12px",
+                border: "1px solid rgba(235,4,99,0.5)",
+                borderRadius: "8px",
                 fontSize: "14px",
                 fontFamily: "inherit",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
+                background: "#0b0b10",
+                color: "#f9fafb"
               }}
             />
           </div>
@@ -436,11 +460,12 @@ export default function TallerPage() {
               background: loading ? "#ccc" : "linear-gradient(135deg, #EB0463 0%, #a65495 100%)",
               color: "white",
               border: "none",
-              borderRadius: "6px",
-              fontWeight: "600",
+              borderRadius: "10px",
+              fontWeight: "700",
               fontSize: "16px",
               cursor: loading ? "not-allowed" : "pointer",
-              transition: "all 0.3s"
+              transition: "all 0.3s",
+              boxShadow: "0 14px 35px rgba(235,4,99,0.35)"
             }}
           >
             {loading ? "Ingresando..." : "✅ Ingresar Moto al Sistema"}
@@ -455,18 +480,22 @@ export default function TallerPage() {
           margin-bottom: 20px;
           font-weight: 600;
           text-align: center;
+          color: #f9fafb;
+          background: #0b0b10;
+          border: 1px solid rgba(235,4,99,0.35);
+          box-shadow: 0 12px 30px rgba(235,4,99,0.15);
         }
 
         .notificacion.success {
-          background: #d1fae5;
-          color: #065f46;
-          border: 2px solid #10b981;
+          background: rgba(16, 185, 129, 0.12);
+          color: #34d399;
+          border: 1px solid rgba(16, 185, 129, 0.6);
         }
 
         .notificacion.error {
-          background: #fee2e2;
-          color: #991b1b;
-          border: 2px solid #f87171;
+          background: rgba(248, 113, 113, 0.12);
+          color: #f87171;
+          border: 1px solid rgba(248, 113, 113, 0.6);
         }
       `}</style>
     </div>
