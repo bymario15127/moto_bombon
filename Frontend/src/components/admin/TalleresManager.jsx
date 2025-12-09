@@ -440,12 +440,14 @@ export default function TalleresManager() {
           color: #0f172a !important; /* texto oscuro visible */
           caret-color: #EB0463;
           font-weight: 600;
+          -webkit-text-fill-color: #0f172a !important;
         }
 
         .taller-form input::placeholder,
         .taller-form select::placeholder {
           color: #6b7280 !important; /* gris medio visible */
           opacity: 1;
+          -webkit-text-fill-color: #6b7280 !important;
         }
 
         .taller-form input:focus,
@@ -477,6 +479,7 @@ export default function TalleresManager() {
           color: #0f172a !important;
           caret-color: #EB0463;
           font-weight: 600;
+          -webkit-text-fill-color: #0f172a !important;
         }
 
         .form-group input:focus {
@@ -500,6 +503,7 @@ export default function TalleresManager() {
           color: #0f172a !important;
           caret-color: #EB0463;
           font-weight: 600;
+          -webkit-text-fill-color: #0f172a !important;
         }
 
         .form-row input:focus {
