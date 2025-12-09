@@ -97,19 +97,16 @@ export default function TallerPage() {
   };
 
   const calcularPrecio = (servicio) => {
+    // Solo mostramos precios si hay taller seleccionado; este portal usa tarifas del taller aliado
+    if (!tallerSeleccionado) return null;
+
     const ccNumber = parseInt(form.cilindraje);
     const limiteCC = 200;
     const usaAlto = !isNaN(ccNumber) && ccNumber > limiteCC;
 
-    if (tallerSeleccionado) {
-      const precioTaller = usaAlto ? tallerSeleccionado?.precio_alto_cc : tallerSeleccionado?.precio_bajo_cc;
-      const precioFallback = tallerSeleccionado?.precio_bajo_cc || tallerSeleccionado?.precio_alto_cc;
-      return formatCOP(precioTaller ?? precioFallback);
-    }
-
-    const precioServicio = usaAlto ? servicio?.precio_alto_cc : servicio?.precio_bajo_cc;
-    const precioFallback = servicio?.precio || servicio?.precio_bajo_cc || servicio?.precio_alto_cc;
-    return formatCOP(precioServicio ?? precioFallback);
+    const precioTaller = usaAlto ? tallerSeleccionado?.precio_alto_cc : tallerSeleccionado?.precio_bajo_cc;
+    const precioFallback = tallerSeleccionado?.precio_bajo_cc ?? tallerSeleccionado?.precio_alto_cc;
+    return formatCOP(precioTaller ?? precioFallback);
   };
 
   const calcularTiempoEspera = () => {
@@ -463,7 +460,7 @@ export default function TallerPage() {
                     {s.duracion} min
                   </p>
                   <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#f472b6", fontWeight: 600 }}>
-                    {calcularPrecio(s) || "Precio no disponible"}
+                    {calcularPrecio(s) || "Selecciona tu taller"}
                   </p>
                 </div>
               ))}
