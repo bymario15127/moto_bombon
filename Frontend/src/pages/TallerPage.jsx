@@ -96,17 +96,11 @@ export default function TallerPage() {
     return value.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
   };
 
-  const calcularPrecio = (servicio) => {
-    // Solo mostramos precios si hay taller seleccionado; este portal usa tarifas del taller aliado
-    if (!tallerSeleccionado) return null;
-
-    const ccNumber = parseInt(form.cilindraje);
-    const limiteCC = 200;
-    const usaAlto = !isNaN(ccNumber) && ccNumber > limiteCC;
-
-    const precioTaller = usaAlto ? tallerSeleccionado?.precio_alto_cc : tallerSeleccionado?.precio_bajo_cc;
-    const precioFallback = tallerSeleccionado?.precio_bajo_cc ?? tallerSeleccionado?.precio_alto_cc;
-    return formatCOP(precioTaller ?? precioFallback);
+  const preciosTaller = () => {
+    if (!tallerSeleccionado) return { bajo: null, alto: null };
+    const bajo = formatCOP(tallerSeleccionado?.precio_bajo_cc);
+    const alto = formatCOP(tallerSeleccionado?.precio_alto_cc ?? tallerSeleccionado?.precio_bajo_cc);
+    return { bajo, alto };
   };
 
   const calcularTiempoEspera = () => {
@@ -459,9 +453,22 @@ export default function TallerPage() {
                   <p style={{ margin: "0", fontSize: "12px", color: "#9ca3af" }}>
                     {s.duracion} min
                   </p>
-                  <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#f472b6", fontWeight: 600 }}>
-                    {calcularPrecio(s) || "Selecciona tu taller"}
-                  </p>
+                  {(() => {
+                    const { bajo, alto } = preciosTaller();
+                    if (!bajo && !alto) {
+                      return (
+                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#f472b6", fontWeight: 600 }}>
+                          Selecciona tu taller
+                        </p>
+                      );
+                    }
+                    return (
+                      <div style={{ marginTop: "4px", fontSize: "12px", color: "#f472b6", fontWeight: 600, lineHeight: 1.35 }}>
+                        <div>Bajo CC: {bajo || "N/D"}</div>
+                        <div>Alto CC: {alto || "N/D"}</div>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
