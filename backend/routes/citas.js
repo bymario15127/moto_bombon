@@ -69,51 +69,8 @@ const toMinutes = (hhmm) => {
   return h * 60 + m;
 };
 
-// Rate limit simple en memoria para evitar abuso (30 req / 10 min por IP)
-const RATE_WINDOW_MS = 10 * 60 * 1000;
-const RATE_MAX = 30;
-const rateStore = new Map();
-
-function rateLimit(req, res, next) {
-  const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-  const now = Date.now();
-  const record = rateStore.get(ip) || { count: 0, start: now };
-  if (now - record.start > RATE_WINDOW_MS) {
-    record.count = 0;
-    record.start = now;
-  }
-  record.count += 1;
-  rateStore.set(ip, record);
-  if (record.count > RATE_MAX) {
-    return res.status(429).json({ error: "Demasiadas solicitudes, intenta en unos minutos" });
-  }
-  next();
-}
-
-// Validación de token de acceso para clientes y talleres
-const CLIENT_TOKEN = process.env.ACCESS_TOKEN_CLIENTE || process.env.CLIENT_ACCESS_TOKEN || "CLIENTE_DEFAULT_TOKEN";
-const TALLER_TOKEN = process.env.ACCESS_TOKEN_TALLER || process.env.TALLER_ACCESS_TOKEN || "TALLER_DEFAULT_TOKEN";
-
-function verifyAccessToken(req, res, next) {
-  const token = req.headers['x-access-token'] || req.query.token || req.body?.token;
-  if (!token) {
-    return res.status(401).json({ error: "Acceso no autorizado" });
-  }
-  const esTaller = req.body?.tipo_cliente === 'taller';
-  if (esTaller) {
-    if (token !== TALLER_TOKEN) {
-      return res.status(401).json({ error: "Token inválido para taller" });
-    }
-  } else {
-    if (token !== CLIENT_TOKEN && token !== TALLER_TOKEN) {
-      return res.status(401).json({ error: "Token inválido" });
-    }
-  }
-  next();
-}
-
 // POST create (hora y fecha opcionales; si no se envían, se registra para HOY y sin hora)
-router.post("/", rateLimit, verifyAccessToken, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     console.log("📥 [POST /api/citas] Payload recibido:", req.body);
     const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id } = req.body;

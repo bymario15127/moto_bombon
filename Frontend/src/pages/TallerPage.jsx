@@ -10,7 +10,7 @@ export default function TallerPage() {
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
   const [motosEnEspera, setMotosEnEspera] = useState(0);
-  const [accessToken, setAccessToken] = useState(null);
+  
   
   const [form, setForm] = useState({
     taller_id: "",
@@ -24,11 +24,6 @@ export default function TallerPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('t') || sessionStorage.getItem('mb_access_token');
-    if (token) {
-      sessionStorage.setItem('mb_access_token', token);
-      setAccessToken(token);
-    }
     loadTalleres();
     loadServicios();
     loadMotosEnEspera();
@@ -127,11 +122,6 @@ export default function TallerPage() {
     if (!form.metodo_pago) {
       mostrarMensaje("Selecciona un método de pago", "error");
       setLoading(false);
-      return;
-    }
-
-    const hoy = new Date();
-    const yyyy = hoy.getFullYear();
     const mm = String(hoy.getMonth() + 1).padStart(2, '0');
     const dd = String(hoy.getDate()).padStart(2, '0');
       const hh = String(hoy.getHours()).padStart(2, '0');
@@ -187,7 +177,7 @@ export default function TallerPage() {
           background: "white",
           borderRadius: "12px",
           padding: "40px",
-          textAlign: "center",
+      await addCita(citaData);
           maxWidth: "500px",
           boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
         }}>

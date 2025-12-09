@@ -10,13 +10,10 @@ export async function getCitas() {
   return res.json();
 }
 
-export async function addCita(data, token) {
-  const headers = { "Content-Type": "application/json" };
-  if (token) headers['x-access-token'] = token;
-
+export async function addCita(data) {
   const res = await fetch(API_URL, {
     method: "POST",
-    headers,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   
