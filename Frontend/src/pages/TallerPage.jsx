@@ -177,7 +177,6 @@ export default function TallerPage() {
           background: "white",
           borderRadius: "12px",
           padding: "40px",
-      await addCita(citaData);
           maxWidth: "500px",
           boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
         }}>
