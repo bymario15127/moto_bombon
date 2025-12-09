@@ -467,7 +467,7 @@ export default function TallerPage() {
                   }}
                 >
                   <p style={{ margin: "0 0 6px 0", fontWeight: "700", fontSize: "15px", letterSpacing: "0.2px" }}>
-                    {servicioCard.nombre}
+                    Lavado
                   </p>
                   <p style={{ margin: "0", fontSize: "12px", color: "#9ca3af" }}>
                     {servicioCard.duracion} min
