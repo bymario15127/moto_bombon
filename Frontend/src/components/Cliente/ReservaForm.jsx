@@ -20,6 +20,7 @@ export default function ReservaForm() {
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
   const [motosEnEspera, setMotosEnEspera] = useState(0);
+  const [accessToken, setAccessToken] = useState(null);
 
   const loadServicios = async () => {
     try {
@@ -53,6 +54,12 @@ export default function ReservaForm() {
 
   // Cargar servicios al montar el componente
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('t') || sessionStorage.getItem('mb_access_token');
+    if (token) {
+      sessionStorage.setItem('mb_access_token', token);
+      setAccessToken(token);
+    }
     loadServicios();
     loadMotosEnEspera();
   }, []);
@@ -154,10 +161,16 @@ export default function ReservaForm() {
       hora: horaActual,
     };
 
+    if (!accessToken) {
+      mostrarMensaje("Acceso no autorizado. Usa el QR válido.", "error");
+      setLoading(false);
+      return;
+    }
+
     console.log('📤 Enviando datos:', citaData);
 
     try {
-      await addCita(citaData);
+      await addCita(citaData, accessToken);
       
       mostrarMensaje("🎉 ¡Cita reservada con éxito! Te esperamos en MOTOBOMBON 🏍️✨", "success");
       

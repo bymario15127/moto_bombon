@@ -10,6 +10,7 @@ export default function TallerPage() {
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
   const [motosEnEspera, setMotosEnEspera] = useState(0);
+  const [accessToken, setAccessToken] = useState(null);
   
   const [form, setForm] = useState({
     taller_id: "",
@@ -22,6 +23,12 @@ export default function TallerPage() {
   });
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('t') || sessionStorage.getItem('mb_access_token');
+    if (token) {
+      sessionStorage.setItem('mb_access_token', token);
+      setAccessToken(token);
+    }
     loadTalleres();
     loadServicios();
     loadMotosEnEspera();
@@ -90,6 +97,12 @@ export default function TallerPage() {
     e.preventDefault();
     setLoading(true);
 
+    if (!accessToken) {
+      mostrarMensaje("Acceso no autorizado. Usa el QR de taller.", "error");
+      setLoading(false);
+      return;
+    }
+
     // Validaciones
     if (!form.taller_id) {
       mostrarMensaje("Selecciona un taller", "error");
@@ -145,7 +158,7 @@ export default function TallerPage() {
     };
 
     try {
-      await addCita(citaData);
+      await addCita(citaData, accessToken);
       
       mostrarMensaje("🎉 ¡Moto ingresada al sistema! Gracias por confiar en MOTOBOMBON 🏍️✨", "success");
       
