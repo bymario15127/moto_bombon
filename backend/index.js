@@ -38,7 +38,8 @@ app.use((req, res, next) => {
 
 app.use(cors(corsOptions));
 // Aumentar límite para permitir imágenes en base64
-app.use(express.json({ limit: process.env.MAX_FILE_SIZE || '10mb' }));
+app.use(express.json({ limit: process.env.MAX_FILE_SIZE || '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Resolver __dirname en módulos ES
 const __filename = fileURLToPath(import.meta.url);
