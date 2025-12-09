@@ -88,6 +88,40 @@ export default function TallerPage() {
     setForm({ ...form, servicio: nombre });
   };
 
+  const tallerSeleccionado = talleres.find(t => t.id === parseInt(form.taller_id));
+  const servicioSeleccionado = servicios.find(s => s.nombre === form.servicio);
+
+  const formatCOP = (value) => {
+    if (value === null || value === undefined || isNaN(value)) return null;
+    return value.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+  };
+
+  const calcularPrecio = (servicio) => {
+    const ccNumber = parseInt(form.cilindraje);
+    const limiteCC = 200;
+    const usaAlto = !isNaN(ccNumber) && ccNumber > limiteCC;
+
+    if (tallerSeleccionado) {
+      const precioTaller = usaAlto ? tallerSeleccionado?.precio_alto_cc : tallerSeleccionado?.precio_bajo_cc;
+      const precioFallback = tallerSeleccionado?.precio_bajo_cc || tallerSeleccionado?.precio_alto_cc;
+      return formatCOP(precioTaller ?? precioFallback);
+    }
+
+    const precioServicio = usaAlto ? servicio?.precio_alto_cc : servicio?.precio_bajo_cc;
+    const precioFallback = servicio?.precio || servicio?.precio_bajo_cc || servicio?.precio_alto_cc;
+    return formatCOP(precioServicio ?? precioFallback);
+  };
+
+  const calcularTiempoEspera = () => {
+    if (motosEnEspera <= 0) return null;
+    const duracionMin = servicioSeleccionado?.duracion || 30;
+    const totalMin = motosEnEspera * duracionMin;
+    const horas = Math.floor(totalMin / 60);
+    const minutos = totalMin % 60;
+    if (horas > 0) return `${horas}h ${minutos}m`;
+    return `${minutos} min`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -252,6 +286,9 @@ export default function TallerPage() {
             </p>
             <p style={{ fontSize: '14px', color: '#e5e7eb' }}>
               {motosEnEspera === 1 ? 'Hay 1 moto antes de las nuevas' : `Hay ${motosEnEspera} motos antes de las nuevas`}
+            </p>
+            <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '8px' }}>
+              Tiempo estimado: {calcularTiempoEspera() || 'sin espera' }
             </p>
           </div>
         )}
@@ -424,6 +461,9 @@ export default function TallerPage() {
                   </p>
                   <p style={{ margin: "0", fontSize: "12px", color: "#9ca3af" }}>
                     {s.duracion} min
+                  </p>
+                  <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#f472b6", fontWeight: 600 }}>
+                    {calcularPrecio(s) || "Precio no disponible"}
                   </p>
                 </div>
               ))}
