@@ -92,12 +92,6 @@ export default function TallerPage() {
     e.preventDefault();
     setLoading(true);
 
-    if (!accessToken) {
-      mostrarMensaje("Acceso no autorizado. Usa el QR de taller.", "error");
-      setLoading(false);
-      return;
-    }
-
     // Validaciones
     if (!form.taller_id) {
       mostrarMensaje("Selecciona un taller", "error");
@@ -122,13 +116,18 @@ export default function TallerPage() {
     if (!form.metodo_pago) {
       mostrarMensaje("Selecciona un método de pago", "error");
       setLoading(false);
-    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
-    const dd = String(hoy.getDate()).padStart(2, '0');
-      const hh = String(hoy.getHours()).padStart(2, '0');
-      const mi = String(hoy.getMinutes()).padStart(2, '0');
+      return;
+    }
     
     // Obtener datos del taller
     const tallerSeleccionado = talleres.find(t => t.id === parseInt(form.taller_id));
+
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    const hh = String(hoy.getHours()).padStart(2, '0');
+    const mi = String(hoy.getMinutes()).padStart(2, '0');
 
     const citaData = {
       cliente: tallerSeleccionado?.nombre || "Taller Aliado",
@@ -148,7 +147,7 @@ export default function TallerPage() {
     };
 
     try {
-      await addCita(citaData, accessToken);
+      await addCita(citaData);
       
       mostrarMensaje("🎉 ¡Moto ingresada al sistema! Gracias por confiar en MOTOBOMBON 🏍️✨", "success");
       
