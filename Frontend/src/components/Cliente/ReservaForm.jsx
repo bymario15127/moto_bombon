@@ -341,7 +341,7 @@ export default function ReservaForm() {
               {servicios.map((s) => {
                 // Determinar precio según cilindraje
                 const cc = ccNumber || 0;
-                const esBajoCC = cc >= 100 && cc <= 405;
+                const esBajoCC = cc >= 50 && cc <= 405;
                 const esAltoCC = cc > 405 && cc <= 1200;
                 let precioMostrar = s.precio;
                 
