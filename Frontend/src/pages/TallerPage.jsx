@@ -50,6 +50,9 @@ export default function TallerPage() {
     try {
       const data = await serviciosService.getServicios();
       setServicios(data);
+      if (!form.servicio && data?.length > 0) {
+        setForm((prev) => ({ ...prev, servicio: data[0].nombre }));
+      }
     } catch (error) {
       console.error("Error al cargar servicios:", error);
     }
@@ -111,6 +114,17 @@ export default function TallerPage() {
     const minutos = totalMin % 60;
     if (horas > 0) return `${horas}h ${minutos}m`;
     return `${minutos} min`;
+  };
+
+  const precioDinamico = () => {
+    if (!tallerSeleccionado) return null;
+    const ccNumber = parseInt(form.cilindraje);
+    if (isNaN(ccNumber)) return null;
+    const limiteCC = 200;
+    const usaAlto = ccNumber > limiteCC;
+    const valor = usaAlto ? tallerSeleccionado?.precio_alto_cc : tallerSeleccionado?.precio_bajo_cc;
+    const fallback = tallerSeleccionado?.precio_bajo_cc ?? tallerSeleccionado?.precio_alto_cc;
+    return formatCOP(valor ?? fallback);
   };
 
   const handleSubmit = async (e) => {
@@ -430,48 +444,54 @@ export default function TallerPage() {
           {servicios.length === 0 ? (
             <p style={{ color: "#999" }}>Cargando servicios...</p>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "10px", marginBottom: "20px" }}>
-              {servicios.map((s) => (
+            (() => {
+              const servicioCard = servicioSeleccionado || servicios[0];
+              if (!servicioCard) return null;
+              const precio = precioDinamico();
+              const { bajo, alto } = preciosTaller();
+
+              return (
                 <div
-                  key={s.id}
-                  onClick={() => handleServicioSelect(s.nombre)}
+                  onClick={() => handleServicioSelect(servicioCard.nombre)}
                   style={{
-                    padding: "12px",
-                    border: `1px solid ${form.servicio === s.nombre ? '#EB0463' : 'rgba(235,4,99,0.35)'}`,
-                    borderRadius: "10px",
+                    padding: "14px",
+                    border: `1px solid ${form.servicio === servicioCard.nombre ? '#EB0463' : 'rgba(235,4,99,0.35)'}`,
+                    borderRadius: "12px",
                     cursor: "pointer",
-                    background: form.servicio === s.nombre ? 'rgba(235,4,99,0.12)' : '#0b0b10',
+                    background: form.servicio === servicioCard.nombre ? 'rgba(235,4,99,0.12)' : '#0b0b10',
                     textAlign: "center",
                     transition: "all 0.3s",
                     color: '#f9fafb',
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.35)"
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+                    marginBottom: "20px"
                   }}
                 >
-                  <p style={{ margin: "0 0 4px 0", fontWeight: "600", fontSize: "14px" }}>
-                    {s.nombre}
+                  <p style={{ margin: "0 0 6px 0", fontWeight: "700", fontSize: "15px", letterSpacing: "0.2px" }}>
+                    {servicioCard.nombre}
                   </p>
                   <p style={{ margin: "0", fontSize: "12px", color: "#9ca3af" }}>
-                    {s.duracion} min
+                    {servicioCard.duracion} min
                   </p>
-                  {(() => {
-                    const { bajo, alto } = preciosTaller();
-                    if (!bajo && !alto) {
-                      return (
-                        <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#f472b6", fontWeight: 600 }}>
-                          Selecciona tu taller
-                        </p>
-                      );
-                    }
-                    return (
-                      <div style={{ marginTop: "4px", fontSize: "12px", color: "#f472b6", fontWeight: 600, lineHeight: 1.35 }}>
+
+                  {tallerSeleccionado ? (
+                    precio ? (
+                      <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#f472b6", fontWeight: 700 }}>
+                        Precio: {precio}
+                      </p>
+                    ) : (
+                      <div style={{ marginTop: "6px", fontSize: "12px", color: "#f472b6", fontWeight: 600, lineHeight: 1.35 }}>
                         <div>Bajo CC: {bajo || "N/D"}</div>
                         <div>Alto CC: {alto || "N/D"}</div>
                       </div>
-                    );
-                  })()}
+                    )
+                  ) : (
+                    <p style={{ margin: "6px 0 0 0", fontSize: "12px", color: "#f472b6", fontWeight: 600 }}>
+                      Selecciona tu taller
+                    </p>
+                  )}
                 </div>
-              ))}
-            </div>
+              );
+            })()
           )}
 
           <div style={{ marginBottom: "20px" }}>
