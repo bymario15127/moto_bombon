@@ -3,13 +3,30 @@
 const API_URL = "/api/servicios";
 const UPLOAD_URL = "/api/upload-image";
 
+// Cache para servicios (se actualiza cada 5 minutos)
+let serviciosCache = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
 export async function getServicios() {
+  const now = Date.now();
+  
+  // Si hay cache válido, devolverlo
+  if (serviciosCache && (now - cacheTimestamp) < CACHE_DURATION) {
+    return serviciosCache;
+  }
+  
   const res = await fetch(API_URL);
   if (!res.ok) {
     console.error("Error fetching servicios:", res.status);
-    return []; // Return empty array on error instead of throwing
+    return serviciosCache || []; // Return cached data if available, else empty array
   }
-  return res.json();
+  
+  const data = await res.json();
+  serviciosCache = data;
+  cacheTimestamp = now;
+  
+  return data;
 }
 
 export async function addServicio(data) {

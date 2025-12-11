@@ -374,7 +374,7 @@ export default function ReservaForm() {
                         imagenMostrar = s.imagen_alto_cc;
                       }
                       
-                      return <img src={imagenMostrar} alt={s.nombre} />;
+                      return <img src={imagenMostrar} alt={s.nombre} loading="lazy" />;
                     })()}
                     <div className="servicio-info">
                       <p className="servicio-nombre">{s.nombre}</p>
