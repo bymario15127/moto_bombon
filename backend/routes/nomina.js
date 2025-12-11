@@ -33,17 +33,20 @@ router.get("/", async (req, res) => {
     // Obtener todos los lavadores activos
     const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1 ORDER BY nombre");
     
-    // Obtener citas finalizadas O confirmadas del rango de fechas con información del servicio
+    // Obtener citas finalizadas O confirmadas del rango de fechas con información del servicio y taller
     const citasFinalizadas = await db.all(`
       SELECT 
         c.*,
         s.precio as precio_servicio,
         s.precio_bajo_cc,
         s.precio_alto_cc,
+        t.precio_bajo_cc as taller_precio_bajo_cc,
+        t.precio_alto_cc as taller_precio_alto_cc,
         l.nombre as lavador_nombre,
         l.comision_porcentaje
       FROM citas c
       LEFT JOIN servicios s ON s.nombre = c.servicio
+      LEFT JOIN talleres t ON t.id = c.taller_id
       LEFT JOIN lavadores l ON l.id = c.lavador_id
       WHERE c.estado IN ('finalizada', 'confirmada')
         AND c.fecha >= ?
@@ -58,15 +61,30 @@ router.get("/", async (req, res) => {
       
       let totalGenerado = 0;
       citasDelLavador.forEach(cita => {
-        // Determinar el precio según el cilindraje
-        let precio = cita.precio_servicio || 0;
-        if (cita.cilindraje && cita.precio_bajo_cc && cita.precio_alto_cc) {
+        // Determinar el precio según si es taller o cliente
+        let precio = 0;
+        
+        // Si es un taller aliado, usar los precios del taller
+        if (cita.tipo_cliente === 'taller' && cita.taller_precio_bajo_cc && cita.taller_precio_alto_cc) {
+          const cc = parseInt(cita.cilindraje);
+          if (cc >= 50 && cc <= 405) {
+            precio = cita.taller_precio_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precio = cita.taller_precio_alto_cc;
+          }
+        }
+        // Si es un cliente regular, usar los precios del servicio
+        else if (cita.precio_bajo_cc && cita.precio_alto_cc) {
           const cc = parseInt(cita.cilindraje);
           if (cc >= 100 && cc <= 405) {
             precio = cita.precio_bajo_cc;
           } else if (cc > 405 && cc <= 1200) {
             precio = cita.precio_alto_cc;
           }
+        }
+        // Fallback: usar el precio del servicio
+        else {
+          precio = cita.precio_servicio || 0;
         }
         totalGenerado += precio;
       });
@@ -96,14 +114,29 @@ router.get("/", async (req, res) => {
     const estadisticasPorServicio = serviciosUnicos.map(servicio => {
       const citasDelServicio = citasFinalizadas.filter(c => c.servicio === servicio);
       const ingreso = citasDelServicio.reduce((sum, c) => {
-        let precio = c.precio_servicio || 0;
-        if (c.cilindraje && c.precio_bajo_cc && c.precio_alto_cc) {
+        let precio = 0;
+        
+        // Si es un taller aliado, usar los precios del taller
+        if (c.tipo_cliente === 'taller' && c.taller_precio_bajo_cc && c.taller_precio_alto_cc) {
+          const cc = parseInt(c.cilindraje);
+          if (cc >= 50 && cc <= 405) {
+            precio = c.taller_precio_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precio = c.taller_precio_alto_cc;
+          }
+        }
+        // Si es un cliente regular, usar los precios del servicio
+        else if (c.precio_bajo_cc && c.precio_alto_cc) {
           const cc = parseInt(c.cilindraje);
           if (cc >= 100 && cc <= 405) {
             precio = c.precio_bajo_cc;
           } else if (cc > 405 && cc <= 1200) {
             precio = c.precio_alto_cc;
           }
+        }
+        // Fallback: usar el precio del servicio
+        else {
+          precio = c.precio_servicio || 0;
         }
         return sum + precio;
       }, 0);
@@ -157,10 +190,13 @@ router.get("/exportar-excel", async (req, res) => {
         s.precio as precio_servicio,
         s.precio_bajo_cc,
         s.precio_alto_cc,
+        t.precio_bajo_cc as taller_precio_bajo_cc,
+        t.precio_alto_cc as taller_precio_alto_cc,
         l.nombre as lavador_nombre,
         l.comision_porcentaje
       FROM citas c
       LEFT JOIN servicios s ON s.nombre = c.servicio
+      LEFT JOIN talleres t ON t.id = c.taller_id
       LEFT JOIN lavadores l ON l.id = c.lavador_id
       WHERE c.estado IN ('finalizada', 'confirmada')
         AND c.fecha >= ?
@@ -174,14 +210,30 @@ router.get("/exportar-excel", async (req, res) => {
       
       let totalGenerado = 0;
       citasDelLavador.forEach(cita => {
-        let precio = cita.precio_servicio || 0;
-        if (cita.cilindraje && cita.precio_bajo_cc && cita.precio_alto_cc) {
+        // Determinar el precio según si es taller o cliente
+        let precio = 0;
+        
+        // Si es un taller aliado, usar los precios del taller
+        if (cita.tipo_cliente === 'taller' && cita.taller_precio_bajo_cc && cita.taller_precio_alto_cc) {
+          const cc = parseInt(cita.cilindraje);
+          if (cc >= 50 && cc <= 405) {
+            precio = cita.taller_precio_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precio = cita.taller_precio_alto_cc;
+          }
+        }
+        // Si es un cliente regular, usar los precios del servicio
+        else if (cita.precio_bajo_cc && cita.precio_alto_cc) {
           const cc = parseInt(cita.cilindraje);
           if (cc >= 100 && cc <= 405) {
             precio = cita.precio_bajo_cc;
           } else if (cc > 405 && cc <= 1200) {
             precio = cita.precio_alto_cc;
           }
+        }
+        // Fallback: usar el precio del servicio
+        else {
+          precio = cita.precio_servicio || 0;
         }
         totalGenerado += precio;
       });
@@ -208,14 +260,29 @@ router.get("/exportar-excel", async (req, res) => {
     const estadisticasPorServicio = serviciosUnicos.map(servicio => {
       const citasDelServicio = citasFinalizadas.filter(c => c.servicio === servicio);
       const ingreso = citasDelServicio.reduce((sum, c) => {
-        let precio = c.precio_servicio || 0;
-        if (c.cilindraje && c.precio_bajo_cc && c.precio_alto_cc) {
+        let precio = 0;
+        
+        // Si es un taller aliado, usar los precios del taller
+        if (c.tipo_cliente === 'taller' && c.taller_precio_bajo_cc && c.taller_precio_alto_cc) {
+          const cc = parseInt(c.cilindraje);
+          if (cc >= 50 && cc <= 405) {
+            precio = c.taller_precio_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precio = c.taller_precio_alto_cc;
+          }
+        }
+        // Si es un cliente regular, usar los precios del servicio
+        else if (c.precio_bajo_cc && c.precio_alto_cc) {
           const cc = parseInt(c.cilindraje);
           if (cc >= 100 && cc <= 405) {
             precio = c.precio_bajo_cc;
           } else if (cc > 405 && cc <= 1200) {
             precio = c.precio_alto_cc;
           }
+        }
+        // Fallback: usar el precio del servicio
+        else {
+          precio = c.precio_servicio || 0;
         }
         return sum + precio;
       }, 0);
