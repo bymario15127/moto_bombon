@@ -90,7 +90,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE taller (marcar como inactivo)
+// DELETE taller (eliminación permanente)
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -100,7 +100,7 @@ router.delete("/:id", async (req, res) => {
     }
     
     const result = await db.run(
-      "UPDATE talleres SET activo = 0 WHERE id = ?",
+      "DELETE FROM talleres WHERE id = ?",
       [id]
     );
     
