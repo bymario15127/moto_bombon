@@ -216,41 +216,6 @@ const CalendarAdmin = () => {
                       </div>
                     </div>
                   )}
-
-                  <div className="apt-actions">
-                    {cita.estado === 'pendiente' && (
-                      <button
-                        onClick={() => updateCitaStatus(cita.id, 'confirmada')}
-                        className="btn btn-success btn-sm"
-                      >
-                        ✅ Confirmar
-                      </button>
-                    )}
-
-                    {['pendiente', 'confirmada', 'en curso'].includes(cita.estado) && (
-                      <button
-                        onClick={() => updateCitaStatus(cita.id, cita.estado === 'en curso' ? 'finalizada' : 'en curso')}
-                        className="btn btn-primary btn-sm"
-                        disabled={cita.estado === 'en curso' && !cita.lavador_id}
-                        style={{
-                          opacity: (cita.estado === 'en curso' && !cita.lavador_id) ? 0.5 : 1,
-                          cursor: (cita.estado === 'en curso' && !cita.lavador_id) ? 'not-allowed' : 'pointer'
-                        }}
-                        title={cita.estado === 'en curso' && !cita.lavador_id ? 'Asigna un lavador antes de finalizar' : ''}
-                      >
-                        {cita.estado === 'en curso' ? '✨ Finalizar' : '🔄 En curso'}
-                      </button>
-                    )}
-
-                    {cita.estado !== 'cancelada' && (
-                      <button
-                        onClick={() => updateCitaStatus(cita.id, 'cancelada')}
-                        className="btn btn-danger btn-sm"
-                      >
-                        ❌ Cancelar
-                      </button>
-                    )}
-                  </div>
                 </div>
               ))}
             </div>

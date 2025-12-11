@@ -51,13 +51,13 @@ router.post("/", async (req, res) => {
     
     const result = await db.run(
       "INSERT INTO lavadores (nombre, cedula, activo, comision_porcentaje) VALUES (?, ?, ?, ?)",
-      [nombre, cedula || "", activo !== undefined ? activo : 1, comision_porcentaje || 30.0]
+      [nombre, cedula || null, activo !== undefined ? activo : 1, comision_porcentaje || 30.0]
     );
     
     res.status(201).json({ id: result.lastID, message: "Lavador creado exitosamente" });
   } catch (error) {
-    console.error("Error al crear lavador:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("Error al crear lavador:", error.message);
+    res.status(500).json({ error: error.message || "Error interno del servidor" });
   }
 });
 
@@ -77,7 +77,7 @@ router.put("/:id", async (req, res) => {
     
     const result = await db.run(
       "UPDATE lavadores SET nombre = ?, cedula = ?, activo = ?, comision_porcentaje = ? WHERE id = ?",
-      [nombre, cedula || "", activo !== undefined ? activo : 1, comision_porcentaje || 30.0, id]
+      [nombre, cedula || null, activo !== undefined ? activo : 1, comision_porcentaje || 30.0, id]
     );
     
     if (result.changes === 0) {
@@ -86,8 +86,8 @@ router.put("/:id", async (req, res) => {
     
     res.json({ message: "Lavador actualizado exitosamente" });
   } catch (error) {
-    console.error("Error al actualizar lavador:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("Error al actualizar lavador:", error.message);
+    res.status(500).json({ error: error.message || "Error interno del servidor" });
   }
 });
 
@@ -109,8 +109,8 @@ router.delete("/:id", async (req, res) => {
     
     res.json({ message: "Lavador desactivado exitosamente" });
   } catch (error) {
-    console.error("Error al eliminar lavador:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("Error al eliminar lavador:", error.message);
+    res.status(500).json({ error: error.message || "Error interno del servidor" });
   }
 });
 

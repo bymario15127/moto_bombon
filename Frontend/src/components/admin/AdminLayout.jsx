@@ -5,6 +5,7 @@ import Dashboard from "./Dashboard";
 import CalendarAdmin from "./CalendarAdmin";
 import PanelAdmin from "./PanelAdmin";
 import ServiciosManager from "./ServiciosManager";
+import TalleresManager from "./TalleresManager";
 import LavadoresManager from "./LavadoresManager";
 import NominaManager from "./NominaManager";
 
@@ -17,20 +18,19 @@ export default function AdminLayout() {
   };
 
   const renderContent = () => {
-    const getPageTitle = () => {
-      switch (activeView) {
-        case 'dashboard': return 'Dashboard';
-        case 'calendar': return 'Calendario';
-        case 'appointments': return 'Citas';
-        case 'services': return 'Servicios';
-        case 'lavadores': return 'Lavadores';
-        case 'nomina': return 'Nómina y CRM';
-        case 'settings': return 'Ajustes';
-        default: return 'Dashboard';
-      }
-    };
-
-    return (
+      const getPageTitle = () => {
+        switch (activeView) {
+          case 'dashboard': return 'Dashboard';
+          case 'calendar': return 'Calendario';
+          case 'appointments': return 'Citas';
+          case 'services': return 'Servicios';
+          case 'talleres': return 'Talleres Aliados';
+          case 'lavadores': return 'Lavadores';
+          case 'nomina': return 'Nómina y CRM';
+          case 'settings': return 'Ajustes';
+          default: return 'Dashboard';
+        }
+      };    return (
       <div>
         {/* Header de la página */}
         <div className="admin-page-header">
@@ -40,6 +40,7 @@ export default function AdminLayout() {
             {activeView === 'calendar' && 'Gestiona las citas en el calendario'}
             {activeView === 'appointments' && 'Administra las reservas de clientes'}
             {activeView === 'services' && 'Configura servicios y precios'}
+            {activeView === 'talleres' && 'Gestiona talleres aliados y sus precios especiales'}
             {activeView === 'lavadores' && 'Administra el equipo de trabajo'}
             {activeView === 'nomina' && 'Control financiero y reportes de nómina'}
             {activeView === 'settings' && 'Preferencias y configuración del sistema'}
@@ -58,6 +59,8 @@ export default function AdminLayout() {
                 return <PanelAdmin />;
               case 'services':
                 return <ServiciosManager />;
+              case 'talleres':
+                return <TalleresManager />;
               case 'lavadores':
                 return <LavadoresManager />;
               case 'nomina':

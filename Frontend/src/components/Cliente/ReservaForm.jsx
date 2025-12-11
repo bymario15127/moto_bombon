@@ -19,6 +19,7 @@ export default function ReservaForm() {
   const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
+  const [motosEnEspera, setMotosEnEspera] = useState(0);
 
   const loadServicios = async () => {
     try {
@@ -53,7 +54,31 @@ export default function ReservaForm() {
   // Cargar servicios al montar el componente
   useEffect(() => {
     loadServicios();
+    loadMotosEnEspera();
   }, []);
+
+  // Función para contar motos en espera (citas de hoy pendientes/confirmadas/en curso)
+  const loadMotosEnEspera = async () => {
+    try {
+      const todasLasCitas = await getCitas();
+      const hoy = new Date();
+      const yyyy = hoy.getFullYear();
+      const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+      const dd = String(hoy.getDate()).padStart(2, '0');
+      const fechaHoy = `${yyyy}-${mm}-${dd}`;
+      
+      // Contar citas de hoy que están pendientes, confirmadas o en curso
+      const citasHoy = todasLasCitas.filter(cita => 
+        cita.fecha === fechaHoy && 
+        ['pendiente', 'confirmada', 'en curso'].includes(cita.estado)
+      );
+      
+      setMotosEnEspera(citasHoy.length);
+    } catch (error) {
+      console.error('Error al cargar motos en espera:', error);
+      setMotosEnEspera(0);
+    }
+  };
 
   // Mostrar loading mientras cargan los servicios
   if (servicios.length === 0) {
@@ -110,6 +135,9 @@ export default function ReservaForm() {
     const yyyy = hoy.getFullYear();
     const mm = String(hoy.getMonth() + 1).padStart(2, '0');
     const dd = String(hoy.getDate()).padStart(2, '0');
+    const hh = String(hoy.getHours()).padStart(2, '0');
+    const mi = String(hoy.getMinutes()).padStart(2, '0');
+    const horaActual = `${hh}:${mi}`;
     
     const citaData = {
       cliente: form.cliente,
@@ -123,7 +151,7 @@ export default function ReservaForm() {
       metodo_pago: form.metodo_pago,
       comentarios: form.comentarios,
       fecha: `${yyyy}-${mm}-${dd}`,
-      hora: null,
+      hora: horaActual,
     };
 
     console.log('📤 Enviando datos:', citaData);
@@ -158,6 +186,45 @@ export default function ReservaForm() {
       {mensaje.texto && (
         <div className={`notificacion ${mensaje.tipo}`}>
           {mensaje.texto}
+        </div>
+      )}
+      
+      {/* Contador de motos en espera */}
+      {motosEnEspera > 0 && (
+        <div className="motos-en-espera" style={{
+          backgroundColor: '#FEF3C7',
+          border: '2px solid #F59E0B',
+          borderRadius: '8px',
+          padding: '16px',
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏍️</div>
+          <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#92400E', marginBottom: '4px' }}>
+            {motosEnEspera} {motosEnEspera === 1 ? 'moto' : 'motos'} en espera
+          </p>
+          <p style={{ fontSize: '14px', color: '#78350F' }}>
+            {motosEnEspera === 1 ? 'Hay 1 moto antes que la tuya' : `Hay ${motosEnEspera} motos antes que la tuya`}
+          </p>
+        </div>
+      )}
+      
+      {motosEnEspera === 0 && (
+        <div className="motos-en-espera" style={{
+          backgroundColor: '#D1FAE5',
+          border: '2px solid #10B981',
+          borderRadius: '8px',
+          padding: '16px',
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '24px', marginBottom: '8px' }}>✨</div>
+          <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#065F46', marginBottom: '4px' }}>
+            ¡Sin espera!
+          </p>
+          <p style={{ fontSize: '14px', color: '#047857' }}>
+            Serías el primero en la fila hoy
+          </p>
         </div>
       )}
       
@@ -277,7 +344,7 @@ export default function ReservaForm() {
               {servicios.map((s) => {
                 // Determinar precio según cilindraje
                 const cc = ccNumber || 0;
-                const esBajoCC = cc >= 100 && cc <= 405;
+                const esBajoCC = cc >= 50 && cc <= 405;
                 const esAltoCC = cc > 405 && cc <= 1200;
                 let precioMostrar = s.precio;
                 
@@ -297,7 +364,18 @@ export default function ReservaForm() {
                     }`}
                     onClick={() => handleServicioSelect(s.nombre)}
                   >
-                    <img src={s.imagen || s.img || "/img/default.jpg"} alt={s.nombre} />
+                    {(() => {
+                      // Determinar qué imagen mostrar según el cilindraje
+                      let imagenMostrar = s.imagen || s.img || "/img/default.jpg";
+                      
+                      if (esBajoCC && s.imagen_bajo_cc) {
+                        imagenMostrar = s.imagen_bajo_cc;
+                      } else if (esAltoCC && s.imagen_alto_cc) {
+                        imagenMostrar = s.imagen_alto_cc;
+                      }
+                      
+                      return <img src={imagenMostrar} alt={s.nombre} />;
+                    })()}
                     <div className="servicio-info">
                       <p className="servicio-nombre">{s.nombre}</p>
                       {precioMostrar && (

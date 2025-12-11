@@ -1,18 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import logo from '../../assets/motobombon.ico';
 
 export default function Sidebar({ activeView, setActiveView, onLogout }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [userRole, setUserRole] = useState('admin');
+  const [userName, setUserName] = useState('Admin');
 
-  const menuItems = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-    { id: 'calendar', icon: '📅', label: 'Calendario' },
-    { id: 'appointments', icon: '📋', label: 'Citas' },
-    { id: 'services', icon: '🏍️', label: 'Servicios' },
-    { id: 'lavadores', icon: '👤', label: 'Lavadores' },
-    { id: 'nomina', icon: '💰', label: 'Nómina' },
-    { id: 'settings', icon: '⚙️', label: 'Ajustes' },
+  useEffect(() => {
+    // Obtener el rol del usuario desde localStorage
+    const role = localStorage.getItem('motobombon_user_role') || 'admin';
+    const name = localStorage.getItem('motobombon_user_name') || 'Admin';
+    setUserRole(role);
+    setUserName(name);
+  }, []);
+
+  // Todos los items del menú
+  const allMenuItems = [
+    { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['admin', 'supervisor'] },
+    { id: 'calendar', icon: '📅', label: 'Calendario', roles: ['admin', 'supervisor'] },
+    { id: 'appointments', icon: '📋', label: 'Citas', roles: ['admin', 'supervisor'] },
+    { id: 'services', icon: '🏍️', label: 'Servicios', roles: ['admin'] },
+    { id: 'talleres', icon: '🏢', label: 'Talleres Aliados', roles: ['admin'] },
+    { id: 'lavadores', icon: '👤', label: 'Lavadores', roles: ['admin'] },
+    { id: 'nomina', icon: '💰', label: 'Nómina', roles: ['admin'] },
+    { id: 'settings', icon: '⚙️', label: 'Ajustes', roles: ['admin'] },
   ];
+
+  // Filtrar items según el rol del usuario
+  const menuItems = allMenuItems.filter(item => item.roles.includes(userRole));
 
   const handleItemClick = (id) => {
     setActiveView(id);
@@ -57,9 +72,12 @@ export default function Sidebar({ activeView, setActiveView, onLogout }) {
 
           <div className="sb-footer">
             <div className="sb-user">
-              <div className="sb-avatar">PE</div>
+              <div className="sb-avatar">{userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}</div>
               <div className="sb-user-txt">
-                <div className="sb-user-name">Paula Espinosa</div>
+                <div className="sb-user-name">{userName}</div>
+                <div className="sb-user-role" style={{fontSize: '12px', color: '#999'}}>
+                  {userRole === 'admin' ? 'Administrador' : 'Supervisor'}
+                </div>
               </div>
             </div>
             <button className="sb-logout" onClick={onLogout}>

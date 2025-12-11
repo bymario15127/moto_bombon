@@ -19,34 +19,21 @@ let db;
   });
 })();
 
-// GET /api/nomina?mes=11&anio=2025&quincena=1
+// GET /api/nomina?fechaInicio=2025-12-01&fechaFin=2025-12-15
 router.get("/", async (req, res) => {
   try {
-    const { mes, anio, quincena } = req.query;
+    const { fechaInicio, fechaFin } = req.query;
     
-    // Si no se especifica, usar mes, año y quincena actual
+    // Si no se especifica, usar desde el primer día del mes hasta hoy
     const now = new Date();
-    const mesActual = mes || (now.getMonth() + 1);
-    const anioActual = anio || now.getFullYear();
-    const quincenaActual = quincena || (now.getDate() <= 15 ? 1 : 2);
-    
-    // Construir fechas de inicio y fin según la quincena
-    let fechaInicio, fechaFin;
-    if (quincenaActual == 1) {
-      // Quincena 1: día 1 al 15
-      fechaInicio = `${anioActual}-${String(mesActual).padStart(2, '0')}-01`;
-      fechaFin = `${anioActual}-${String(mesActual).padStart(2, '0')}-15`;
-    } else {
-      // Quincena 2: día 16 al último día del mes
-      const ultimoDia = new Date(anioActual, mesActual, 0).getDate();
-      fechaInicio = `${anioActual}-${String(mesActual).padStart(2, '0')}-16`;
-      fechaFin = `${anioActual}-${String(mesActual).padStart(2, '0')}-${ultimoDia}`;
-    }
+    const primerDiaDelMes = new Date(now.getFullYear(), now.getMonth(), 1);
+    const inicio = fechaInicio || primerDiaDelMes.toISOString().split('T')[0];
+    const fin = fechaFin || now.toISOString().split('T')[0];
     
     // Obtener todos los lavadores activos
     const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1 ORDER BY nombre");
     
-    // Obtener citas finalizadas O confirmadas de la quincena con información del servicio
+    // Obtener citas finalizadas O confirmadas del rango de fechas con información del servicio
     const citasFinalizadas = await db.all(`
       SELECT 
         c.*,
@@ -63,7 +50,7 @@ router.get("/", async (req, res) => {
         AND c.fecha <= ?
         AND c.lavador_id IS NOT NULL
       ORDER BY c.fecha, c.hora
-    `, [fechaInicio, fechaFin]);
+    `, [inicio, fin]);
     
     // Calcular estadísticas por lavador
     const reportePorLavador = lavadores.map(lavador => {
@@ -131,11 +118,8 @@ router.get("/", async (req, res) => {
     
     res.json({
       periodo: {
-        mes: mesActual,
-        anio: anioActual,
-        quincena: quincenaActual,
-        fecha_inicio: fechaInicio,
-        fecha_fin: fechaFin
+        fecha_inicio: inicio,
+        fecha_fin: fin
       },
       resumen: {
         total_servicios: totalServicios,
@@ -154,18 +138,15 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/nomina/exportar-excel?mes=11&anio=2025
+// GET /api/nomina/exportar-excel?fechaInicio=2025-12-01&fechaFin=2025-12-15
 router.get("/exportar-excel", async (req, res) => {
   try {
-    const { mes, anio } = req.query;
+    const { fechaInicio, fechaFin } = req.query;
     
     const now = new Date();
-    const mesActual = mes || (now.getMonth() + 1);
-    const anioActual = anio || now.getFullYear();
-    
-    const fechaInicio = `${anioActual}-${String(mesActual).padStart(2, '0')}-01`;
-    const ultimoDia = new Date(anioActual, mesActual, 0).getDate();
-    const fechaFin = `${anioActual}-${String(mesActual).padStart(2, '0')}-${ultimoDia}`;
+    const primerDiaDelMes = new Date(now.getFullYear(), now.getMonth(), 1);
+    const inicio = fechaInicio || primerDiaDelMes.toISOString().split('T')[0];
+    const fin = fechaFin || now.toISOString().split('T')[0];
     
     // Reutilizar la lógica del endpoint GET /
     const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1 ORDER BY nombre");
@@ -181,12 +162,12 @@ router.get("/exportar-excel", async (req, res) => {
       FROM citas c
       LEFT JOIN servicios s ON s.nombre = c.servicio
       LEFT JOIN lavadores l ON l.id = c.lavador_id
-      WHERE c.estado = 'finalizada'
+      WHERE c.estado IN ('finalizada', 'confirmada')
         AND c.fecha >= ?
         AND c.fecha <= ?
         AND c.lavador_id IS NOT NULL
       ORDER BY c.fecha, c.hora
-    `, [fechaInicio, fechaFin]);
+    `, [inicio, fin]);
     
     const reportePorLavador = lavadores.map(lavador => {
       const citasDelLavador = citasFinalizadas.filter(c => c.lavador_id === lavador.id);
@@ -253,8 +234,7 @@ router.get("/exportar-excel", async (req, res) => {
     // HOJA 1: Resumen General
     const resumenData = [
       ['REPORTE DE NÓMINA - MOTOBOMBON'],
-      [`Período: ${getNombreMes(mesActual)} ${anioActual}`],
-      [`Del ${fechaInicio} al ${fechaFin}`],
+      [`Período: Del ${inicio} al ${fin}`],
       [],
       ['RESUMEN FINANCIERO'],
       ['Total de Servicios', totalServicios],
@@ -306,7 +286,7 @@ router.get("/exportar-excel", async (req, res) => {
     const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     
     // Enviar como descarga
-    const nombreArchivo = `Nomina_${getNombreMes(mesActual)}_${anioActual}.xlsx`;
+    const nombreArchivo = `Nomina_${inicio}_${fin}.xlsx`;
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(excelBuffer);
@@ -316,11 +296,5 @@ router.get("/exportar-excel", async (req, res) => {
     res.status(500).json({ error: "Error al generar archivo Excel" });
   }
 });
-
-function getNombreMes(mes) {
-  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  return meses[parseInt(mes) - 1];
-}
 
 export default router;

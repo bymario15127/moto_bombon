@@ -12,7 +12,9 @@ export default function ServiciosManager() {
     precio_bajo_cc: "",
     precio_alto_cc: "",
     descripcion: "",
-    imagen: "/img/default.jpg"
+    imagen: "/img/default.jpg",
+    imagen_bajo_cc: "",
+    imagen_alto_cc: ""
   });
 
   useEffect(() => {
@@ -70,7 +72,9 @@ export default function ServiciosManager() {
       precio_bajo_cc: (servicio.precio_bajo_cc || servicio.precio || "").toString(),
       precio_alto_cc: (servicio.precio_alto_cc || servicio.precio || "").toString(),
       descripcion: servicio.descripcion || "",
-      imagen: servicio.imagen || "/img/default.jpg"
+      imagen: servicio.imagen || "/img/default.jpg",
+      imagen_bajo_cc: servicio.imagen_bajo_cc || "",
+      imagen_alto_cc: servicio.imagen_alto_cc || ""
     });
     setShowForm(true);
   };
@@ -100,7 +104,9 @@ export default function ServiciosManager() {
       precio_bajo_cc: "",
       precio_alto_cc: "",
       descripcion: "",
-      imagen: "/img/default.jpg"
+      imagen: "/img/default.jpg",
+      imagen_bajo_cc: "",
+      imagen_alto_cc: ""
     });
     setEditingService(null);
     setShowForm(false);
@@ -215,21 +221,57 @@ export default function ServiciosManager() {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Imagen del servicio</label>
-                <input type="file" accept="image/*" onChange={handleFileChange} />
-                <div style={{ marginTop: 10 }}>
-                  <small>También puedes usar una URL:</small>
-                  <input
-                    type="text"
-                    value={formData.imagen}
-                    onChange={(e) => setFormData({ ...formData, imagen: e.target.value })}
-                    placeholder="/img/servicio.jpg"
-                  />
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <img src={formData.imagen} alt="preview" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee' }} />
-                    <span style={{ fontSize: 12, color: '#6b7280' }}>Previsualización</span>
-                  </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Imagen para Bajo CC (100-405cc)</label>
+                  <input type="file" accept="image/*" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                      try {
+                        const dataUrl = ev.target.result;
+                        const { url } = await uploadImagen(dataUrl);
+                        setFormData((prev) => ({ ...prev, imagen_bajo_cc: url }));
+                      } catch (err) {
+                        console.error('Error subiendo imagen:', err);
+                        alert('No se pudo subir la imagen');
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }} />
+                  {formData.imagen_bajo_cc && (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
+                      <img src={formData.imagen_bajo_cc} alt="preview bajo cc" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #EB0463' }} />
+                      <span style={{ fontSize: 12, color: '#6b7280' }}>✓ Imagen cargada</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Imagen para Alto CC (405-1200cc)</label>
+                  <input type="file" accept="image/*" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                      try {
+                        const dataUrl = ev.target.result;
+                        const { url } = await uploadImagen(dataUrl);
+                        setFormData((prev) => ({ ...prev, imagen_alto_cc: url }));
+                      } catch (err) {
+                        console.error('Error subiendo imagen:', err);
+                        alert('No se pudo subir la imagen');
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }} />
+                  {formData.imagen_alto_cc && (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
+                      <img src={formData.imagen_alto_cc} alt="preview alto cc" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #EB0463' }} />
+                      <span style={{ fontSize: 12, color: '#6b7280' }}>✓ Imagen cargada</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -250,8 +292,21 @@ export default function ServiciosManager() {
       <div className="servicios-grid">
         {servicios.map(servicio => (
           <div key={servicio.id} className="service-card">
-            <div className="service-image">
-              <img src={servicio.imagen} alt={servicio.nombre} />
+            <div className="service-images">
+              {servicio.imagen_bajo_cc && servicio.imagen_alto_cc ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ position: 'relative' }}>
+                    <img src={servicio.imagen_bajo_cc} alt={`${servicio.nombre} bajo CC`} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+                    <span style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '11px', padding: '2px 6px', borderRadius: 4 }}>Bajo CC</span>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <img src={servicio.imagen_alto_cc} alt={`${servicio.nombre} alto CC`} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+                    <span style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '11px', padding: '2px 6px', borderRadius: 4 }}>Alto CC</span>
+                  </div>
+                </div>
+              ) : (
+                <img src={servicio.imagen} alt={servicio.nombre} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+              )}
             </div>
             
             <div className="service-content">

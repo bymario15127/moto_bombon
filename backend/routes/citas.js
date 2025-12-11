@@ -35,7 +35,7 @@ router.get("/", async (req, res) => {
       SELECT c.*, l.nombre as lavador_nombre 
       FROM citas c
       LEFT JOIN lavadores l ON c.lavador_id = l.id
-      ORDER BY c.fecha, c.hora
+      ORDER BY c.fecha ASC, c.hora ASC
     `);
     res.json(citas);
   } catch (error) {
@@ -73,7 +73,7 @@ const toMinutes = (hhmm) => {
 router.post("/", async (req, res) => {
   try {
     console.log("📥 [POST /api/citas] Payload recibido:", req.body);
-    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id } = req.body;
+    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id } = req.body;
     
     if (!cliente || !servicio) {
       return res.status(400).json({ error: "Campos obligatorios: cliente, servicio" });
@@ -117,32 +117,13 @@ router.post("/", async (req, res) => {
 
     // Si no se envía hora, no aplicamos verificación de traslapes
     if (horaFinal) {
-      // Duración del nuevo servicio
-      const servicioRow = await db.get(
-        "SELECT duracion FROM servicios WHERE nombre = ?",
-        [servicio]
-      );
-      const duracionNueva = servicioRow?.duracion ? Number(servicioRow.duracion) : 60; // default 60
-      const inicioNueva = toMinutes(horaFinal);
-      const finNueva = inicioNueva + duracionNueva;
-
-      // Buscar citas existentes del día y verificar traslape con su duración real
-      const existentes = await db.all(
-        `SELECT c.hora as hora, COALESCE(s.duracion, 60) as duracion
-         FROM citas c
-         LEFT JOIN servicios s ON s.nombre = c.servicio
-         WHERE c.fecha = ? AND (c.estado IS NULL OR c.estado != 'cancelada')`,
-        [fechaFinal]
+      // Regla simplificada: solo bloqueamos misma hora exacta en la fecha (evita falsos positivos por duración)
+      const yaTomada = await db.get(
+        "SELECT id FROM citas WHERE fecha = ? AND hora = ? AND (estado IS NULL OR estado != 'cancelada') LIMIT 1",
+        [fechaFinal, horaFinal]
       );
 
-      const hayTraslape = existentes.some((c) => {
-        if (!c.hora) return false;
-        const inicio = toMinutes(c.hora);
-        const fin = inicio + Number(c.duracion || 60);
-        return inicioNueva < fin && finNueva > inicio; // overlap
-      });
-
-      if (hayTraslape) {
+      if (yaTomada) {
         return res.status(409).json({
           error: "El horario seleccionado se traslapa con otra cita. Elige otra hora."
         });
@@ -151,8 +132,8 @@ router.post("/", async (req, res) => {
     
     try {
       const result = await db.run(
-        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null]
+        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null, tipo_cliente || "cliente", taller_id || null]
       );
       console.log("✅ Cita insertada ID=", result.lastID);
       return res.status(201).json({ id: result.lastID, message: "Cita creada exitosamente" });
