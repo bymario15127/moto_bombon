@@ -121,7 +121,7 @@ export default function TallerPage() {
     if (!tallerSeleccionado) return null;
     const ccNumber = parseInt(form.cilindraje);
     if (isNaN(ccNumber)) return null;
-    const limiteCC = 200;
+    const limiteCC = 405;
     const usaAlto = ccNumber > limiteCC;
     const valor = usaAlto ? tallerSeleccionado?.precio_alto_cc : tallerSeleccionado?.precio_bajo_cc;
     const fallback = tallerSeleccionado?.precio_bajo_cc ?? tallerSeleccionado?.precio_alto_cc;
