@@ -326,6 +326,16 @@ export default function ReservaForm() {
             />
             <span>💵 Efectivo</span>
           </label>
+          <label className={`opcion-pago ${form.metodo_pago === 'tarjeta' ? 'selected' : ''}`}> 
+            <input
+              type="radio"
+              name="metodo_pago"
+              value="tarjeta"
+              checked={form.metodo_pago === 'tarjeta'}
+              onChange={handleChange}
+            />
+            <span>💳 Tarjeta</span>
+          </label>
         </div>
 
         <h3>Selecciona tu servicio</h3>

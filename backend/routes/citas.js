@@ -134,9 +134,9 @@ router.post("/", async (req, res) => {
     }
     
     // Validar método de pago
-    const metodosValidos = ["codigo_qr", "efectivo", null, "", undefined];
+    const metodosValidos = ["codigo_qr", "efectivo", "tarjeta", null, "", undefined];
     if (!metodosValidos.includes(metodo_pago)) {
-      return res.status(400).json({ error: "Método de pago inválido. Use 'codigo_qr' o 'efectivo'" });
+      return res.status(400).json({ error: "Método de pago inválido. Use 'codigo_qr', 'efectivo' o 'tarjeta'" });
     }
 
     // Si no se envía hora, no aplicamos verificación de traslapes
