@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { getCitasAll, updateCita } from '../../services/citasService';
+import { getCitasAll, updateCita, deleteCita } from '../../services/citasService';
 
 const CalendarAdmin = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -54,6 +54,20 @@ const CalendarAdmin = () => {
     } catch (error) {
       console.error('Error al actualizar cita:', error);
       alert('Error al actualizar el estado de la cita');
+    }
+  };
+
+  const handleDeleteCita = async (id, cliente) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar la cita de ${cliente}?`)) {
+      return;
+    }
+    try {
+      await deleteCita(id);
+      await loadCitas(); // Recargar citas
+      alert('✅ Cita eliminada correctamente');
+    } catch (error) {
+      console.error('Error al eliminar cita:', error);
+      alert('❌ Error al eliminar la cita');
     }
   };
 
@@ -216,6 +230,48 @@ const CalendarAdmin = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Botones de acción */}
+                  <div style={{display: 'flex', gap: '8px', marginTop: '12px', borderTop: '1px solid #e5e7eb', paddingTop: '12px', flexWrap: 'wrap'}}>
+                    {cita.estado === 'pendiente' && (
+                      <button 
+                        onClick={() => updateCitaStatus(cita.id, 'confirmada')}
+                        style={{flex: '1', minWidth: '120px', padding: '8px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+                      >
+                        ✓ Confirmar
+                      </button>
+                    )}
+                    {cita.estado === 'confirmada' && (
+                      <button 
+                        onClick={() => updateCitaStatus(cita.id, 'en curso')}
+                        style={{flex: '1', minWidth: '120px', padding: '8px 12px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+                      >
+                        ⚡ En curso
+                      </button>
+                    )}
+                    {cita.estado === 'en curso' && (
+                      <button 
+                        onClick={() => updateCitaStatus(cita.id, 'finalizada')}
+                        style={{flex: '1', minWidth: '120px', padding: '8px 12px', background: '#8b5cf6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+                      >
+                        ✔️ Finalizar
+                      </button>
+                    )}
+                    {cita.estado !== 'cancelada' && (
+                      <button 
+                        onClick={() => updateCitaStatus(cita.id, 'cancelada')}
+                        style={{flex: '1', minWidth: '120px', padding: '8px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+                      >
+                        ✕ Cancelar
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => handleDeleteCita(cita.id, cita.cliente)}
+                      style={{flex: '1', minWidth: '120px', padding: '8px 12px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
