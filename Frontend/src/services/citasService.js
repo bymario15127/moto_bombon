@@ -2,7 +2,7 @@
 const API_URL = "/api/citas";
 
 export async function getCitas() {
-  const res = await fetch(API_URL);
+  const res = await fetch(`${API_URL}?all=true`);
   if (!res.ok) {
     console.error("Error fetching citas:", res.status);
     return []; // Return empty array on error

@@ -28,15 +28,39 @@ let db;
   }
 })();
 
-// GET all
+// GET all (solo del día actual por defecto)
 router.get("/", async (req, res) => {
   try {
-    const citas = await db.all(`
+    // Obtener fecha actual en formato YYYY-MM-DD
+    const today = () => {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    };
+    
+    const todayStr = today();
+    
+    // Si se pasa ?all=true, devuelve todas las citas
+    const incluirTodas = req.query.all === 'true';
+    
+    let query = `
       SELECT c.*, l.nombre as lavador_nombre 
       FROM citas c
       LEFT JOIN lavadores l ON c.lavador_id = l.id
-      ORDER BY c.fecha ASC, c.hora ASC
-    `);
+    `;
+    
+    if (!incluirTodas) {
+      query += ` WHERE c.fecha = ?`;
+    }
+    
+    query += ` ORDER BY c.fecha ASC, c.hora ASC`;
+    
+    const citas = incluirTodas 
+      ? await db.all(query)
+      : await db.all(query, [todayStr]);
+    
     res.json(citas);
   } catch (error) {
     console.error("Error al obtener citas:", error);
