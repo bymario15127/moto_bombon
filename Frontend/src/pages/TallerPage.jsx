@@ -14,6 +14,7 @@ export default function TallerPage() {
   
   const [form, setForm] = useState({
     taller_id: "",
+    placa: "",
     marca: "",
     modelo: "",
     cilindraje: "",
@@ -172,7 +173,7 @@ export default function TallerPage() {
       cliente: tallerSeleccionado?.nombre || "Taller Aliado",
       telefono: tallerSeleccionado?.telefono || "",
       email: tallerSeleccionado?.email || "",
-      placa: `TALLER-${Date.now()}`, // ID único para taller
+      placa: form.placa,
       marca: form.marca,
       modelo: form.modelo,
       cilindraje: form.cilindraje,
@@ -192,6 +193,7 @@ export default function TallerPage() {
       
       setForm({
         taller_id: "",
+        placa: "",
         marca: "",
         modelo: "",
         cilindraje: "",
@@ -339,6 +341,27 @@ export default function TallerPage() {
           <h3 style={{ fontSize: "16px", fontWeight: "700", marginTop: "20px", marginBottom: "12px", color: "#e5e7eb" }}>
             🏍️ Datos de la Moto
           </h3>
+
+          <div style={{ marginBottom: "12px" }}>
+            <input
+              type="text"
+              name="placa"
+              placeholder="Placa (ej: ABC-123)"
+              value={form.placa}
+              onChange={handleChange}
+              required
+              style={{
+                width: "100%",
+                padding: "12px",
+                border: "1px solid rgba(235,4,99,0.5)",
+                borderRadius: "8px",
+                fontSize: "14px",
+                boxSizing: "border-box",
+                background: "#0b0b10",
+                color: "#f9fafb"
+              }}
+            />
+          </div>
 
           <div style={{ marginBottom: "12px" }}>
             <input
