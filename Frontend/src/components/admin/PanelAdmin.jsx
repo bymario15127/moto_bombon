@@ -29,7 +29,7 @@ export default function PanelAdmin() {
   const capitalizar = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
   const load = async () => {
-    const data = await getCitas();
+    const data = await getCitas(); // Esto ya trae solo citas del día actual (sin ?all=true)
     setCitas(data);
   };
 

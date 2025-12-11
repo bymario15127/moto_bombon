@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { getCitas, updateCita } from '../../services/citasService';
+import { getCitasAll, updateCita } from '../../services/citasService';
 
 const CalendarAdmin = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -30,7 +30,7 @@ const CalendarAdmin = () => {
   const loadCitas = async () => {
     try {
       setLoading(true);
-      const data = await getCitas();
+      const data = await getCitasAll(); // Cargar TODAS las citas para el calendario
       setCitas(data);
     } catch (error) {
       console.error('Error al cargar citas:', error);

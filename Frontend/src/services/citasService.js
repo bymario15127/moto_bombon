@@ -2,10 +2,21 @@
 const API_URL = "/api/citas";
 
 export async function getCitas() {
-  const res = await fetch(`${API_URL}?all=true`);
+  // Por defecto, obtiene solo citas del día actual
+  const res = await fetch(API_URL);
   if (!res.ok) {
     console.error("Error fetching citas:", res.status);
     return []; // Return empty array on error
+  }
+  return res.json();
+}
+
+export async function getCitasAll() {
+  // Obtiene todas las citas de todos los días
+  const res = await fetch(`${API_URL}?all=true`);
+  if (!res.ok) {
+    console.error("Error fetching citas:", res.status);
+    return [];
   }
   return res.json();
 }
