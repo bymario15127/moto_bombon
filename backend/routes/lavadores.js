@@ -109,8 +109,13 @@ router.delete("/:id", async (req, res) => {
     
     res.json({ message: "Lavador desactivado exitosamente" });
   } catch (error) {
+<<<<<<< HEAD
     console.error("Error al eliminar lavador:", error.message);
     res.status(500).json({ error: error.message || "Error interno del servidor" });
+=======
+    console.error("Error al eliminar lavador:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+>>>>>>> 677f1b2d7e913a22b5be2c8c944ff8d0afacf689
   }
 });
 
