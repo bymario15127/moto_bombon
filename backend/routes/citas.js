@@ -31,12 +31,14 @@ let db;
 // GET all (solo del día actual por defecto)
 router.get("/", async (req, res) => {
   try {
-    // Obtener fecha actual en formato YYYY-MM-DD
+    // Obtener fecha actual en formato YYYY-MM-DD en zona horaria de Colombia (UTC-5)
     const today = () => {
       const d = new Date();
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
+      // Convertir a hora de Colombia (UTC-5)
+      const colombiaTime = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+      const yyyy = colombiaTime.getFullYear();
+      const mm = String(colombiaTime.getMonth() + 1).padStart(2, "0");
+      const dd = String(colombiaTime.getDate()).padStart(2, "0");
       return `${yyyy}-${mm}-${dd}`;
     };
     
@@ -103,12 +105,14 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Campos obligatorios: cliente, servicio" });
     }
     
-    // Calcular fecha por defecto (hoy) si no se envía
+    // Calcular fecha por defecto (hoy en Colombia) si no se envía
     const todayStr = () => {
       const d = new Date();
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
+      // Convertir a hora de Colombia (UTC-5)
+      const colombiaTime = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+      const yyyy = colombiaTime.getFullYear();
+      const mm = String(colombiaTime.getMonth() + 1).padStart(2, "0");
+      const dd = String(colombiaTime.getDate()).padStart(2, "0");
       return `${yyyy}-${mm}-${dd}`;
     };
     const fechaFinal = (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) ? fecha : todayStr();
