@@ -1,5 +1,5 @@
 // Frontend/src/services/promocionesService.js
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 export const getPromociones = async (incluirInactivas = false) => {
   const url = incluirInactivas 
