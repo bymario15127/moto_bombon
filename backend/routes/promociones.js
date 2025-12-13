@@ -72,7 +72,6 @@ router.post("/", async (req, res) => {
       activo,
       fecha_inicio,
       fecha_fin,
-      imagen,
       imagen_bajo_cc,
       imagen_alto_cc
     } = req.body;
@@ -83,8 +82,7 @@ router.post("/", async (req, res) => {
       });
     }
     
-    console.log("📸 Imágenes recibidas:", { imagen, imagen_bajo_cc, imagen_alto_cc });
-    console.log("📊 Body completo:", req.body);
+    console.log("📸 Imágenes recibidas:", { imagen_bajo_cc, imagen_alto_cc });
     
     const result = await db.run(`
       INSERT INTO promociones (
@@ -98,10 +96,9 @@ router.post("/", async (req, res) => {
         activo,
         fecha_inicio,
         fecha_fin,
-        imagen,
         imagen_bajo_cc,
         imagen_alto_cc
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       nombre,
       descripcion || '',
@@ -113,7 +110,6 @@ router.post("/", async (req, res) => {
       activo !== undefined ? activo : 1,
       fecha_inicio || null,
       fecha_fin || null,
-      imagen || '/img/default.jpg',
       imagen_bajo_cc || '',
       imagen_alto_cc || ''
     ]);    res.status(201).json({ 
@@ -141,13 +137,12 @@ router.put("/:id", async (req, res) => {
       activo,
       fecha_inicio,
       fecha_fin,
-      imagen,
       imagen_bajo_cc,
       imagen_alto_cc
     } = req.body;
     
     console.log(`🔧 Actualizando promo ${id}`);
-    console.log("📸 Imágenes en PUT:", { imagen, imagen_bajo_cc, imagen_alto_cc });
+    console.log("📸 Imágenes en PUT:", { imagen_bajo_cc, imagen_alto_cc });
     console.log("📊 Body completo:", req.body);
     
     if (!id || isNaN(id)) {
@@ -166,7 +161,6 @@ router.put("/:id", async (req, res) => {
           activo = ?,
           fecha_inicio = ?,
           fecha_fin = ?,
-          imagen = ?,
           imagen_bajo_cc = ?,
           imagen_alto_cc = ?
       WHERE id = ?
@@ -181,7 +175,6 @@ router.put("/:id", async (req, res) => {
       activo !== undefined ? activo : 1,
       fecha_inicio || null,
       fecha_fin || null,
-      imagen || '/img/default.jpg',
       imagen_bajo_cc || '',
       imagen_alto_cc || '',
       id
@@ -190,6 +183,9 @@ router.put("/:id", async (req, res) => {
     if (result.changes === 0) {
       return res.status(404).json({ error: "Promoción no encontrada" });
     }
+    
+    const updated = await db.get("SELECT * FROM promociones WHERE id = ?", [id]);
+    console.log("✅ Promoción actualizada:", updated);
     
     res.json({ message: "Promoción actualizada exitosamente" });
   } catch (error) {

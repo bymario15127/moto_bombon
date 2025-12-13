@@ -64,33 +64,67 @@ app.use("/api/promociones", promocionesRouter);
 // Subida de imagen vía base64 (evita dependencias externas)
 app.post('/api/upload-image', async (req, res) => {
   try {
+    console.log("📸 Recibido upload-image");
+    
     const { image } = req.body; // dataURL: data:image/png;base64,AAAA
     if (!image || typeof image !== 'string') {
+      console.error("❌ Imagen inválida o vacía");
       return res.status(400).json({ error: 'Imagen inválida' });
     }
+    
+    console.log("📏 Tamaño de imagen recibida:", image.length);
+    
     const match = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
     if (!match) {
+      console.error("❌ Formato de imagen no válido");
       return res.status(400).json({ error: 'Formato de imagen no soportado' });
     }
+    
     const mime = match[1];
     const base64Data = match[2];
+    
+    console.log("🖼️ Tipo MIME:", mime);
+    
     // Validar tipo permitido
     const allowed = new Set(['image/png','image/jpeg','image/jpg','image/webp']);
     if (!allowed.has(mime)) {
+      console.error("❌ Tipo MIME no permitido:", mime);
       return res.status(400).json({ error: 'Tipo de imagen no permitido' });
     }
+    
     // Validar tamaño (máx 10 MB)
     const approxBytes = Math.ceil((base64Data.length * 3) / 4);
+    console.log("💾 Tamaño aproximado:", Math.round(approxBytes / 1024 / 1024 * 100) / 100, "MB");
+    
     if (approxBytes > 10 * 1024 * 1024) {
+      console.error("❌ Imagen demasiado grande");
       return res.status(413).json({ error: 'Imagen demasiado grande (máx 10 MB)' });
     }
+    
     const ext = mime.split('/')[1].replace('jpeg', 'jpg');
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
     const filePath = path.join(servicesDir, filename);
+    
+    console.log("💾 Guardando en:", filePath);
+    
     fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
-    return res.json({ url: `/uploads/services/${filename}` });
+    
+    // Verificar que el archivo se creó
+    if (!fs.existsSync(filePath)) {
+      console.error("❌ Archivo no se guardó correctamente");
+      return res.status(500).json({ error: 'No se pudo guardar la imagen' });
+    }
+    
+    const fileStats = fs.statSync(filePath);
+    console.log("✅ Archivo guardado exitosamente:", filename, "Tamaño:", fileStats.size, "bytes");
+    
+    const urlResponse = `/uploads/services/${filename}`;
+    console.log("✅ URL retornada:", urlResponse);
+    
+    return res.json({ url: urlResponse });
   } catch (e) {
-    return res.status(500).json({ error: 'No se pudo guardar la imagen' });
+    console.error("🔴 Error en upload:", e);
+    return res.status(500).json({ error: 'No se pudo guardar la imagen: ' + e.message });
   }
 });
 

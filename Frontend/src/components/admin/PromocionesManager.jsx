@@ -18,7 +18,6 @@ export default function PromocionesManager() {
     activo: true,
     fecha_inicio: "",
     fecha_fin: "",
-    imagen: "/img/default.jpg",
     imagen_bajo_cc: "",
     imagen_alto_cc: ""
   });
@@ -53,7 +52,6 @@ export default function PromocionesManager() {
         activo: formData.activo ? 1 : 0,
         fecha_inicio: formData.fecha_inicio || null,
         fecha_fin: formData.fecha_fin || null,
-        imagen: formData.imagen,
         imagen_bajo_cc: formData.imagen_bajo_cc,
         imagen_alto_cc: formData.imagen_alto_cc
       };
@@ -89,7 +87,6 @@ export default function PromocionesManager() {
       activo: promo.activo === 1,
       fecha_inicio: promo.fecha_inicio || "",
       fecha_fin: promo.fecha_fin || "",
-      imagen: promo.imagen || "/img/default.jpg",
       imagen_bajo_cc: promo.imagen_bajo_cc || "",
       imagen_alto_cc: promo.imagen_alto_cc || ""
     });
@@ -121,7 +118,6 @@ export default function PromocionesManager() {
       activo: true,
       fecha_inicio: "",
       fecha_fin: "",
-      imagen: "/img/default.jpg",
       imagen_bajo_cc: "",
       imagen_alto_cc: ""
     });
@@ -299,33 +295,6 @@ export default function PromocionesManager() {
               </div>
 
               <h3 style={{ marginTop: '20px', marginBottom: '10px', color: '#333' }}>🖼️ Imágenes</h3>
-
-              <div className="form-group" style={{ marginBottom: '15px' }}>
-                <label>Imagen Principal (Vista general)</label>
-                <input type="file" accept="image/*" onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = async (ev) => {
-                    try {
-                      const dataUrl = ev.target.result;
-                      const { url } = await uploadImagen(dataUrl);
-                      console.log("✅ Imagen principal subida:", url);
-                      setFormData((prev) => ({ ...prev, imagen: url }));
-                    } catch (err) {
-                      console.error('Error subiendo imagen principal:', err);
-                      alert('No se pudo subir la imagen');
-                    }
-                  };
-                  reader.readAsDataURL(file);
-                }} />
-                {formData.imagen && formData.imagen !== '/img/default.jpg' && (
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
-                    <img src={formData.imagen} alt="preview imagen principal" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '2px solid #EB0463' }} />
-                    <span style={{ fontSize: 12, color: '#6b7280' }}>✓ Imagen cargada</span>
-                  </div>
-                )}
-              </div>
 
               <div className="form-row">
                 <div className="form-group">
