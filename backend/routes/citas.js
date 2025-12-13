@@ -99,7 +99,7 @@ const toMinutes = (hhmm) => {
 router.post("/", async (req, res) => {
   try {
     console.log("📥 [POST /api/citas] Payload recibido:", req.body);
-    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id } = req.body;
+    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id, promocion_id } = req.body;
     
     if (!cliente || !servicio) {
       return res.status(400).json({ error: "Campos obligatorios: cliente, servicio" });
@@ -160,10 +160,10 @@ router.post("/", async (req, res) => {
     
     try {
       const result = await db.run(
-        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null, tipo_cliente || "cliente", taller_id || null]
+        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id, promocion_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null, tipo_cliente || "cliente", taller_id || null, promocion_id || null]
       );
-      console.log("✅ Cita insertada ID=", result.lastID);
+      console.log("✅ Cita insertada ID=", result.lastID, promocion_id ? `(Promoción ID: ${promocion_id})` : "");
       return res.status(201).json({ id: result.lastID, message: "Cita creada exitosamente" });
     } catch (dbError) {
       console.error("❌ Error ejecutando INSERT en citas:", dbError);
@@ -190,7 +190,7 @@ router.put("/:id", async (req, res) => {
     
     const updates = [];
     const values = [];
-  const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago', 'lavador_id'];
+  const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago', 'lavador_id', 'promocion_id'];
     
     for (const key of Object.keys(fields)) {
       if (!allowedFields.includes(key)) {
