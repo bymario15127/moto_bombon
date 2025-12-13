@@ -71,7 +71,10 @@ router.post("/", async (req, res) => {
       duracion,
       activo,
       fecha_inicio,
-      fecha_fin
+      fecha_fin,
+      imagen,
+      imagen_bajo_cc,
+      imagen_alto_cc
     } = req.body;
     
     if (!nombre || !precio_comision_bajo_cc || !precio_comision_alto_cc || !duracion) {
@@ -80,7 +83,10 @@ router.post("/", async (req, res) => {
       });
     }
     
-      const result = await db.run(`
+    console.log("📸 Imágenes recibidas:", { imagen, imagen_bajo_cc, imagen_alto_cc });
+    console.log("📊 Body completo:", req.body);
+    
+    const result = await db.run(`
       INSERT INTO promociones (
         nombre, 
         descripcion, 
@@ -107,9 +113,9 @@ router.post("/", async (req, res) => {
       activo !== undefined ? activo : 1,
       fecha_inicio || null,
       fecha_fin || null,
-      req.body.imagen || '/img/default.jpg',
-      req.body.imagen_bajo_cc || '',
-      req.body.imagen_alto_cc || ''
+      imagen || '/img/default.jpg',
+      imagen_bajo_cc || '',
+      imagen_alto_cc || ''
     ]);    res.status(201).json({ 
       id: result.lastID, 
       message: "Promoción creada exitosamente" 
@@ -134,8 +140,15 @@ router.put("/:id", async (req, res) => {
       duracion,
       activo,
       fecha_inicio,
-      fecha_fin
+      fecha_fin,
+      imagen,
+      imagen_bajo_cc,
+      imagen_alto_cc
     } = req.body;
+    
+    console.log(`🔧 Actualizando promo ${id}`);
+    console.log("📸 Imágenes en PUT:", { imagen, imagen_bajo_cc, imagen_alto_cc });
+    console.log("📊 Body completo:", req.body);
     
     if (!id || isNaN(id)) {
       return res.status(400).json({ error: "ID de promoción inválido" });
@@ -168,9 +181,9 @@ router.put("/:id", async (req, res) => {
       activo !== undefined ? activo : 1,
       fecha_inicio || null,
       fecha_fin || null,
-      req.body.imagen || '/img/default.jpg',
-      req.body.imagen_bajo_cc || '',
-      req.body.imagen_alto_cc || '',
+      imagen || '/img/default.jpg',
+      imagen_bajo_cc || '',
+      imagen_alto_cc || '',
       id
     ]);
     
