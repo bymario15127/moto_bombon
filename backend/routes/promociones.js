@@ -80,7 +80,7 @@ router.post("/", async (req, res) => {
       });
     }
     
-    const result = await db.run(`
+      const result = await db.run(`
       INSERT INTO promociones (
         nombre, 
         descripcion, 
@@ -91,8 +91,11 @@ router.post("/", async (req, res) => {
         duracion,
         activo,
         fecha_inicio,
-        fecha_fin
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        fecha_fin,
+        imagen,
+        imagen_bajo_cc,
+        imagen_alto_cc
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       nombre,
       descripcion || '',
@@ -103,10 +106,11 @@ router.post("/", async (req, res) => {
       duracion,
       activo !== undefined ? activo : 1,
       fecha_inicio || null,
-      fecha_fin || null
-    ]);
-    
-    res.status(201).json({ 
+      fecha_fin || null,
+      req.body.imagen || '/img/default.jpg',
+      req.body.imagen_bajo_cc || '',
+      req.body.imagen_alto_cc || ''
+    ]);    res.status(201).json({ 
       id: result.lastID, 
       message: "Promoción creada exitosamente" 
     });
@@ -148,7 +152,10 @@ router.put("/:id", async (req, res) => {
           duracion = ?,
           activo = ?,
           fecha_inicio = ?,
-          fecha_fin = ?
+          fecha_fin = ?,
+          imagen = ?,
+          imagen_bajo_cc = ?,
+          imagen_alto_cc = ?
       WHERE id = ?
     `, [
       nombre,
@@ -161,6 +168,9 @@ router.put("/:id", async (req, res) => {
       activo !== undefined ? activo : 1,
       fecha_inicio || null,
       fecha_fin || null,
+      req.body.imagen || '/img/default.jpg',
+      req.body.imagen_bajo_cc || '',
+      req.body.imagen_alto_cc || '',
       id
     ]);
     

@@ -1,12 +1,12 @@
 // src/components/admin/PromocionesManager.jsx
 import { useState, useEffect } from "react";
 import * as promocionesService from "../../services/promocionesService";
+import { uploadImagen } from "../../services/serviciosService";
 
 export default function PromocionesManager() {
   const [promociones, setPromociones] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingPromo, setEditingPromo] = useState(null);
-  const [incluirInactivas, setIncluirInactivas] = useState(false);
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
@@ -17,20 +17,22 @@ export default function PromocionesManager() {
     duracion: "",
     activo: true,
     fecha_inicio: "",
-    fecha_fin: ""
+    fecha_fin: "",
+    imagen: "/img/default.jpg",
+    imagen_bajo_cc: "",
+    imagen_alto_cc: ""
   });
 
   useEffect(() => {
     loadPromociones();
-  }, [incluirInactivas]);
+  }, []);
 
   const loadPromociones = async () => {
     try {
-      const data = await promocionesService.getPromociones(incluirInactivas);
+      const data = await promocionesService.getPromociones(true); // Incluir todas
       setPromociones(data);
     } catch (error) {
       console.error("Error al cargar promociones:", error);
-      alert("Error al cargar promociones");
     }
   };
 
@@ -75,10 +77,13 @@ export default function PromocionesManager() {
       precio_cliente_alto_cc: promo.precio_cliente_alto_cc || "",
       precio_comision_bajo_cc: promo.precio_comision_bajo_cc,
       precio_comision_alto_cc: promo.precio_comision_alto_cc,
-      duracion: promo.duracion,
+      duracion: promo.duracion.toString(),
       activo: promo.activo === 1,
       fecha_inicio: promo.fecha_inicio || "",
-      fecha_fin: promo.fecha_fin || ""
+      fecha_fin: promo.fecha_fin || "",
+      imagen: promo.imagen || "/img/default.jpg",
+      imagen_bajo_cc: promo.imagen_bajo_cc || "",
+      imagen_alto_cc: promo.imagen_alto_cc || ""
     });
     setShowForm(true);
   };
@@ -107,275 +112,354 @@ export default function PromocionesManager() {
       duracion: "",
       activo: true,
       fecha_inicio: "",
-      fecha_fin: ""
+      fecha_fin: "",
+      imagen: "/img/default.jpg",
+      imagen_bajo_cc: "",
+      imagen_alto_cc: ""
     });
     setEditingPromo(null);
     setShowForm(false);
   };
 
-  const formatCurrency = (value) => {
-    if (!value) return "N/A";
+  const formatPrecio = (precio) => {
+    if (!precio) return "N/A";
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
       minimumFractionDigits: 0
-    }).format(value);
+    }).format(precio);
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return "Sin límite";
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-CO');
+    if (!dateStr) return null;
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
   };
 
   return (
-    <div className="content-box">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>🎁 Gestión de Promociones</h2>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <input 
-              type="checkbox" 
-              checked={incluirInactivas}
-              onChange={(e) => setIncluirInactivas(e.target.checked)}
-            />
-            Ver inactivas
-          </label>
-          <button 
-            className="btn-primary" 
-            onClick={() => setShowForm(!showForm)}
-            style={{ padding: '8px 16px' }}
-          >
-            {showForm ? "Cancelar" : "+ Nueva Promoción"}
-          </button>
-        </div>
+    <div className="servicios-manager">
+      <div className="servicios-header">
+        <h1>🎁 Gestión de Promociones</h1>
+        <button 
+          className="btn-primary"
+          onClick={() => setShowForm(true)}
+        >
+          + Nueva Promoción
+        </button>
       </div>
 
+      {/* Modal de formulario */}
       {showForm && (
-        <div className="form-card" style={{ marginBottom: '30px' }}>
-          <h3>{editingPromo ? "Editar Promoción" : "Nueva Promoción"}</h3>
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+        <div className="modal-overlay" onClick={resetForm}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{editingPromo ? 'Editar Promoción' : 'Nueva Promoción'}</h2>
+              <button className="modal-close" onClick={resetForm}>×</button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="service-form">
               <div className="form-group">
-                <label>Nombre *</label>
+                <label>Nombre de la promoción</label>
                 <input
                   type="text"
-                  required
                   value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  onChange={(e) => setFormData({...formData, nombre: e.target.value})}
                   placeholder="Ej: GOLD NAVIDEÑO"
+                  required
                 />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Duración (minutos)</label>
+                  <input
+                    type="number"
+                    value={formData.duracion}
+                    onChange={(e) => setFormData({...formData, duracion: e.target.value})}
+                    min="15"
+                    max="300"
+                    step="15"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.activo}
+                      onChange={(e) => setFormData({...formData, activo: e.target.checked})}
+                    />
+                    Promoción Activa
+                  </label>
+                </div>
               </div>
 
               <div className="form-group">
-                <label>Duración (min) *</label>
-                <input
-                  type="number"
-                  required
-                  value={formData.duracion}
-                  onChange={(e) => setFormData({ ...formData, duracion: e.target.value })}
-                  placeholder="Ej: 90"
-                />
-              </div>
-
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                 <label>Descripción</label>
                 <textarea
                   value={formData.descripcion}
-                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                  onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
                   rows="2"
                   placeholder="Descripción de la promoción"
                 />
               </div>
 
-              <div style={{ gridColumn: '1 / -1', borderTop: '2px solid #e0e0e0', paddingTop: '15px' }}>
-                <h4 style={{ marginBottom: '10px' }}>💰 Precios para el Cliente</h4>
-                <small style={{ color: '#666', display: 'block', marginBottom: '10px' }}>
-                  Estos son los precios que el cliente pagará (opcional, si vacío se cobra precio normal)
-                </small>
-              </div>
+              <h3 style={{ marginTop: '20px', marginBottom: '10px', color: '#333' }}>💰 Precios para el Cliente</h3>
+              <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>
+                Lo que el cliente pagará por el servicio
+              </p>
 
-              <div className="form-group">
-                <label>Precio Bajo Cilindraje (100-405cc)</label>
-                <input
-                  type="number"
-                  value={formData.precio_cliente_bajo_cc}
-                  onChange={(e) => setFormData({ ...formData, precio_cliente_bajo_cc: e.target.value })}
-                  placeholder="Ej: 25000"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Precio Alto Cilindraje (406-1200cc)</label>
-                <input
-                  type="number"
-                  value={formData.precio_cliente_alto_cc}
-                  onChange={(e) => setFormData({ ...formData, precio_cliente_alto_cc: e.target.value })}
-                  placeholder="Ej: 28000"
-                />
-              </div>
-
-              <div style={{ gridColumn: '1 / -1', borderTop: '2px solid #e0e0e0', paddingTop: '15px' }}>
-                <h4 style={{ marginBottom: '10px' }}>👤 Precios Base para Comisión</h4>
-                <small style={{ color: '#666', display: 'block', marginBottom: '10px' }}>
-                  Estos son los precios sobre los que se calculará la comisión del lavador *
-                </small>
-              </div>
-
-              <div className="form-group">
-                <label>Precio Base Bajo CC (Comisión) *</label>
-                <input
-                  type="number"
-                  required
-                  value={formData.precio_comision_bajo_cc}
-                  onChange={(e) => setFormData({ ...formData, precio_comision_bajo_cc: e.target.value })}
-                  placeholder="Ej: 45000"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Precio Base Alto CC (Comisión) *</label>
-                <input
-                  type="number"
-                  required
-                  value={formData.precio_comision_alto_cc}
-                  onChange={(e) => setFormData({ ...formData, precio_comision_alto_cc: e.target.value })}
-                  placeholder="Ej: 45000"
-                />
-              </div>
-
-              <div style={{ gridColumn: '1 / -1', borderTop: '2px solid #e0e0e0', paddingTop: '15px' }}>
-                <h4 style={{ marginBottom: '10px' }}>📅 Vigencia</h4>
-              </div>
-
-              <div className="form-group">
-                <label>Fecha Inicio</label>
-                <input
-                  type="date"
-                  value={formData.fecha_inicio}
-                  onChange={(e) => setFormData({ ...formData, fecha_inicio: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Fecha Fin</label>
-                <input
-                  type="date"
-                  value={formData.fecha_fin}
-                  onChange={(e) => setFormData({ ...formData, fecha_fin: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Precio Bajo CC (100-405cc)</label>
                   <input
-                    type="checkbox"
-                    checked={formData.activo}
-                    onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
+                    type="number"
+                    value={formData.precio_cliente_bajo_cc}
+                    onChange={(e) => setFormData({...formData, precio_cliente_bajo_cc: e.target.value})}
+                    min="0"
+                    step="1000"
+                    placeholder="Ej: 25000"
                   />
-                  Promoción Activa
-                </label>
-              </div>
-            </div>
+                </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button type="submit" className="btn-primary">
-                {editingPromo ? "Actualizar" : "Crear"} Promoción
-              </button>
-              <button type="button" className="btn-secondary" onClick={resetForm}>
-                Cancelar
-              </button>
-            </div>
-          </form>
+                <div className="form-group">
+                  <label>Precio Alto CC (405-1200cc)</label>
+                  <input
+                    type="number"
+                    value={formData.precio_cliente_alto_cc}
+                    onChange={(e) => setFormData({...formData, precio_cliente_alto_cc: e.target.value})}
+                    min="0"
+                    step="1000"
+                    placeholder="Ej: 28000"
+                  />
+                </div>
+              </div>
+
+              <h3 style={{ marginTop: '20px', marginBottom: '10px', color: '#333' }}>👤 Precios Base para Comisión del Lavador</h3>
+              <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>
+                Sobre qué monto se calculará la comisión del lavador
+              </p>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Precio Base Bajo CC *</label>
+                  <input
+                    type="number"
+                    value={formData.precio_comision_bajo_cc}
+                    onChange={(e) => setFormData({...formData, precio_comision_bajo_cc: e.target.value})}
+                    min="0"
+                    step="1000"
+                    placeholder="Ej: 45000"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Precio Base Alto CC *</label>
+                  <input
+                    type="number"
+                    value={formData.precio_comision_alto_cc}
+                    onChange={(e) => setFormData({...formData, precio_comision_alto_cc: e.target.value})}
+                    min="0"
+                    step="1000"
+                    placeholder="Ej: 45000"
+                    required
+                  />
+                </div>
+              </div>
+
+              <h3 style={{ marginTop: '20px', marginBottom: '10px', color: '#333' }}>📅 Vigencia</h3>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Fecha Inicio</label>
+                  <input
+                    type="date"
+                    value={formData.fecha_inicio}
+                    onChange={(e) => setFormData({...formData, fecha_inicio: e.target.value})}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Fecha Fin</label>
+                  <input
+                    type="date"
+                    value={formData.fecha_fin}
+                    onChange={(e) => setFormData({...formData, fecha_fin: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <h3 style={{ marginTop: '20px', marginBottom: '10px', color: '#333' }}>🖼️ Imágenes</h3>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Imagen para Bajo CC (100-405cc)</label>
+                  <input type="file" accept="image/*" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                      try {
+                        const dataUrl = ev.target.result;
+                        const { url } = await uploadImagen(dataUrl);
+                        setFormData((prev) => ({ ...prev, imagen_bajo_cc: url }));
+                      } catch (err) {
+                        console.error('Error subiendo imagen:', err);
+                        alert('No se pudo subir la imagen');
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }} />
+                  {formData.imagen_bajo_cc && (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
+                      <img src={formData.imagen_bajo_cc} alt="preview bajo cc" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #EB0463' }} />
+                      <span style={{ fontSize: 12, color: '#6b7280' }}>✓ Imagen cargada</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Imagen para Alto CC (405-1200cc)</label>
+                  <input type="file" accept="image/*" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                      try {
+                        const dataUrl = ev.target.result;
+                        const { url } = await uploadImagen(dataUrl);
+                        setFormData((prev) => ({ ...prev, imagen_alto_cc: url }));
+                      } catch (err) {
+                        console.error('Error subiendo imagen:', err);
+                        alert('No se pudo subir la imagen');
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }} />
+                  {formData.imagen_alto_cc && (
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
+                      <img src={formData.imagen_alto_cc} alt="preview alto cc" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #EB0463' }} />
+                      <span style={{ fontSize: 12, color: '#6b7280' }}>✓ Imagen cargada</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button type="button" onClick={resetForm} className="btn-secondary">
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary">
+                  {editingPromo ? 'Actualizar' : 'Crear'} Promoción
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Duración</th>
-              <th>Precio Cliente</th>
-              <th>Precio Comisión</th>
-              <th>Vigencia</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {promociones.length === 0 ? (
-              <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-                  No hay promociones {incluirInactivas ? '' : 'activas'}
-                </td>
-              </tr>
-            ) : (
-              promociones.map((promo) => (
-                <tr key={promo.id}>
-                  <td>
-                    <strong>{promo.nombre}</strong>
-                    {promo.descripcion && (
-                      <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                        {promo.descripcion}
-                      </div>
-                    )}
-                  </td>
-                  <td>{promo.duracion} min</td>
-                  <td>
-                    <div style={{ fontSize: '13px' }}>
-                      <div>Bajo CC: {formatCurrency(promo.precio_cliente_bajo_cc)}</div>
-                      <div>Alto CC: {formatCurrency(promo.precio_cliente_alto_cc)}</div>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '13px', fontWeight: '500', color: '#2196F3' }}>
-                      <div>Bajo CC: {formatCurrency(promo.precio_comision_bajo_cc)}</div>
-                      <div>Alto CC: {formatCurrency(promo.precio_comision_alto_cc)}</div>
-                    </div>
-                  </td>
-                  <td style={{ fontSize: '12px' }}>
-                    <div>Inicio: {formatDate(promo.fecha_inicio)}</div>
-                    <div>Fin: {formatDate(promo.fecha_fin)}</div>
-                  </td>
-                  <td>
-                    <span className={`badge ${promo.activo ? 'badge-success' : 'badge-danger'}`}>
-                      {promo.activo ? 'Activa' : 'Inactiva'}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                      <button
-                        onClick={() => handleEdit(promo)}
-                        className="btn-icon"
-                        title="Editar"
-                      >
-                        ✏️
-                      </button>
-                      {promo.activo && (
-                        <button
-                          onClick={() => handleDelete(promo.id)}
-                          className="btn-icon btn-danger"
-                          title="Desactivar"
-                        >
-                          🗑️
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+      {/* Lista de promociones */}
+      <div className="servicios-grid">
+        {promociones.map(promo => (
+          <div key={promo.id} className={`service-card ${promo.activo ? '' : 'inactive'}`}>
+            {!promo.activo && (
+              <div style={{ position: 'absolute', top: 10, right: 10, background: '#999', color: '#fff', fontSize: '11px', padding: '4px 8px', borderRadius: 4, zIndex: 1 }}>
+                Inactiva
+              </div>
             )}
-          </tbody>
-        </table>
+            
+            <div className="service-images">
+              {promo.imagen_bajo_cc && promo.imagen_alto_cc ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ position: 'relative' }}>
+                    <img src={promo.imagen_bajo_cc} alt={`${promo.nombre} bajo CC`} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+                    <span style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '11px', padding: '2px 6px', borderRadius: 4 }}>Bajo CC</span>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <img src={promo.imagen_alto_cc} alt={`${promo.nombre} alto CC`} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+                    <span style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '11px', padding: '2px 6px', borderRadius: 4 }}>Alto CC</span>
+                  </div>
+                </div>
+              ) : (
+                <img src={promo.imagen || '/img/default.jpg'} alt={promo.nombre} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+              )}
+            </div>
+            
+            <div className="service-content">
+              <h3>🎁 {promo.nombre}</h3>
+              {promo.descripcion && <p className="service-description">{promo.descripcion}</p>}
+              
+              <div className="service-details">
+                <div className="service-detail">
+                  <span className="detail-icon">⏱️</span>
+                  <span>{promo.duracion} min</span>
+                </div>
+                <div className="service-detail">
+                  <span className="detail-icon">💰</span>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                    <span style={{fontSize: '11px', color: '#666'}}>Cliente paga:</span>
+                    <span style={{fontSize: '12px'}}>Bajo: {formatPrecio(promo.precio_cliente_bajo_cc)}</span>
+                    <span style={{fontSize: '12px'}}>Alto: {formatPrecio(promo.precio_cliente_alto_cc)}</span>
+                  </div>
+                </div>
+                <div className="service-detail">
+                  <span className="detail-icon">👤</span>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                    <span style={{fontSize: '11px', color: '#666'}}>Comisión sobre:</span>
+                    <span style={{fontSize: '12px', fontWeight: '500', color: '#2196F3'}}>
+                      {formatPrecio(promo.precio_comision_bajo_cc)} / {formatPrecio(promo.precio_comision_alto_cc)}
+                    </span>
+                  </div>
+                </div>
+                {(promo.fecha_inicio || promo.fecha_fin) && (
+                  <div className="service-detail">
+                    <span className="detail-icon">📅</span>
+                    <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                      {promo.fecha_inicio && <span style={{fontSize: '11px'}}>Desde: {formatDate(promo.fecha_inicio)}</span>}
+                      {promo.fecha_fin && <span style={{fontSize: '11px'}}>Hasta: {formatDate(promo.fecha_fin)}</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="service-actions">
+              <button 
+                className="btn-edit"
+                onClick={() => handleEdit(promo)}
+              >
+                ✏️ Editar
+              </button>
+              {promo.activo && (
+                <button 
+                  className="btn-delete"
+                  onClick={() => handleDelete(promo.id)}
+                >
+                  🗑️ Desactivar
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
-        <h4 style={{ marginBottom: '10px' }}>💡 Cómo funciona</h4>
-        <ul style={{ fontSize: '14px', color: '#666', lineHeight: '1.8' }}>
-          <li><strong>Precio Cliente:</strong> Lo que el cliente paga (puede ser menor que el precio normal)</li>
-          <li><strong>Precio Comisión:</strong> El monto base sobre el cual se calcula la comisión del lavador</li>
-          <li><strong>Ejemplo:</strong> Cliente paga $25,000 pero la comisión se calcula sobre $45,000</li>
-          <li><strong>Vigencia:</strong> Define el período en que la promoción estará disponible para nuevas citas</li>
+      {promociones.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">🎁</div>
+          <h3>No hay promociones registradas</h3>
+          <p>Comienza agregando tu primera promoción especial</p>
+        </div>
+      )}
+
+      <div style={{ marginTop: '30px', padding: '20px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+        <h4 style={{ marginBottom: '12px', color: '#333' }}>💡 Cómo funcionan las promociones</h4>
+        <ul style={{ fontSize: '14px', color: '#666', lineHeight: '1.8', marginLeft: '20px' }}>
+          <li><strong>Precio Cliente:</strong> Lo que el cliente paga por el servicio promocional</li>
+          <li><strong>Precio Comisión:</strong> El monto sobre el cual se calcula la comisión del lavador</li>
+          <li><strong>Ejemplo:</strong> Cliente paga $25,000 pero la comisión del lavador se calcula sobre $45,000</li>
+          <li><strong>Vigencia:</strong> Define el período en que la promoción estará disponible</li>
+          <li><strong>Imágenes:</strong> Puedes subir imágenes específicas para cada cilindraje</li>
         </ul>
       </div>
     </div>

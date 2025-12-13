@@ -17,7 +17,7 @@ async function createPromociones() {
   try {
     console.log("🔄 Creando tabla de promociones...");
     
-    await db.exec(`
+    await db.run(`
       CREATE TABLE IF NOT EXISTS promociones (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         nombre TEXT NOT NULL,
@@ -30,6 +30,9 @@ async function createPromociones() {
         activo INTEGER DEFAULT 1,
         fecha_inicio DATE,
         fecha_fin DATE,
+        imagen TEXT,
+        imagen_bajo_cc TEXT,
+        imagen_alto_cc TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
