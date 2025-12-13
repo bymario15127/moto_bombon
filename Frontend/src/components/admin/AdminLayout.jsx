@@ -5,6 +5,7 @@ import Dashboard from "./Dashboard";
 import CalendarAdmin from "./CalendarAdmin";
 import PanelAdmin from "./PanelAdmin";
 import ServiciosManager from "./ServiciosManager";
+import PromocionesManager from "./PromocionesManager";
 import TalleresManager from "./TalleresManager";
 import LavadoresManager from "./LavadoresManager";
 import NominaManager from "./NominaManager";
@@ -24,6 +25,7 @@ export default function AdminLayout() {
           case 'calendar': return 'Calendario';
           case 'appointments': return 'Citas';
           case 'services': return 'Servicios';
+          case 'promociones': return 'Promociones';
           case 'talleres': return 'Talleres Aliados';
           case 'lavadores': return 'Lavadores';
           case 'nomina': return 'Nómina y CRM';
@@ -40,6 +42,7 @@ export default function AdminLayout() {
             {activeView === 'calendar' && 'Gestiona las citas en el calendario'}
             {activeView === 'appointments' && 'Administra las reservas de clientes'}
             {activeView === 'services' && 'Configura servicios y precios'}
+            {activeView === 'promociones' && 'Gestiona promociones con precios especiales'}
             {activeView === 'talleres' && 'Gestiona talleres aliados y sus precios especiales'}
             {activeView === 'lavadores' && 'Administra el equipo de trabajo'}
             {activeView === 'nomina' && 'Control financiero y reportes de nómina'}
@@ -59,6 +62,8 @@ export default function AdminLayout() {
                 return <PanelAdmin />;
               case 'services':
                 return <ServiciosManager />;
+              case 'promociones':
+                return <PromocionesManager />;
               case 'talleres':
                 return <TalleresManager />;
               case 'lavadores':
