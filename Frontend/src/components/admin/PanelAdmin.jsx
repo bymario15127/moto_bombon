@@ -50,66 +50,61 @@ export default function PanelAdmin() {
 
   const handleDelete = async (id) => {
     if (!confirm("Eliminar esta cita?")) return;
-    await deleteCita(id);
-    load();
-  };
-
-  const changeEstado = async (id, nuevoEstado) => {
-    // Si se está finalizando una cita, verificar que tenga lavador asignado
-    if (nuevoEstado === "finalizada") {
-      const cita = citas.find(c => c.id === id);
-      if (!cita.lavador_id) {
-        alert("⚠️ Debes asignar un lavador antes de finalizar la cita");
-        return;
-      }
-    }
-    await updateCita(id, { estado: nuevoEstado });
-    load();
-  };
-
-  const updateCitaLavador = async (id, lavadorId) => {
-    try {
-      await updateCita(id, { lavador_id: lavadorId });
-      load();
-    } catch (error) {
-      console.error('Error al asignar lavador:', error);
-      alert('Error al asignar el lavador');
-    }
-  };
-
-  // Filtrar citas por nombre de cliente o placa
-  const citasFiltradas = citas.filter(cita => {
-    const busquedaLower = busqueda.toLowerCase();
-    return (
-      (cita.cliente && cita.cliente.toLowerCase().includes(busquedaLower)) ||
-      (cita.placa && cita.placa.toLowerCase().includes(busquedaLower))
-    );
-  });
-
-  return (
-    <div className="container">
-      <div className="admin-header">
-        <div>
-          <h2 className="text-2xl font-bold" style={{ color: '#EB0463' }}>Panel Admin — MOTOBOMBON</h2>
-          <p className="text-gray-600">Total citas: <span className="font-semibold" style={{ color: '#EB0463' }}>{citasFiltradas.length}</span></p>
+      {/* Buscador simple y visible */}
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ position: 'relative' }}>
+          <span style={{
+            position: 'absolute',
+            left: '16px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            fontSize: '18px'
+          }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Buscar por nombre o placa..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '16px 16px 16px 44px',
+              borderRadius: '12px',
+              border: '2px solid #ff1744',
+              fontSize: '18px',
+              fontWeight: '700',
+              background: '#1f1f1f',
+              color: '#ffffff',
+              outline: 'none',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              caretColor: '#ffffff',
+              minHeight: '52px',
+              WebkitTextFillColor: '#ffffff'
+            }}
+          />
         </div>
+        {busqueda && (
+          <button
+            onClick={() => setBusqueda('')}
+            style={{
+              marginTop: '12px',
+              padding: '12px 16px',
+              width: '100%',
+              background: '#ef4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#dc2626'}
+            onMouseLeave={(e) => e.target.style.background = '#ef4444'}
+          >
+            ✕ Limpiar
+          </button>
+        )}
       </div>
-
-      {/* Buscador */}
-      <div style={{
-        marginBottom: '24px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
-      }}>
-        <input
-          type="text"
-          placeholder="🔍 Buscar por nombre o placa..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          style={{
-            flex: 1,
-            maxWidth: '600px',
             padding: '16px 20px',
             borderRadius: '12px',
             border: '3px solid #ff1744',
