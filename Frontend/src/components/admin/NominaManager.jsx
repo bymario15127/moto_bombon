@@ -80,6 +80,8 @@ const NominaManager = () => {
   }
 
   const { resumen, lavadores, servicios } = reporteNomina;
+  const totalIngresosCliente = resumen.total_ingresos_cliente ?? resumen.total_ingresos ?? 0;
+  const totalIngresosComisionBase = resumen.total_ingresos_comision_base ?? resumen.total_ingresos ?? 0;
 
   return (
     <div style={{ padding: '20px' }}>
@@ -171,7 +173,7 @@ const NominaManager = () => {
         gap: '20px',
         marginBottom: '32px'
       }}>
-        {/* Total Ingresos */}
+        {/* Total Ingresos (cliente) */}
         <div style={{
           background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
           color: 'white',
@@ -179,10 +181,13 @@ const NominaManager = () => {
           borderRadius: '16px',
           boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
         }}>
-          <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>💰 Total Ingresos</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold' }}>{formatearMoneda(resumen.total_ingresos)}</div>
+          <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>💰 Ingreso real del cliente</div>
+          <div style={{ fontSize: '32px', fontWeight: 'bold' }}>{formatearMoneda(totalIngresosCliente)}</div>
           <div style={{ fontSize: '12px', marginTop: '8px', opacity: 0.8 }}>
             {resumen.total_servicios} servicios completados
+          </div>
+          <div style={{ fontSize: '12px', marginTop: '6px', opacity: 0.85 }}>
+            Base comisión: {formatearMoneda(totalIngresosComisionBase)}
           </div>
         </div>
 
@@ -236,7 +241,8 @@ const NominaManager = () => {
                 <th style={{ padding: '12px', textAlign: 'left' }}>Lavador</th>
                 <th style={{ padding: '12px', textAlign: 'center' }}>Cédula</th>
                 <th style={{ padding: '12px', textAlign: 'center' }}>Servicios</th>
-                <th style={{ padding: '12px', textAlign: 'right' }}>Total Generado</th>
+                <th style={{ padding: '12px', textAlign: 'right' }}>Ingreso cliente</th>
+                <th style={{ padding: '12px', textAlign: 'right' }}>Base comisión</th>
                 <th style={{ padding: '12px', textAlign: 'center' }}>% Comisión</th>
                 <th style={{ padding: '12px', textAlign: 'right' }}>A Pagar</th>
               </tr>
@@ -251,6 +257,9 @@ const NominaManager = () => {
                   <td style={{ padding: '12px', textAlign: 'center', color: '#666' }}>{lavador.cedula || 'N/A'}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>{lavador.cantidad_servicios}</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: '500' }}>
+                    {formatearMoneda(lavador.total_ingreso_cliente ?? lavador.total_generado)}
+                  </td>
+                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: '500', color: '#6b7280' }}>
                     {formatearMoneda(lavador.total_generado)}
                   </td>
                   <td style={{ padding: '12px', textAlign: 'center', color: '#10b981', fontWeight: 'bold' }}>
@@ -264,7 +273,8 @@ const NominaManager = () => {
               <tr style={{ background: 'rgba(235, 4, 99, 0.1)', fontWeight: 'bold', fontSize: '16px' }}>
                 <td colSpan="2" style={{ padding: '16px' }}>TOTAL</td>
                 <td style={{ padding: '16px', textAlign: 'center' }}>{resumen.total_servicios}</td>
-                <td style={{ padding: '16px', textAlign: 'right' }}>{formatearMoneda(resumen.total_ingresos)}</td>
+                <td style={{ padding: '16px', textAlign: 'right' }}>{formatearMoneda(totalIngresosCliente)}</td>
+                <td style={{ padding: '16px', textAlign: 'right', color: '#6b7280' }}>{formatearMoneda(totalIngresosComisionBase)}</td>
                 <td style={{ padding: '16px' }}></td>
                 <td style={{ padding: '16px', textAlign: 'right', color: '#EB0463' }}>{formatearMoneda(resumen.total_nomina)}</td>
               </tr>

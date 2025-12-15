@@ -140,20 +140,51 @@ router.get("/", async (req, res) => {
       };
     });
     
-    // Calcular totales generales
+    // Calcular totales generales (separar ingreso real vs base de comisión)
     const totalServicios = citasFinalizadas.length;
-    const totalIngresos = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
+    const totalIngresosCliente = reportePorLavador.reduce((sum, l) => sum + l.total_ingreso_cliente, 0);
+    const totalIngresosComisionBase = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
     const totalNomina = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
-    const gananciaNeta = totalIngresos - totalNomina;
+    const gananciaNeta = totalIngresosCliente - totalNomina;
     
     // Estadísticas por tipo de servicio
     const serviciosUnicos = [...new Set(citasFinalizadas.map(c => c.servicio))];
     const estadisticasPorServicio = serviciosUnicos.map(servicio => {
       const citasDelServicio = citasFinalizadas.filter(c => c.servicio === servicio);
-      const ingreso = citasDelServicio.reduce((sum, c) => {
+
+      const ingresoCliente = citasDelServicio.reduce((sum, c) => {
+        let precioCliente = 0;
+
+        if (c.promocion_id && c.promo_precio_comision_bajo_cc && c.promo_precio_comision_alto_cc) {
+          const cc = parseInt(c.cilindraje);
+          if (cc >= 100 && cc <= 405) {
+            precioCliente = c.promo_precio_cliente_bajo_cc || c.promo_precio_comision_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precioCliente = c.promo_precio_cliente_alto_cc || c.promo_precio_comision_alto_cc;
+          }
+        } else if (c.tipo_cliente === 'taller' && c.taller_precio_bajo_cc && c.taller_precio_alto_cc) {
+          const cc = parseInt(c.cilindraje);
+          if (cc >= 50 && cc <= 405) {
+            precioCliente = c.taller_precio_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precioCliente = c.taller_precio_alto_cc;
+          }
+        } else if (c.precio_bajo_cc && c.precio_alto_cc) {
+          const cc = parseInt(c.cilindraje);
+          if (cc >= 100 && cc <= 405) {
+            precioCliente = c.precio_bajo_cc;
+          } else if (cc > 405 && cc <= 1200) {
+            precioCliente = c.precio_alto_cc;
+          }
+        } else {
+          precioCliente = c.precio_servicio || 0;
+        }
+        return sum + precioCliente;
+      }, 0);
+
+      const ingresoBaseComision = citasDelServicio.reduce((sum, c) => {
         let precio = 0;
-        
-        // PRIORIDAD 1: Si es una promoción, usar los precios de comisión de la promoción
+
         if (c.promocion_id && c.promo_precio_comision_bajo_cc && c.promo_precio_comision_alto_cc) {
           const cc = parseInt(c.cilindraje);
           if (cc >= 100 && cc <= 405) {
@@ -161,27 +192,21 @@ router.get("/", async (req, res) => {
           } else if (cc > 405 && cc <= 1200) {
             precio = c.promo_precio_comision_alto_cc;
           }
-        }
-        // PRIORIDAD 2: Si es un taller aliado, usar los precios del taller
-        else if (c.tipo_cliente === 'taller' && c.taller_precio_bajo_cc && c.taller_precio_alto_cc) {
+        } else if (c.tipo_cliente === 'taller' && c.taller_precio_bajo_cc && c.taller_precio_alto_cc) {
           const cc = parseInt(c.cilindraje);
           if (cc >= 50 && cc <= 405) {
             precio = c.taller_precio_bajo_cc;
           } else if (cc > 405 && cc <= 1200) {
             precio = c.taller_precio_alto_cc;
           }
-        }
-        // PRIORIDAD 3: Si es un cliente regular, usar los precios del servicio
-        else if (c.precio_bajo_cc && c.precio_alto_cc) {
+        } else if (c.precio_bajo_cc && c.precio_alto_cc) {
           const cc = parseInt(c.cilindraje);
           if (cc >= 100 && cc <= 405) {
             precio = c.precio_bajo_cc;
           } else if (cc > 405 && cc <= 1200) {
             precio = c.precio_alto_cc;
           }
-        }
-        // Fallback: usar el precio del servicio
-        else {
+        } else {
           precio = c.precio_servicio || 0;
         }
         return sum + precio;
@@ -190,8 +215,10 @@ router.get("/", async (req, res) => {
       return {
         servicio,
         cantidad: citasDelServicio.length,
-        ingreso_total: ingreso,
-        porcentaje: totalIngresos > 0 ? ((ingreso / totalIngresos) * 100).toFixed(2) : 0
+        ingreso_total: ingresoCliente,
+        ingreso_cliente: ingresoCliente,
+        ingreso_comision_base: ingresoBaseComision,
+        porcentaje: totalIngresosCliente > 0 ? ((ingresoCliente / totalIngresosCliente) * 100).toFixed(2) : 0
       };
     });
     
@@ -202,10 +229,12 @@ router.get("/", async (req, res) => {
       },
       resumen: {
         total_servicios: totalServicios,
-        total_ingresos: totalIngresos,
+        total_ingresos: totalIngresosCliente, // compatibilidad hacia el frontend
+        total_ingresos_cliente: totalIngresosCliente,
+        total_ingresos_comision_base: totalIngresosComisionBase,
         total_nomina: totalNomina,
         ganancia_neta: gananciaNeta,
-        margen_porcentaje: totalIngresos > 0 ? ((gananciaNeta / totalIngresos) * 100).toFixed(2) : 0
+        margen_porcentaje: totalIngresosCliente > 0 ? ((gananciaNeta / totalIngresosCliente) * 100).toFixed(2) : 0
       },
       lavadores: reportePorLavador,
       servicios: estadisticasPorServicio
