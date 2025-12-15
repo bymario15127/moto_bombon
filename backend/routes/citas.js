@@ -190,7 +190,7 @@ router.put("/:id", async (req, res) => {
     
     const updates = [];
     const values = [];
-  const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago', 'lavador_id', 'promocion_id'];
+    const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago', 'lavador_id', 'promocion_id'];
     
     for (const key of Object.keys(fields)) {
       if (!allowedFields.includes(key)) {
@@ -205,10 +205,14 @@ router.put("/:id", async (req, res) => {
         }
       }
 
-      // Validar método de pago si se actualiza
-      if (key === 'metodo_pago' && fields[key]) {
+      // Validar método de pago si se actualiza (solo rol admin)
+      if (key === 'metodo_pago') {
+        const rol = (req.headers['x-user-role'] || '').toLowerCase();
+        if (rol !== 'admin') {
+          return res.status(403).json({ error: "Solo un administrador puede cambiar el método de pago" });
+        }
         const metodosValidosUpdate = ["codigo_qr", "efectivo"];
-        if (!metodosValidosUpdate.includes(fields[key])) {
+        if (fields[key] && !metodosValidosUpdate.includes(fields[key])) {
           return res.status(400).json({ error: "Método de pago inválido. Use 'codigo_qr' o 'efectivo'" });
         }
       }
