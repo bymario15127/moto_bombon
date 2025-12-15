@@ -109,25 +109,28 @@ export default function PanelAdmin() {
           onChange={(e) => setBusqueda(e.target.value)}
           style={{
             flex: 1,
-            maxWidth: '500px',
-            padding: '14px 18px',
+            maxWidth: '600px',
+            padding: '16px 20px',
             borderRadius: '12px',
             border: '3px solid #ff1744',
-            fontSize: '18px',
-            fontWeight: '700',
-            background: '#2d3748',
+            fontSize: '20px',
+            fontWeight: '800',
+            background: '#1a202c',
             color: '#ffffff',
             outline: 'none',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.5)',
             caretColor: '#ff1744',
-            transition: 'all 0.3s ease'
+            transition: 'all 0.3s ease',
+            minHeight: '50px',
+            lineHeight: '1.5',
+            WebkitTextFillColor: '#ffffff'
           }}
           onFocus={(e) => {
-            e.target.style.boxShadow = '0 0 20px rgba(255, 23, 68, 0.7)';
+            e.target.style.boxShadow = '0 0 25px rgba(255, 23, 68, 0.8)';
             e.target.style.borderColor = '#ff5252';
           }}
           onBlur={(e) => {
-            e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            e.target.style.boxShadow = '0 6px 16px rgba(0,0,0,0.5)';
             e.target.style.borderColor = '#ff1744';
           }}
         />
