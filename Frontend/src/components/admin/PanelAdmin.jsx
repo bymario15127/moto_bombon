@@ -110,32 +110,40 @@ export default function PanelAdmin() {
         }}>
           <input
             type="text"
-            placeholder="🔍 Buscar por nombre o placa..."
+            placeholder="Buscar por nombre o placa..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             style={{
               width: '100%',
               padding: '16px 16px 16px 48px',
               borderRadius: '12px',
-              border: '4px solid #ff1744',
-              fontSize: '20px',
-              fontWeight: '800',
-              background: '#1f2937',
+              border: '3px solid #ff1744',
+              fontSize: '18px',
+              fontWeight: '700',
+              background: '#2d3748',
               color: '#ffffff',
               outline: 'none',
               transition: 'all 0.3s ease',
               boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-              caretColor: '#ffffff',
+              caretColor: '#ff1744',
               WebkitAppearance: 'none',
               appearance: 'none'
             }}
             onFocus={(e) => {
               e.target.style.boxShadow = '0 0 20px rgba(255, 23, 68, 0.5)';
+              e.target.style.borderColor = '#ff5252';
             }}
             onBlur={(e) => {
               e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+              e.target.style.borderColor = '#ff1744';
             }}
           />
+          <style>{`
+            input::placeholder {
+              color: #9ca3af;
+              opacity: 1;
+            }
+          `}</style>
           <span style={{
             position: 'absolute',
             left: '16px',
