@@ -69,13 +69,19 @@ router.get("/", async (req, res) => {
         // Determinar el precio según si es taller, promoción o cliente
         let precio = 0;
         
+        console.log(`\n🔍 Cita ${cita.id} (${cita.servicio}, CC:${cita.cilindraje}): promo_id=${cita.promocion_id}, promo_bajo=${cita.promo_precio_comision_bajo_cc}, promo_alto=${cita.promo_precio_comision_alto_cc}`);
+        
         // PRIORIDAD 1: Si es una promoción, usar los precios de comisión de la promoción
         if (cita.promocion_id && cita.promo_precio_comision_bajo_cc && cita.promo_precio_comision_alto_cc) {
           const cc = parseInt(cita.cilindraje);
           if (cc >= 100 && cc <= 405) {
             precio = cita.promo_precio_comision_bajo_cc;
+            console.log(`  ✅ PROMOCIÓN BAJO CC: $${precio}`);
           } else if (cc > 405 && cc <= 1200) {
             precio = cita.promo_precio_comision_alto_cc;
+            console.log(`  ✅ PROMOCIÓN ALTO CC: $${precio}`);
+          } else {
+            console.log(`  ⚠️ CC fuera de rango: ${cc}`);
           }
         }
         // PRIORIDAD 2: Si es un taller aliado, usar los precios del taller
@@ -83,8 +89,10 @@ router.get("/", async (req, res) => {
           const cc = parseInt(cita.cilindraje);
           if (cc >= 50 && cc <= 405) {
             precio = cita.taller_precio_bajo_cc;
+            console.log(`  ✅ TALLER BAJO CC: $${precio}`);
           } else if (cc > 405 && cc <= 1200) {
             precio = cita.taller_precio_alto_cc;
+            console.log(`  ✅ TALLER ALTO CC: $${precio}`);
           }
         }
         // PRIORIDAD 3: Si es un cliente regular, usar los precios del servicio
@@ -92,14 +100,18 @@ router.get("/", async (req, res) => {
           const cc = parseInt(cita.cilindraje);
           if (cc >= 100 && cc <= 405) {
             precio = cita.precio_bajo_cc;
+            console.log(`  ✅ SERVICIO BAJO CC: $${precio}`);
           } else if (cc > 405 && cc <= 1200) {
             precio = cita.precio_alto_cc;
+            console.log(`  ✅ SERVICIO ALTO CC: $${precio}`);
           }
         }
         // Fallback: usar el precio del servicio
         else {
           precio = cita.precio_servicio || 0;
+          console.log(`  ⚠️ FALLBACK PRECIO: $${precio}`);
         }
+        console.log(`  📊 Total parcial: $${totalGenerado} + $${precio} = $${totalGenerado + precio}`);
         totalGenerado += precio;
       });
       
