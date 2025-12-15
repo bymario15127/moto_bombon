@@ -133,7 +133,7 @@ router.get("/", async (req, res) => {
         cedula: lavador.cedula,
         comision_porcentaje: lavador.comision_porcentaje,
         cantidad_servicios: citasDelLavador.length,
-        total_ingreso_cliente: totalIngresoCliente,
+        ingreso_cliente: totalIngresoCliente,
         total_generado: totalGenerado,
         comision_a_pagar: comision,
         citas: citasDelLavador
