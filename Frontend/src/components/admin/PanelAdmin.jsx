@@ -114,16 +114,17 @@ export default function PanelAdmin() {
             onChange={(e) => setBusqueda(e.target.value)}
             style={{
               width: '100%',
-              padding: '12px 16px 12px 40px',
+              padding: '14px 16px 14px 44px',
               borderRadius: '12px',
-              border: '2px solid #EB0463',
-              fontSize: '15px',
-              fontWeight: '600',
-              background: '#ffffff',
-              color: '#1f2937',
+              border: '3px solid #EB0463',
+              fontSize: '16px',
+              fontWeight: '700',
+              background: '#f9fafb',
+              color: '#111827',
               outline: 'none',
               transition: 'all 0.3s ease',
-              boxShadow: busqueda ? '0 0 12px rgba(235, 4, 99, 0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
+              boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+              caretColor: '#EB0463'
             }}
           />
           <span style={{
