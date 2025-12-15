@@ -102,60 +102,35 @@ export default function PanelAdmin() {
         alignItems: 'center',
         gap: '12px'
       }}>
-        <div style={{
-          position: 'relative',
-          flex: 1,
-          maxWidth: '400px',
-          zIndex: 10
-        }}>
-          <input
-            type="text"
-            placeholder="Buscar por nombre o placa..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '16px 16px 16px 48px',
-              borderRadius: '12px',
-              border: '3px solid #ff1744',
-              fontSize: '18px',
-              fontWeight: '700',
-              background: '#2d3748',
-              color: '#ffffff',
-              outline: 'none',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-              caretColor: '#ff1744',
-              WebkitAppearance: 'none',
-              appearance: 'none'
-            }}
-            onFocus={(e) => {
-              e.target.style.boxShadow = '0 0 20px rgba(255, 23, 68, 0.5)';
-              e.target.style.borderColor = '#ff5252';
-            }}
-            onBlur={(e) => {
-              e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-              e.target.style.borderColor = '#ff1744';
-            }}
-          />
-          <style>{`
-            input::placeholder {
-              color: #9ca3af;
-              opacity: 1;
-            }
-          `}</style>
-          <span style={{
-            position: 'absolute',
-            left: '16px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            fontSize: '22px',
-            color: '#ff1744',
-            pointerEvents: 'none'
-          }}>
-            🔍
-          </span>
-        </div>
+        <input
+          type="text"
+          placeholder="🔍 Buscar por nombre o placa..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          style={{
+            flex: 1,
+            maxWidth: '500px',
+            padding: '14px 18px',
+            borderRadius: '12px',
+            border: '3px solid #ff1744',
+            fontSize: '18px',
+            fontWeight: '700',
+            background: '#2d3748',
+            color: '#ffffff',
+            outline: 'none',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            caretColor: '#ff1744',
+            transition: 'all 0.3s ease'
+          }}
+          onFocus={(e) => {
+            e.target.style.boxShadow = '0 0 20px rgba(255, 23, 68, 0.7)';
+            e.target.style.borderColor = '#ff5252';
+          }}
+          onBlur={(e) => {
+            e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            e.target.style.borderColor = '#ff1744';
+          }}
+        />
         {busqueda && (
           <button
             onClick={() => setBusqueda('')}
