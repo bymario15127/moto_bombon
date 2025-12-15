@@ -118,9 +118,9 @@ export default function PanelAdmin() {
               borderRadius: '12px',
               border: '2px solid #EB0463',
               fontSize: '15px',
-              fontWeight: '500',
+              fontWeight: '600',
               background: '#f3f4f6',
-              color: '#1f2937',
+              color: '#000000',
               outline: 'none',
               transition: 'all 0.3s ease',
               boxShadow: busqueda ? '0 0 8px rgba(235, 4, 99, 0.2)' : 'none'
