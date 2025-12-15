@@ -14,9 +14,13 @@ export default function ReservaForm() {
     servicio: "",
     comentarios: "",
     metodo_pago: "",
+    servicioId: null,  // ID del servicio o promoción
+    esPromocion: false, // Flag para saber si es promoción
+    promocionId: null,  // ID de la promoción
   });
   
   const [servicios, setServicios] = useState([]);
+  const [serviciosDisponibles, setServiciosDisponibles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
   const [motosEnEspera, setMotosEnEspera] = useState(0);
@@ -56,6 +60,29 @@ export default function ReservaForm() {
     loadServicios();
     loadMotosEnEspera();
   }, []);
+
+  // Filtrar servicios según el cilindraje
+  useEffect(() => {
+    if (!form.cilindraje) {
+      setServiciosDisponibles([]);
+      return;
+    }
+
+    const cc = parseInt(form.cilindraje);
+    const disponibles = [];
+
+    // Agregar servicios y promociones
+    servicios.forEach(item => {
+      // Si ya tiene tipo (servicio o promocion), lo mantiene
+      // Si no, es un servicio
+      disponibles.push({
+        ...item,
+        tipo: item.tipo || 'servicio'
+      });
+    });
+
+    setServiciosDisponibles(disponibles);
+  }, [form.cilindraje, servicios]);
 
   // Función para contar motos en espera (citas de hoy pendientes/confirmadas/en curso)
   const loadMotosEnEspera = async () => {
@@ -101,8 +128,13 @@ export default function ReservaForm() {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleServicioSelect = (nombre) => {
-    setForm({ ...form, servicio: nombre });
+  const handleServicioSelect = (servicioObj) => {
+    setForm({ 
+      ...form, 
+      servicio: servicioObj.nombre,
+      esPromocion: servicioObj.tipo === 'promocion',
+      promocionId: servicioObj.tipo === 'promocion' ? servicioObj.id : null,
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -153,6 +185,11 @@ export default function ReservaForm() {
       fecha: `${yyyy}-${mm}-${dd}`,
       hora: horaActual,
     };
+    
+    // Si es una promoción, añadir el promocion_id
+    if (form.esPromocion && form.promocionId) {
+      citaData.promocion_id = form.promocionId;
+    }
 
     console.log('📤 Enviando datos:', citaData);
 
@@ -172,6 +209,9 @@ export default function ReservaForm() {
         servicio: "",
         comentarios: "",
         metodo_pago: "",
+        servicioId: null,
+        esPromocion: false,
+        promocionId: null,
       });
       
     } catch (error) {
@@ -351,14 +391,27 @@ export default function ReservaForm() {
           }
           return (
             <div className="servicios-grid">
-              {servicios.map((s) => {
+              {serviciosDisponibles.map((s) => {
                 // Determinar precio según cilindraje
                 const cc = ccNumber || 0;
                 const esBajoCC = cc >= 50 && cc <= 405;
                 const esAltoCC = cc > 405 && cc <= 1200;
-                let precioMostrar = s.precio;
                 
-                if (form.cilindraje && s.precio_bajo_cc && s.precio_alto_cc) {
+                // Determinar precio a mostrar
+                let precioMostrar = s.precio_mostrar || s.precio;
+                
+                // Si es una PROMOCIÓN
+                if (s.tipo === 'promocion') {
+                  if (esBajoCC && s.precio_cliente_bajo_cc) {
+                    precioMostrar = s.precio_cliente_bajo_cc;
+                  } else if (esAltoCC && s.precio_cliente_alto_cc) {
+                    precioMostrar = s.precio_cliente_alto_cc;
+                  } else if (s.precio_cliente_bajo_cc) {
+                    precioMostrar = s.precio_cliente_bajo_cc;
+                  }
+                } 
+                // Si es un SERVICIO NORMAL
+                else if (form.cilindraje && s.precio_bajo_cc && s.precio_alto_cc) {
                   if (esBajoCC) {
                     precioMostrar = s.precio_bajo_cc;
                   } else if (esAltoCC) {
@@ -368,30 +421,45 @@ export default function ReservaForm() {
                 
                 return (
                   <div
-                    key={s.id || s.nombre}
+                    key={`${s.tipo}-${s.id || s.nombre}`}
                     className={`servicio-card ${
                       form.servicio === s.nombre ? "selected" : ""
                     }`}
-                    onClick={() => handleServicioSelect(s.nombre)}
+                    onClick={() => handleServicioSelect(s)}
                   >
                     {(() => {
                       // Determinar qué imagen mostrar según el cilindraje
                       let imagenMostrar = s.imagen || s.img || "/img/default.jpg";
                       
-                      if (esBajoCC && s.imagen_bajo_cc) {
-                        imagenMostrar = s.imagen_bajo_cc;
-                      } else if (esAltoCC && s.imagen_alto_cc) {
-                        imagenMostrar = s.imagen_alto_cc;
+                      if (s.tipo === 'promocion') {
+                        // Para promociones, buscar imagen_bajo_cc o imagen_alto_cc primero
+                        if (esBajoCC && s.imagen_bajo_cc) {
+                          imagenMostrar = s.imagen_bajo_cc;
+                        } else if (esAltoCC && s.imagen_alto_cc) {
+                          imagenMostrar = s.imagen_alto_cc;
+                        } else {
+                          imagenMostrar = s.imagen || "/img/default.jpg";
+                        }
+                      } else {
+                        // Para servicios
+                        if (esBajoCC && s.imagen_bajo_cc) {
+                          imagenMostrar = s.imagen_bajo_cc;
+                        } else if (esAltoCC && s.imagen_alto_cc) {
+                          imagenMostrar = s.imagen_alto_cc;
+                        }
                       }
                       
                       return <img src={imagenMostrar} alt={s.nombre} loading="lazy" />;
                     })()}
                     <div className="servicio-info">
-                      <p className="servicio-nombre">{s.nombre}</p>
+                      <p className="servicio-nombre">
+                        {s.nombre}
+                        {s.tipo === 'promocion' && ' 🎄'}
+                      </p>
                       {precioMostrar && (
-                        <p className="servicio-precio">${precioMostrar}</p>
+                        <p className="servicio-precio">${precioMostrar.toLocaleString('es-CO')}</p>
                       )}
-                      {form.cilindraje && s.precio_bajo_cc && s.precio_alto_cc && (
+                      {form.cilindraje && (s.precio_bajo_cc || s.precio_cliente_bajo_cc) && (
                         <p className="text-xs text-gray-500">
                           {esBajoCC ? '(Bajo CC)' : esAltoCC ? '(Alto CC)' : ''}
                         </p>
