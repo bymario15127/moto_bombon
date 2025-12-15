@@ -11,6 +11,23 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const tienePromo = (cita) => Boolean(
+  cita?.promocion_id ||
+  cita?.promo_precio_cliente_bajo_cc ||
+  cita?.promo_precio_cliente_alto_cc ||
+  cita?.promo_precio_comision_bajo_cc ||
+  cita?.promo_precio_comision_alto_cc
+);
+
+// Si falta cilindraje o está fuera de rango, asumimos tramo bajo por defecto
+const ccBracket = (cilindraje) => {
+  const cc = parseInt(cilindraje || 0);
+  if (isNaN(cc) || cc <= 0) return 'bajo';
+  if (cc >= 50 && cc <= 405) return 'bajo';
+  if (cc > 405) return 'alto';
+  return 'bajo';
+};
+
 let db;
 (async () => {
   db = await open({
@@ -50,7 +67,10 @@ router.get("/", async (req, res) => {
         l.comision_porcentaje
       FROM citas c
       LEFT JOIN servicios s ON s.nombre = c.servicio
-      LEFT JOIN promociones p ON (p.id = c.promocion_id OR p.nombre = c.servicio)
+      LEFT JOIN promociones p ON (
+        p.id = c.promocion_id OR 
+        TRIM(LOWER(p.nombre)) = TRIM(LOWER(c.servicio))
+      )
       LEFT JOIN talleres t ON t.id = c.taller_id
       LEFT JOIN lavadores l ON l.id = c.lavador_id
       WHERE c.estado IN ('finalizada', 'confirmada')
@@ -60,73 +80,14 @@ router.get("/", async (req, res) => {
       ORDER BY c.fecha, c.hora
     `, [inicio, fin]);
     
-    // Calcular estadísticas por lavador
+    // Calcular estadísticas por lavador (usando helpers coherentes)
     const reportePorLavador = lavadores.map(lavador => {
       const citasDelLavador = citasFinalizadas.filter(c => c.lavador_id === lavador.id);
-      
-      let totalGenerado = 0;
-      let totalIngresoCliente = 0; // Lo que realmente pagó el cliente
-      citasDelLavador.forEach(cita => {
-        // Determinar el precio según si es taller, promoción o cliente
-        let precio = 0;
-        let precioCliente = 0; // Lo que pagó el cliente
-        
-        console.log(`\n🔍 Cita ${cita.id} (${cita.servicio}, CC:${cita.cilindraje}): promo_id=${cita.promocion_id}, promo_bajo=${cita.promo_precio_comision_bajo_cc}, promo_alto=${cita.promo_precio_comision_alto_cc}`);
-        
-        // PRIORIDAD 1: Si es una promoción, usar los precios de comisión de la promoción
-        if (cita.promocion_id && (cita.promo_precio_comision_bajo_cc || cita.promo_precio_comision_alto_cc)) {
-          const cc = parseInt(cita.cilindraje);
-          if (cc >= 50 && cc <= 405) {
-            precio = cita.promo_precio_comision_bajo_cc;
-            precioCliente = cita.promo_precio_cliente_bajo_cc || cita.promo_precio_comision_bajo_cc;
-            console.log(`  ✅ PROMOCIÓN BAJO CC: $${precio} (cliente: $${precioCliente})`);
-          } else if (cc > 405 && cc <= 1200) {
-            precio = cita.promo_precio_comision_alto_cc;
-            precioCliente = cita.promo_precio_cliente_alto_cc || cita.promo_precio_comision_alto_cc;
-            console.log(`  ✅ PROMOCIÓN ALTO CC: $${precio} (cliente: $${precioCliente})`);
-          } else {
-            console.log(`  ⚠️ CC fuera de rango: ${cc}`);
-          }
-        }
-        // PRIORIDAD 2: Si es un taller aliado, usar los precios del taller
-        else if (cita.tipo_cliente === 'taller' && cita.taller_precio_bajo_cc && cita.taller_precio_alto_cc) {
-          const cc = parseInt(cita.cilindraje);
-          if (cc >= 50 && cc <= 405) {
-            precio = cita.taller_precio_bajo_cc;
-            precioCliente = precio;
-            console.log(`  ✅ TALLER BAJO CC: $${precio}`);
-          } else if (cc > 405 && cc <= 1200) {
-            precio = cita.taller_precio_alto_cc;
-            precioCliente = precio;
-            console.log(`  ✅ TALLER ALTO CC: $${precio}`);
-          }
-        }
-        // PRIORIDAD 3: Si es un cliente regular, usar los precios del servicio
-        else if (cita.precio_bajo_cc && cita.precio_alto_cc) {
-          const cc = parseInt(cita.cilindraje);
-          if (cc >= 100 && cc <= 405) {
-            precio = cita.precio_bajo_cc;
-            precioCliente = precio;
-            console.log(`  ✅ SERVICIO BAJO CC: $${precio}`);
-          } else if (cc > 405 && cc <= 1200) {
-            precio = cita.precio_alto_cc;
-            precioCliente = precio;
-            console.log(`  ✅ SERVICIO ALTO CC: $${precio}`);
-          }
-        }
-        // Fallback: usar el precio del servicio
-        else {
-          precio = cita.precio_servicio || 0;
-          precioCliente = precio;
-          console.log(`  ⚠️ FALLBACK PRECIO: $${precio}`);
-        }
-        console.log(`  📊 Total parcial: ingreso=$${totalIngresoCliente} + $${precioCliente}, comisión=$${totalGenerado} + $${precio}`);
-        totalGenerado += precio;
-        totalIngresoCliente += precioCliente;
-      });
-      
+
+      const totalGenerado = citasDelLavador.reduce((sum, c) => sum + calcularPrecioBase(c), 0);
+      const totalIngresoCliente = citasDelLavador.reduce((sum, c) => sum + calcularPrecioCliente(c), 0);
       const comision = totalGenerado * (lavador.comision_porcentaje / 100);
-      
+
       return {
         lavador_id: lavador.id,
         nombre: lavador.nombre,
@@ -155,12 +116,16 @@ router.get("/", async (req, res) => {
       const ingresoCliente = citasDelServicio.reduce((sum, c) => {
         let precioCliente = 0;
 
-        if (c.promocion_id && (c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc)) {
-          const cc = parseInt(c.cilindraje);
-          if (cc >= 50 && cc <= 405) {
-            precioCliente = c.promo_precio_cliente_bajo_cc || c.promo_precio_comision_bajo_cc;
-          } else if (cc > 405 && cc <= 1200) {
-            precioCliente = c.promo_precio_cliente_alto_cc || c.promo_precio_comision_alto_cc;
+        if (tienePromo(c) && (c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc)) {
+          const tramo = ccBracket(c.cilindraje);
+          const precioComisionBajo = c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc || 0;
+          const precioComisionAlto = c.promo_precio_comision_alto_cc || c.promo_precio_comision_bajo_cc || 0;
+          const precioClienteBajo = c.promo_precio_cliente_bajo_cc || precioComisionBajo;
+          const precioClienteAlto = c.promo_precio_cliente_alto_cc || precioComisionAlto;
+          if (tramo === 'bajo') {
+            precioCliente = precioClienteBajo;
+          } else {
+            precioCliente = precioClienteAlto;
           }
         } else if (c.tipo_cliente === 'taller' && c.taller_precio_bajo_cc && c.taller_precio_alto_cc) {
           const cc = parseInt(c.cilindraje);
@@ -185,12 +150,14 @@ router.get("/", async (req, res) => {
       const ingresoBaseComision = citasDelServicio.reduce((sum, c) => {
         let precio = 0;
 
-        if (c.promocion_id && (c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc)) {
-          const cc = parseInt(c.cilindraje);
-          if (cc >= 50 && cc <= 405) {
-            precio = c.promo_precio_comision_bajo_cc;
-          } else if (cc > 405 && cc <= 1200) {
-            precio = c.promo_precio_comision_alto_cc;
+        if (tienePromo(c) && (c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc)) {
+          const tramo = ccBracket(c.cilindraje);
+          const precioComisionBajo = c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc || 0;
+          const precioComisionAlto = c.promo_precio_comision_alto_cc || c.promo_precio_comision_bajo_cc || 0;
+          if (tramo === 'bajo') {
+            precio = precioComisionBajo;
+          } else {
+            precio = precioComisionAlto;
           }
         } else if (c.tipo_cliente === 'taller' && c.taller_precio_bajo_cc && c.taller_precio_alto_cc) {
           const cc = parseInt(c.cilindraje);
@@ -222,7 +189,7 @@ router.get("/", async (req, res) => {
       };
     });
     
-    res.json({
+    const responsePayload = {
       periodo: {
         fecha_inicio: inicio,
         fecha_fin: fin
@@ -237,7 +204,25 @@ router.get("/", async (req, res) => {
       },
       lavadores: reportePorLavador,
       servicios: estadisticasPorServicio
-    });
+    };
+
+    // Modo debug: incluir detalle por cita con cálculos en tiempo real
+    if ((req.query.debug || '').toString() === 'true') {
+      responsePayload.detalle_citas = citasFinalizadas.map(c => ({
+        id: c.id,
+        fecha: c.fecha,
+        hora: c.hora,
+        servicio: c.servicio,
+        cilindraje: c.cilindraje,
+        tipo_cliente: c.tipo_cliente,
+        promocion_id: c.promocion_id,
+        lavador_id: c.lavador_id,
+        ingreso_cliente: calcularPrecioCliente(c),
+        base_comision: calcularPrecioBase(c)
+      }));
+    }
+
+    res.json(responsePayload);
     
   } catch (error) {
     console.error("Error al generar reporte de nómina:", error);
@@ -274,7 +259,10 @@ router.get("/exportar-excel", async (req, res) => {
         l.comision_porcentaje
       FROM citas c
       LEFT JOIN servicios s ON s.nombre = c.servicio
-      LEFT JOIN promociones p ON (p.id = c.promocion_id OR p.nombre = c.servicio)
+      LEFT JOIN promociones p ON (
+        p.id = c.promocion_id OR 
+        TRIM(LOWER(p.nombre)) = TRIM(LOWER(c.servicio))
+      )
       LEFT JOIN talleres t ON t.id = c.taller_id
       LEFT JOIN lavadores l ON l.id = c.lavador_id
       WHERE c.estado IN ('finalizada', 'confirmada')
@@ -298,9 +286,13 @@ router.get("/exportar-excel", async (req, res) => {
         let precioCliente = 0;
         const cc = parseInt(cita.cilindraje || 0);
         
-        if (cita.promocion_id && cita.promo_precio_cliente_bajo_cc && cita.promo_precio_cliente_alto_cc) {
-          if (cc >= 50 && cc <= 405) precioCliente = cita.promo_precio_cliente_bajo_cc;
-          else if (cc > 405) precioCliente = cita.promo_precio_cliente_alto_cc;
+        if (tienePromo(cita) && (cita.promo_precio_cliente_bajo_cc || cita.promo_precio_cliente_alto_cc || cita.promo_precio_comision_bajo_cc || cita.promo_precio_comision_alto_cc)) {
+          const tramo = ccBracket(cita.cilindraje);
+          const precioComisionBajo = cita.promo_precio_comision_bajo_cc || cita.promo_precio_comision_alto_cc || 0;
+          const precioComisionAlto = cita.promo_precio_comision_alto_cc || cita.promo_precio_comision_bajo_cc || 0;
+          const precioClienteBajo = cita.promo_precio_cliente_bajo_cc || precioComisionBajo;
+          const precioClienteAlto = cita.promo_precio_cliente_alto_cc || precioComisionAlto;
+          precioCliente = tramo === 'bajo' ? precioClienteBajo : precioClienteAlto;
         }
         else if (cita.tipo_cliente === 'taller') {
           precioCliente = precioComision; // Para taller, ingreso cliente = comisión
@@ -406,23 +398,23 @@ router.get("/exportar-excel", async (req, res) => {
     XLSX.utils.book_append_sheet(workbook, wsServicios, 'Ingresos por Servicio');
 
     // HOJA 4: Ingresos por Promoción (resumen depurado)
-    const promos = citasFinalizadas.filter(c => c.promocion_id);
+    const promos = citasFinalizadas.filter(c => tienePromo(c));
     const agg = {};
     promos.forEach(c => {
       const nombre = c.servicio || c.promo_nombre || 'Promoción';
-      const cc = parseInt(c.cilindraje || 0);
+      const tramo = ccBracket(c.cilindraje);
       let cliente = 0, base = 0;
-      if (c.promo_precio_cliente_bajo_cc || c.promo_precio_cliente_alto_cc) {
-        if (cc >= 50 && cc <= 405) {
-          cliente = c.promo_precio_cliente_bajo_cc || 0;
-          base = c.promo_precio_comision_bajo_cc || 0;
-        } else if (cc > 405) {
-          cliente = c.promo_precio_cliente_alto_cc || 0;
-          base = c.promo_precio_comision_alto_cc || 0;
-        } else {
-          cliente = c.promo_precio_cliente_bajo_cc || c.promo_precio_cliente_alto_cc || 0;
-          base = c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc || 0;
-        }
+      const precioComisionBajo = c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc || 0;
+      const precioComisionAlto = c.promo_precio_comision_alto_cc || c.promo_precio_comision_bajo_cc || 0;
+      const precioClienteBajo = c.promo_precio_cliente_bajo_cc || precioComisionBajo;
+      const precioClienteAlto = c.promo_precio_cliente_alto_cc || precioComisionAlto;
+
+      if (tramo === 'bajo') {
+        cliente = precioClienteBajo;
+        base = precioComisionBajo;
+      } else {
+        cliente = precioClienteAlto;
+        base = precioComisionAlto;
       }
       if (!agg[nombre]) {
         agg[nombre] = { cantidad: 0, totalCliente: 0, totalBase: 0 };
@@ -467,11 +459,11 @@ function calcularPrecioBase(cita) {
   const cc = parseInt(cita.cilindraje || 0);
   
   // PRIORIDAD 1: Si es una promoción
-  if (cita.promocion_id && cita.promo_precio_comision_bajo_cc && cita.promo_precio_comision_alto_cc) {
+  if (tienePromo(cita) && (cita.promo_precio_comision_bajo_cc || cita.promo_precio_comision_alto_cc)) {
     if (cc >= 50 && cc <= 405) {
-      precio = cita.promo_precio_comision_bajo_cc;
+      precio = cita.promo_precio_comision_bajo_cc || cita.promo_precio_comision_alto_cc;
     } else if (cc > 405) {
-      precio = cita.promo_precio_comision_alto_cc;
+      precio = cita.promo_precio_comision_alto_cc || cita.promo_precio_comision_bajo_cc;
     }
   }
   // PRIORIDAD 2: Si es taller
@@ -496,4 +488,33 @@ function calcularPrecioBase(cita) {
   }
   
   return Number(precio) || 0;
+}
+
+// Función helper para calcular precio que paga el cliente (ingreso real)
+function calcularPrecioCliente(cita) {
+  const tramo = ccBracket(cita.cilindraje);
+  let precioCliente = 0;
+
+  // PROMOCIÓN: priorizamos precio cliente; si falta, usamos precio comisión como fallback
+  if (tienePromo(cita) && (cita.promo_precio_cliente_bajo_cc || cita.promo_precio_cliente_alto_cc || cita.promo_precio_comision_bajo_cc || cita.promo_precio_comision_alto_cc)) {
+    const precioComisionBajo = cita.promo_precio_comision_bajo_cc || cita.promo_precio_comision_alto_cc || 0;
+    const precioComisionAlto = cita.promo_precio_comision_alto_cc || cita.promo_precio_comision_bajo_cc || 0;
+    const precioClienteBajo = cita.promo_precio_cliente_bajo_cc || precioComisionBajo;
+    const precioClienteAlto = cita.promo_precio_cliente_alto_cc || precioComisionAlto;
+    precioCliente = tramo === 'bajo' ? precioClienteBajo : precioClienteAlto;
+    return Number(precioCliente) || 0;
+  }
+
+  // TALLER: el ingreso del cliente coincide con la base del taller
+  if (cita.tipo_cliente === 'taller' && cita.taller_precio_bajo_cc && cita.taller_precio_alto_cc) {
+    return Number(tramo === 'bajo' ? cita.taller_precio_bajo_cc : cita.taller_precio_alto_cc) || 0;
+  }
+
+  // CLIENTE REGULAR: usa precio del servicio por tramo
+  if (cita.precio_bajo_cc && cita.precio_alto_cc) {
+    return Number(tramo === 'bajo' ? cita.precio_bajo_cc : cita.precio_alto_cc) || 0;
+  }
+
+  // FALLBACK: precio del servicio simple
+  return Number(cita.precio_servicio || 0) || 0;
 }

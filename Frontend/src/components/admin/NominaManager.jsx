@@ -257,7 +257,7 @@ const NominaManager = () => {
                   <td style={{ padding: '12px', textAlign: 'center', color: '#666' }}>{lavador.cedula || 'N/A'}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>{lavador.cantidad_servicios}</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: '500' }}>
-                    {formatearMoneda(lavador.total_ingreso_cliente ?? lavador.total_generado)}
+                    {formatearMoneda(lavador.ingreso_cliente)}
                   </td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: '500', color: '#6b7280' }}>
                     {formatearMoneda(lavador.total_generado)}
