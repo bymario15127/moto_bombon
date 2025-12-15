@@ -105,7 +105,8 @@ export default function PanelAdmin() {
         <div style={{
           position: 'relative',
           flex: 1,
-          maxWidth: '400px'
+          maxWidth: '400px',
+          zIndex: 10
         }}>
           <input
             type="text"
@@ -114,26 +115,29 @@ export default function PanelAdmin() {
             onChange={(e) => setBusqueda(e.target.value)}
             style={{
               width: '100%',
-              padding: '14px 16px 14px 44px',
+              padding: '16px 16px 16px 48px',
               borderRadius: '12px',
-              border: '3px solid #EB0463',
-              fontSize: '16px',
-              fontWeight: '700',
-              background: '#f9fafb',
-              color: '#111827',
+              border: '4px solid #ff1744',
+              fontSize: '18px',
+              fontWeight: '800',
+              background: '#ffffff',
+              color: '#000000',
               outline: 'none',
               transition: 'all 0.3s ease',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-              caretColor: '#EB0463'
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              caretColor: '#ff1744',
+              WebkitAppearance: 'none',
+              appearance: 'none'
             }}
           />
           <span style={{
             position: 'absolute',
-            left: '14px',
+            left: '16px',
             top: '50%',
             transform: 'translateY(-50%)',
-            fontSize: '18px',
-            color: '#EB0463'
+            fontSize: '22px',
+            color: '#ff1744',
+            pointerEvents: 'none'
           }}>
             🔍
           </span>
