@@ -209,7 +209,12 @@ router.put("/:id", async (req, res) => {
 
       // Validar método de pago si se actualiza (solo rol admin)
       if (key === 'metodo_pago') {
-        const rol = (req.headers['x-user-role'] || '').trim().toLowerCase();
+        const rol = (
+          req.headers['x-user-role'] ||
+          req.body?.userRole ||
+          req.body?.role ||
+          ''
+        ).trim().toLowerCase();
         if (rol !== 'admin') {
           return res.status(403).json({ error: "Solo un administrador puede cambiar el método de pago" });
         }
