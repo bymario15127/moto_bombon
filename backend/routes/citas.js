@@ -31,12 +31,14 @@ let db;
 // GET all (solo del día actual por defecto)
 router.get("/", async (req, res) => {
   try {
-    // Obtener fecha actual en formato YYYY-MM-DD
+    // Obtener fecha actual en formato YYYY-MM-DD en zona horaria de Colombia (UTC-5)
     const today = () => {
       const d = new Date();
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
+      // Convertir a hora de Colombia (UTC-5)
+      const colombiaTime = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+      const yyyy = colombiaTime.getFullYear();
+      const mm = String(colombiaTime.getMonth() + 1).padStart(2, "0");
+      const dd = String(colombiaTime.getDate()).padStart(2, "0");
       return `${yyyy}-${mm}-${dd}`;
     };
     
@@ -97,18 +99,20 @@ const toMinutes = (hhmm) => {
 router.post("/", async (req, res) => {
   try {
     console.log("📥 [POST /api/citas] Payload recibido:", req.body);
-    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id } = req.body;
+    const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id, promocion_id } = req.body;
     
     if (!cliente || !servicio) {
       return res.status(400).json({ error: "Campos obligatorios: cliente, servicio" });
     }
     
-    // Calcular fecha por defecto (hoy) si no se envía
+    // Calcular fecha por defecto (hoy en Colombia) si no se envía
     const todayStr = () => {
       const d = new Date();
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
+      // Convertir a hora de Colombia (UTC-5)
+      const colombiaTime = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+      const yyyy = colombiaTime.getFullYear();
+      const mm = String(colombiaTime.getMonth() + 1).padStart(2, "0");
+      const dd = String(colombiaTime.getDate()).padStart(2, "0");
       return `${yyyy}-${mm}-${dd}`;
     };
     const fechaFinal = (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) ? fecha : todayStr();
@@ -156,10 +160,10 @@ router.post("/", async (req, res) => {
     
     try {
       const result = await db.run(
-        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null, tipo_cliente || "cliente", taller_id || null]
+        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id, promocion_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null, tipo_cliente || "cliente", taller_id || null, promocion_id || null]
       );
-      console.log("✅ Cita insertada ID=", result.lastID);
+      console.log("✅ Cita insertada ID=", result.lastID, promocion_id ? `(Promoción ID: ${promocion_id})` : "");
       return res.status(201).json({ id: result.lastID, message: "Cita creada exitosamente" });
     } catch (dbError) {
       console.error("❌ Error ejecutando INSERT en citas:", dbError);
@@ -186,7 +190,7 @@ router.put("/:id", async (req, res) => {
     
     const updates = [];
     const values = [];
-  const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago', 'lavador_id'];
+  const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago', 'lavador_id', 'promocion_id'];
     
     for (const key of Object.keys(fields)) {
       if (!allowedFields.includes(key)) {

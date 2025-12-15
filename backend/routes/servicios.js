@@ -18,11 +18,30 @@ let db;
   });
 })();
 
-// GET all servicios
+// GET all servicios + promociones activas
 router.get("/", async (req, res) => {
   try {
+    // Obtener servicios normales
     const servicios = await db.all("SELECT * FROM servicios ORDER BY nombre");
-    res.json(servicios);
+    
+    // Obtener promociones activas (vigentes hoy)
+    const hoy = new Date().toISOString().split('T')[0];
+    const promociones = await db.all(
+      `SELECT * FROM promociones 
+       WHERE activo = 1 
+       AND fecha_inicio <= ? 
+       AND fecha_fin >= ? 
+       ORDER BY nombre`,
+      [hoy, hoy]
+    );
+    
+    // Marcar servicios y promociones con tipo
+    const serviciosConTipo = servicios.map(s => ({...s, tipo: 'servicio'}));
+    const promocionesConTipo = promociones.map(p => ({...p, tipo: 'promocion'}));
+    
+    // Combinar y devolver
+    const todos = [...serviciosConTipo, ...promocionesConTipo];
+    res.json(todos);
   } catch (error) {
     res.status(500).json({ error: "Error interno del servidor" });
   }
@@ -31,7 +50,7 @@ router.get("/", async (req, res) => {
 // POST create servicio
 router.post("/", async (req, res) => {
   try {
-    const { nombre, duracion, precio, descripcion, imagen, precio_bajo_cc, precio_alto_cc, imagen_bajo_cc, imagen_alto_cc } = req.body;
+    const { nombre, duracion, precio, descripcion, imagen, precio_bajo_cc, precio_alto_cc, imagen_bajo_cc, imagen_alto_cc, precio_base_comision_bajo, precio_base_comision_alto } = req.body;
     
     if (!nombre || !duracion) {
       return res.status(400).json({ error: "Campos obligatorios: nombre, duracion" });
@@ -43,8 +62,8 @@ router.post("/", async (req, res) => {
     }
     
     const result = await db.run(
-      "INSERT INTO servicios (nombre, duracion, precio, descripcion, imagen, precio_bajo_cc, precio_alto_cc, imagen_bajo_cc, imagen_alto_cc) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [nombre, duracion, precio || null, descripcion || "", imagen || "/img/default.jpg", precio_bajo_cc || null, precio_alto_cc || null, imagen_bajo_cc || null, imagen_alto_cc || null]
+      "INSERT INTO servicios (nombre, duracion, precio, descripcion, imagen, precio_bajo_cc, precio_alto_cc, imagen_bajo_cc, imagen_alto_cc, precio_base_comision_bajo, precio_base_comision_alto) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [nombre, duracion, precio || null, descripcion || "", imagen || "/img/default.jpg", precio_bajo_cc || null, precio_alto_cc || null, imagen_bajo_cc || null, imagen_alto_cc || null, precio_base_comision_bajo || precio_bajo_cc || null, precio_base_comision_alto || precio_alto_cc || null]
     );
     
     res.status(201).json({ id: result.lastID, message: "Servicio creado exitosamente" });
@@ -57,15 +76,15 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, duracion, precio, descripcion, imagen, precio_bajo_cc, precio_alto_cc, imagen_bajo_cc, imagen_alto_cc } = req.body;
+    const { nombre, duracion, precio, descripcion, imagen, precio_bajo_cc, precio_alto_cc, imagen_bajo_cc, imagen_alto_cc, precio_base_comision_bajo, precio_base_comision_alto } = req.body;
     
     if (!id || isNaN(id)) {
       return res.status(400).json({ error: "ID de servicio inválido" });
     }
     
     const result = await db.run(
-      "UPDATE servicios SET nombre = ?, duracion = ?, precio = ?, descripcion = ?, imagen = ?, precio_bajo_cc = ?, precio_alto_cc = ?, imagen_bajo_cc = ?, imagen_alto_cc = ? WHERE id = ?",
-      [nombre, duracion, precio || null, descripcion, imagen, precio_bajo_cc || null, precio_alto_cc || null, imagen_bajo_cc || null, imagen_alto_cc || null, id]
+      "UPDATE servicios SET nombre = ?, duracion = ?, precio = ?, descripcion = ?, imagen = ?, precio_bajo_cc = ?, precio_alto_cc = ?, imagen_bajo_cc = ?, imagen_alto_cc = ?, precio_base_comision_bajo = ?, precio_base_comision_alto = ? WHERE id = ?",
+      [nombre, duracion, precio || null, descripcion, imagen, precio_bajo_cc || null, precio_alto_cc || null, imagen_bajo_cc || null, imagen_alto_cc || null, precio_base_comision_bajo || null, precio_base_comision_alto || null, id]
     );
     
     if (result.changes === 0) {
