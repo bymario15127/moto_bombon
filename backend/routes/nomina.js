@@ -65,9 +65,11 @@ router.get("/", async (req, res) => {
       const citasDelLavador = citasFinalizadas.filter(c => c.lavador_id === lavador.id);
       
       let totalGenerado = 0;
+      let totalIngresoCliente = 0; // Lo que realmente pagó el cliente
       citasDelLavador.forEach(cita => {
         // Determinar el precio según si es taller, promoción o cliente
         let precio = 0;
+        let precioCliente = 0; // Lo que pagó el cliente
         
         console.log(`\n🔍 Cita ${cita.id} (${cita.servicio}, CC:${cita.cilindraje}): promo_id=${cita.promocion_id}, promo_bajo=${cita.promo_precio_comision_bajo_cc}, promo_alto=${cita.promo_precio_comision_alto_cc}`);
         
@@ -76,10 +78,12 @@ router.get("/", async (req, res) => {
           const cc = parseInt(cita.cilindraje);
           if (cc >= 100 && cc <= 405) {
             precio = cita.promo_precio_comision_bajo_cc;
-            console.log(`  ✅ PROMOCIÓN BAJO CC: $${precio}`);
+            precioCliente = cita.promo_precio_cliente_bajo_cc || cita.promo_precio_comision_bajo_cc;
+            console.log(`  ✅ PROMOCIÓN BAJO CC: $${precio} (cliente: $${precioCliente})`);
           } else if (cc > 405 && cc <= 1200) {
             precio = cita.promo_precio_comision_alto_cc;
-            console.log(`  ✅ PROMOCIÓN ALTO CC: $${precio}`);
+            precioCliente = cita.promo_precio_cliente_alto_cc || cita.promo_precio_comision_alto_cc;
+            console.log(`  ✅ PROMOCIÓN ALTO CC: $${precio} (cliente: $${precioCliente})`);
           } else {
             console.log(`  ⚠️ CC fuera de rango: ${cc}`);
           }
@@ -89,9 +93,11 @@ router.get("/", async (req, res) => {
           const cc = parseInt(cita.cilindraje);
           if (cc >= 50 && cc <= 405) {
             precio = cita.taller_precio_bajo_cc;
+            precioCliente = precio;
             console.log(`  ✅ TALLER BAJO CC: $${precio}`);
           } else if (cc > 405 && cc <= 1200) {
             precio = cita.taller_precio_alto_cc;
+            precioCliente = precio;
             console.log(`  ✅ TALLER ALTO CC: $${precio}`);
           }
         }
@@ -100,19 +106,23 @@ router.get("/", async (req, res) => {
           const cc = parseInt(cita.cilindraje);
           if (cc >= 100 && cc <= 405) {
             precio = cita.precio_bajo_cc;
+            precioCliente = precio;
             console.log(`  ✅ SERVICIO BAJO CC: $${precio}`);
           } else if (cc > 405 && cc <= 1200) {
             precio = cita.precio_alto_cc;
+            precioCliente = precio;
             console.log(`  ✅ SERVICIO ALTO CC: $${precio}`);
           }
         }
         // Fallback: usar el precio del servicio
         else {
           precio = cita.precio_servicio || 0;
+          precioCliente = precio;
           console.log(`  ⚠️ FALLBACK PRECIO: $${precio}`);
         }
-        console.log(`  📊 Total parcial: $${totalGenerado} + $${precio} = $${totalGenerado + precio}`);
+        console.log(`  📊 Total parcial: ingreso=$${totalIngresoCliente} + $${precioCliente}, comisión=$${totalGenerado} + $${precio}`);
         totalGenerado += precio;
+        totalIngresoCliente += precioCliente;
       });
       
       const comision = totalGenerado * (lavador.comision_porcentaje / 100);
@@ -123,6 +133,7 @@ router.get("/", async (req, res) => {
         cedula: lavador.cedula,
         comision_porcentaje: lavador.comision_porcentaje,
         cantidad_servicios: citasDelLavador.length,
+        total_ingreso_cliente: totalIngresoCliente,
         total_generado: totalGenerado,
         comision_a_pagar: comision,
         citas: citasDelLavador
