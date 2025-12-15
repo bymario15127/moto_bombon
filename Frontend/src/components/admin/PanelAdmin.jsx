@@ -119,11 +119,11 @@ export default function PanelAdmin() {
               border: '2px solid #EB0463',
               fontSize: '15px',
               fontWeight: '600',
-              background: '#f3f4f6',
-              color: '#000000',
+              background: '#ffffff',
+              color: '#1f2937',
               outline: 'none',
               transition: 'all 0.3s ease',
-              boxShadow: busqueda ? '0 0 8px rgba(235, 4, 99, 0.2)' : 'none'
+              boxShadow: busqueda ? '0 0 12px rgba(235, 4, 99, 0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
             }}
           />
           <span style={{
