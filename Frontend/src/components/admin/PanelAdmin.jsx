@@ -7,6 +7,7 @@ export default function PanelAdmin() {
   const [citas, setCitas] = useState([]);
   const [lavadores, setLavadores] = useState([]);
   const [userRole, setUserRole] = useState('admin');
+  const [busqueda, setBusqueda] = useState('');
 
   useEffect(() => {
     const role = localStorage.getItem('motobombon_user_role') || 'admin';
@@ -76,22 +77,97 @@ export default function PanelAdmin() {
     }
   };
 
+  // Filtrar citas por nombre de cliente o placa
+  const citasFiltradas = citas.filter(cita => {
+    const busquedaLower = busqueda.toLowerCase();
+    return (
+      (cita.cliente && cita.cliente.toLowerCase().includes(busquedaLower)) ||
+      (cita.placa && cita.placa.toLowerCase().includes(busquedaLower))
+    );
+  });
+
   return (
     <div className="container">
       <div className="admin-header">
         <div>
           <h2 className="text-2xl font-bold" style={{ color: '#EB0463' }}>Panel Admin — MOTOBOMBON</h2>
-          <p className="text-gray-600">Total citas: <span className="font-semibold" style={{ color: '#EB0463' }}>{citas.length}</span></p>
+          <p className="text-gray-600">Total citas: <span className="font-semibold" style={{ color: '#EB0463' }}>{citasFiltradas.length}</span></p>
         </div>
+      </div>
+
+      {/* Buscador */}
+      <div style={{
+        marginBottom: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px'
+      }}>
+        <div style={{
+          position: 'relative',
+          flex: 1,
+          maxWidth: '400px'
+        }}>
+          <input
+            type="text"
+            placeholder="🔍 Buscar por nombre o placa..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '12px 16px 12px 40px',
+              borderRadius: '12px',
+              border: '2px solid #EB0463',
+              fontSize: '15px',
+              fontWeight: '500',
+              background: '#f3f4f6',
+              color: '#1f2937',
+              outline: 'none',
+              transition: 'all 0.3s ease',
+              boxShadow: busqueda ? '0 0 8px rgba(235, 4, 99, 0.2)' : 'none'
+            }}
+          />
+          <span style={{
+            position: 'absolute',
+            left: '14px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            fontSize: '18px',
+            color: '#EB0463'
+          }}>
+            🔍
+          </span>
+        </div>
+        {busqueda && (
+          <button
+            onClick={() => setBusqueda('')}
+            style={{
+              padding: '10px 16px',
+              background: '#ef4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#dc2626'}
+            onMouseLeave={(e) => e.target.style.background = '#ef4444'}
+          >
+            ✕ Limpiar
+          </button>
+        )}
       </div>
       
       <div className="citas-grid">
-        {citas.length === 0 ? (
+        {citasFiltradas.length === 0 ? (
           <div className="no-citas">
-            <p className="text-gray-500 text-lg">📅 No hay citas registradas</p>
+            <p className="text-gray-500 text-lg">
+              {busqueda ? `📭 No se encontraron citas para "${busqueda}"` : '📅 No hay citas registradas'}
+            </p>
           </div>
         ) : (
-          [...citas].reverse().map(c => (
+          [...citasFiltradas].reverse().map(c => (
             <div key={c.id} className="cita-card-admin">
               <div className="cita-header">
                 <div>
