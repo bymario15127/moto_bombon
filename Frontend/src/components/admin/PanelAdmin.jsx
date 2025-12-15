@@ -105,51 +105,6 @@ export default function PanelAdmin() {
           </button>
         )}
       </div>
-            padding: '16px 20px',
-            borderRadius: '12px',
-            border: '3px solid #ff1744',
-            fontSize: '20px',
-            fontWeight: '800',
-            background: '#1a202c',
-            color: '#ffffff',
-            outline: 'none',
-            boxShadow: '0 6px 16px rgba(0,0,0,0.5)',
-            caretColor: '#ff1744',
-            transition: 'all 0.3s ease',
-            minHeight: '50px',
-            lineHeight: '1.5',
-            WebkitTextFillColor: '#ffffff'
-          }}
-          onFocus={(e) => {
-            e.target.style.boxShadow = '0 0 25px rgba(255, 23, 68, 0.8)';
-            e.target.style.borderColor = '#ff5252';
-          }}
-          onBlur={(e) => {
-            e.target.style.boxShadow = '0 6px 16px rgba(0,0,0,0.5)';
-            e.target.style.borderColor = '#ff1744';
-          }}
-        />
-        {busqueda && (
-          <button
-            onClick={() => setBusqueda('')}
-            style={{
-              padding: '10px 16px',
-              background: '#ef4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => e.target.style.background = '#dc2626'}
-            onMouseLeave={(e) => e.target.style.background = '#ef4444'}
-          >
-            ✕ Limpiar
-          </button>
-        )}
-      </div>
       
       <div className="citas-grid">
         {citasFiltradas.length === 0 ? (
