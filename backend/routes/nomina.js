@@ -50,7 +50,7 @@ router.get("/", async (req, res) => {
         l.comision_porcentaje
       FROM citas c
       LEFT JOIN servicios s ON s.nombre = c.servicio
-      LEFT JOIN promociones p ON p.id = c.promocion_id
+      LEFT JOIN promociones p ON (p.id = c.promocion_id OR p.nombre = c.servicio)
       LEFT JOIN talleres t ON t.id = c.taller_id
       LEFT JOIN lavadores l ON l.id = c.lavador_id
       WHERE c.estado IN ('finalizada', 'confirmada')
@@ -274,7 +274,7 @@ router.get("/exportar-excel", async (req, res) => {
         l.comision_porcentaje
       FROM citas c
       LEFT JOIN servicios s ON s.nombre = c.servicio
-      LEFT JOIN promociones p ON p.id = c.promocion_id
+      LEFT JOIN promociones p ON (p.id = c.promocion_id OR p.nombre = c.servicio)
       LEFT JOIN talleres t ON t.id = c.taller_id
       LEFT JOIN lavadores l ON l.id = c.lavador_id
       WHERE c.estado IN ('finalizada', 'confirmada')
