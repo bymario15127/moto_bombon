@@ -14,7 +14,6 @@ export default function PanelAdmin() {
     setUserRole(role);
   }, []);
 
-  // Función para formatear fecha correctamente sin problemas de timezone
   const formatearFecha = (fechaStr) => {
     const [year, month, day] = fechaStr.split('-');
     const fecha = new Date(year, month - 1, day);
@@ -26,11 +25,10 @@ export default function PanelAdmin() {
     });
   };
 
-  // Función para capitalizar primera letra
   const capitalizar = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
   const load = async () => {
-    const data = await getCitas(); // Esto ya trae solo citas del día actual (sin ?all=true)
+    const data = await getCitas();
     setCitas(data);
   };
 
@@ -50,7 +48,49 @@ export default function PanelAdmin() {
 
   const handleDelete = async (id) => {
     if (!confirm("Eliminar esta cita?")) return;
-      {/* Buscador simple y visible */}
+    await deleteCita(id);
+    load();
+  };
+
+  const changeEstado = async (id, nuevoEstado) => {
+    if (nuevoEstado === "finalizada") {
+      const cita = citas.find(c => c.id === id);
+      if (!cita?.lavador_id) {
+        alert("⚠️ Debes asignar un lavador antes de finalizar la cita");
+        return;
+      }
+    }
+    await updateCita(id, { estado: nuevoEstado });
+    load();
+  };
+
+  const updateCitaLavador = async (id, lavadorId) => {
+    try {
+      await updateCita(id, { lavador_id: lavadorId });
+      load();
+    } catch (error) {
+      console.error('Error al asignar lavador:', error);
+      alert('Error al asignar el lavador');
+    }
+  };
+
+  const citasFiltradas = citas.filter(cita => {
+    const busquedaLower = busqueda.toLowerCase();
+    return (
+      (cita.cliente && cita.cliente.toLowerCase().includes(busquedaLower)) ||
+      (cita.placa && cita.placa.toLowerCase().includes(busquedaLower))
+    );
+  });
+
+  return (
+    <div className="container">
+      <div className="admin-header">
+        <div>
+          <h2 className="text-2xl font-bold" style={{ color: '#EB0463' }}>Panel Admin — MOTOBOMBON</h2>
+          <p className="text-gray-600">Total citas: <span className="font-semibold" style={{ color: '#EB0463' }}>{citasFiltradas.length}</span></p>
+        </div>
+      </div>
+
       <div style={{ marginBottom: '24px' }}>
         <div style={{ position: 'relative' }}>
           <span style={{
@@ -105,7 +145,7 @@ export default function PanelAdmin() {
           </button>
         )}
       </div>
-      
+
       <div className="citas-grid">
         {citasFiltradas.length === 0 ? (
           <div className="no-citas">
@@ -125,7 +165,7 @@ export default function PanelAdmin() {
                   {c.estado || "pendiente"}
                 </span>
               </div>
-              
+
               <div className="cita-details">
                 <div>
                   <p className="detail-item">📅 <strong>Fecha:</strong> {capitalizar(formatearFecha(c.fecha))}</p>
@@ -172,7 +212,7 @@ export default function PanelAdmin() {
                       borderRadius: '8px',
                       border: !c.lavador_id ? '2px solid #EF4444' : '1px solid rgba(102, 126, 234, 0.3)',
                       fontSize: '14px',
-                      background: !c.lavador_id 
+                      background: !c.lavador_id
                         ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)'
                         : 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
                       color: '#1f2937',
@@ -191,21 +231,21 @@ export default function PanelAdmin() {
                   </select>
                 </div>
               </div>
-              
+
               <div className="cita-actions">
-                <button 
+                <button
                   onClick={() => changeEstado(c.id, "confirmada")}
                   className="btn-action confirm"
                 >
                   ✅ Confirmar
                 </button>
-                <button 
+                <button
                   onClick={() => changeEstado(c.id, "en curso")}
                   className="btn-action progress"
                 >
                   🔄 En curso
                 </button>
-                <button 
+                <button
                   onClick={() => changeEstado(c.id, "finalizada")}
                   className="btn-action complete"
                   disabled={!c.lavador_id}
@@ -218,7 +258,7 @@ export default function PanelAdmin() {
                   ✨ Finalizar
                 </button>
                 {userRole === 'admin' && (
-                  <button 
+                  <button
                     onClick={() => handleDelete(c.id)}
                     className="btn-action delete"
                   >
