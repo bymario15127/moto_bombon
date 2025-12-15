@@ -74,9 +74,9 @@ router.get("/", async (req, res) => {
         console.log(`\n🔍 Cita ${cita.id} (${cita.servicio}, CC:${cita.cilindraje}): promo_id=${cita.promocion_id}, promo_bajo=${cita.promo_precio_comision_bajo_cc}, promo_alto=${cita.promo_precio_comision_alto_cc}`);
         
         // PRIORIDAD 1: Si es una promoción, usar los precios de comisión de la promoción
-        if (cita.promocion_id && cita.promo_precio_comision_bajo_cc && cita.promo_precio_comision_alto_cc) {
+        if (cita.promocion_id && (cita.promo_precio_comision_bajo_cc || cita.promo_precio_comision_alto_cc)) {
           const cc = parseInt(cita.cilindraje);
-          if (cc >= 100 && cc <= 405) {
+          if (cc >= 50 && cc <= 405) {
             precio = cita.promo_precio_comision_bajo_cc;
             precioCliente = cita.promo_precio_cliente_bajo_cc || cita.promo_precio_comision_bajo_cc;
             console.log(`  ✅ PROMOCIÓN BAJO CC: $${precio} (cliente: $${precioCliente})`);
@@ -155,9 +155,9 @@ router.get("/", async (req, res) => {
       const ingresoCliente = citasDelServicio.reduce((sum, c) => {
         let precioCliente = 0;
 
-        if (c.promocion_id && c.promo_precio_comision_bajo_cc && c.promo_precio_comision_alto_cc) {
+        if (c.promocion_id && (c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc)) {
           const cc = parseInt(c.cilindraje);
-          if (cc >= 100 && cc <= 405) {
+          if (cc >= 50 && cc <= 405) {
             precioCliente = c.promo_precio_cliente_bajo_cc || c.promo_precio_comision_bajo_cc;
           } else if (cc > 405 && cc <= 1200) {
             precioCliente = c.promo_precio_cliente_alto_cc || c.promo_precio_comision_alto_cc;
@@ -185,9 +185,9 @@ router.get("/", async (req, res) => {
       const ingresoBaseComision = citasDelServicio.reduce((sum, c) => {
         let precio = 0;
 
-        if (c.promocion_id && c.promo_precio_comision_bajo_cc && c.promo_precio_comision_alto_cc) {
+        if (c.promocion_id && (c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc)) {
           const cc = parseInt(c.cilindraje);
-          if (cc >= 100 && cc <= 405) {
+          if (cc >= 50 && cc <= 405) {
             precio = c.promo_precio_comision_bajo_cc;
           } else if (cc > 405 && cc <= 1200) {
             precio = c.promo_precio_comision_alto_cc;
