@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { addCita, getCitas } from "../../services/citasService";
 import serviciosService from "../../services/serviciosService";
-import { getPromocionesVigentes } from "../../services/promocionesService";
 
 export default function ReservaForm() {
   const [form, setForm] = useState({
@@ -13,13 +12,11 @@ export default function ReservaForm() {
     modelo: "",
     cilindraje: "",
     servicio: "",
-    promocion_id: null,
     comentarios: "",
     metodo_pago: "",
   });
   
   const [servicios, setServicios] = useState([]);
-  const [promociones, setPromociones] = useState([]);
   const [serviciosDisponibles, setServiciosDisponibles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
@@ -55,24 +52,13 @@ export default function ReservaForm() {
     }
   };
 
-  const loadPromociones = async () => {
-    try {
-      const data = await getPromocionesVigentes();
-      setPromociones(data || []);
-    } catch (error) {
-      console.error('Error al cargar promociones:', error);
-      setPromociones([]);
-    }
-  };
-
-  // Cargar servicios y promociones al montar el componente
+  // Cargar servicios al montar el componente
   useEffect(() => {
     loadServicios();
-    loadPromociones();
     loadMotosEnEspera();
   }, []);
 
-  // Filtrar servicios y promociones según el cilindraje
+  // Filtrar servicios según el cilindraje
   useEffect(() => {
     if (!form.cilindraje) {
       setServiciosDisponibles([]);
@@ -82,29 +68,16 @@ export default function ReservaForm() {
     const cc = parseInt(form.cilindraje);
     const disponibles = [];
 
-    // Agregar servicios normales
+    // Agregar servicios
     servicios.forEach(servicio => {
       disponibles.push({
         ...servicio,
-        tipo: 'servicio',
-        esPromocion: false
-      });
-    });
-
-    // Agregar promociones vigentes
-    promociones.forEach(promo => {
-      disponibles.push({
-        ...promo,
-        tipo: 'promocion',
-        esPromocion: true,
-        // Usar precio del cliente según cilindraje
-        precio_mostrar: cc <= 405 ? promo.precio_cliente_bajo_cc : promo.precio_cliente_alto_cc,
-        imagen: cc <= 405 ? (promo.imagen_bajo_cc || promo.imagen) : (promo.imagen_alto_cc || promo.imagen)
+        tipo: 'servicio'
       });
     });
 
     setServiciosDisponibles(disponibles);
-  }, [form.cilindraje, servicios, promociones]);
+  }, [form.cilindraje, servicios]);
 
   // Función para contar motos en espera (citas de hoy pendientes/confirmadas/en curso)
   const loadMotosEnEspera = async () => {
@@ -150,8 +123,8 @@ export default function ReservaForm() {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleServicioSelect = (nombre, promocionId = null) => {
-    setForm({ ...form, servicio: nombre, promocion_id: promocionId });
+  const handleServicioSelect = (nombre) => {
+    setForm({ ...form, servicio: nombre });
   };
 
   const handleSubmit = async (e) => {
@@ -418,14 +391,11 @@ export default function ReservaForm() {
                 return (
                   <div
                     key={`${s.tipo}-${s.id || s.nombre}`}
-                    className={`servicio-card ${s.esPromocion ? 'promocion-card' : ''} ${
+                    className={`servicio-card ${
                       form.servicio === s.nombre ? "selected" : ""
                     }`}
-                    onClick={() => handleServicioSelect(s.nombre, s.esPromocion ? s.id : null)}
+                    onClick={() => handleServicioSelect(s.nombre)}
                   >
-                    {s.esPromocion && (
-                      <div className="promocion-badge">🎁 PROMOCIÓN</div>
-                    )}
                     {(() => {
                       // Determinar qué imagen mostrar según el cilindraje
                       let imagenMostrar = s.imagen || s.img || "/img/default.jpg";
@@ -443,12 +413,7 @@ export default function ReservaForm() {
                       {precioMostrar && (
                         <p className="servicio-precio">${precioMostrar.toLocaleString('es-CO')}</p>
                       )}
-                      {s.esPromocion && (
-                        <p className="text-xs" style={{color: '#EB0463', fontWeight: '600'}}>
-                          ¡Precio especial!
-                        </p>
-                      )}
-                      {form.cilindraje && s.precio_bajo_cc && s.precio_alto_cc && !s.esPromocion && (
+                      {form.cilindraje && s.precio_bajo_cc && s.precio_alto_cc && (
                         <p className="text-xs text-gray-500">
                           {esBajoCC ? '(Bajo CC)' : esAltoCC ? '(Alto CC)' : ''}
                         </p>
