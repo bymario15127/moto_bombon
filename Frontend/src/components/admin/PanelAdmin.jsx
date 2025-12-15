@@ -118,16 +118,22 @@ export default function PanelAdmin() {
               padding: '16px 16px 16px 48px',
               borderRadius: '12px',
               border: '4px solid #ff1744',
-              fontSize: '18px',
+              fontSize: '20px',
               fontWeight: '800',
-              background: '#ffffff',
-              color: '#000000',
+              background: '#1f2937',
+              color: '#ffffff',
               outline: 'none',
               transition: 'all 0.3s ease',
               boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-              caretColor: '#ff1744',
+              caretColor: '#ffffff',
               WebkitAppearance: 'none',
               appearance: 'none'
+            }}
+            onFocus={(e) => {
+              e.target.style.boxShadow = '0 0 20px rgba(255, 23, 68, 0.5)';
+            }}
+            onBlur={(e) => {
+              e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
             }}
           />
           <span style={{
