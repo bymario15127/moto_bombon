@@ -7,6 +7,8 @@ export default function PromocionesManager() {
   const [editandoId, setEditandoId] = useState(null);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
   const [loading, setLoading] = useState(false);
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
@@ -37,6 +39,34 @@ export default function PromocionesManager() {
     } catch (error) {
       console.error("Error cargando promociones:", error);
       mostrarMensaje("Error al cargar promociones", "error");
+    }
+  };
+
+  const exportarExcel = async (mode = 'detallado') => {
+    try {
+      const qs = new URLSearchParams();
+      if (desde) qs.append('from', desde);
+      if (hasta) qs.append('to', hasta);
+      if (mode === 'resumen') qs.append('mode', 'summary');
+      const res = await fetch(`/api/reportes/promociones-excel?${qs.toString()}`);
+      if (!res.ok) {
+        mostrarMensaje("No se pudo generar el Excel", "error");
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const base = mode === 'resumen' ? 'promociones-resumen' : 'promociones-detallado';
+      a.download = `${base}-${new Date().toISOString().slice(0,10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      mostrarMensaje("Excel generado ✅", "success");
+    } catch (e) {
+      console.error(e);
+      mostrarMensaje("Error generando Excel", "error");
     }
   };
 
@@ -148,12 +178,31 @@ export default function PromocionesManager() {
     <div className="promociones-manager">
       <div className="servicios-header">
         <h1>⚡ Gestión de Promociones</h1>
-        <button 
-          className="btn-primary"
-          onClick={() => setShowForm(true)}
-        >
-          + Nueva Promoción
-        </button>
+        <div style={{display:'flex', gap:'12px', alignItems:'center', flexWrap:'wrap'}}>
+          <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+            <input type="date" value={desde} onChange={e=>setDesde(e.target.value)} />
+            <span>→</span>
+            <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)} />
+          </div>
+          <button 
+            className="btn-secondary"
+            onClick={() => exportarExcel('resumen')}
+          >
+            ⬇️ Exportar Resumen
+          </button>
+          <button 
+            className="btn-primary"
+            onClick={() => exportarExcel('detallado')}
+          >
+            ⬇️ Exportar Detallado
+          </button>
+          <button 
+            className="btn-primary"
+            onClick={() => setShowForm(true)}
+          >
+            + Nueva Promoción
+          </button>
+        </div>
       </div>
 
       {/* Modal de formulario */}

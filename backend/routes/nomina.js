@@ -142,10 +142,10 @@ router.get("/", async (req, res) => {
     
     // Calcular totales generales (separar ingreso real vs base de comisión)
     const totalServicios = citasFinalizadas.length;
-    const totalIngresosCliente = reportePorLavador.reduce((sum, l) => sum + l.total_ingreso_cliente, 0);
-    const totalIngresosComisionBase = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
+    const totalIngresosCliente = reportePorLavador.reduce((sum, l) => sum + l.ingreso_cliente, 0);
+    const totalIngresos = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
     const totalNomina = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
-    const gananciaNeta = totalIngresosCliente - totalNomina;
+    const gananciaNeta = totalIngresos - totalNomina;
     
     // Estadísticas por tipo de servicio
     const serviciosUnicos = [...new Set(citasFinalizadas.map(c => c.servicio))];
@@ -229,9 +229,8 @@ router.get("/", async (req, res) => {
       },
       resumen: {
         total_servicios: totalServicios,
-        total_ingresos: totalIngresosCliente, // compatibilidad hacia el frontend
         total_ingresos_cliente: totalIngresosCliente,
-        total_ingresos_comision_base: totalIngresosComisionBase,
+        total_ingresos_comision_base: totalIngresos,
         total_nomina: totalNomina,
         ganancia_neta: gananciaNeta,
         margen_porcentaje: totalIngresosCliente > 0 ? ((gananciaNeta / totalIngresosCliente) * 100).toFixed(2) : 0
@@ -289,42 +288,32 @@ router.get("/exportar-excel", async (req, res) => {
       const citasDelLavador = citasFinalizadas.filter(c => c.lavador_id === lavador.id);
       
       let totalGenerado = 0;
+      let totalIngresoCliente = 0;
       citasDelLavador.forEach(cita => {
-        // Determinar el precio según si es taller, promoción o cliente
-        let precio = 0;
+        // Calcular precio de comisión (base comisión)
+        const precioComision = calcularPrecioBase(cita);
+        totalGenerado += precioComision;
         
-        // PRIORIDAD 1: Si es una promoción, usar los precios de comisión de la promoción
-        if (cita.promocion_id && cita.promo_precio_comision_bajo_cc && cita.promo_precio_comision_alto_cc) {
-          const cc = parseInt(cita.cilindraje);
-          if (cc >= 100 && cc <= 405) {
-            precio = cita.promo_precio_comision_bajo_cc;
-          } else if (cc > 405 && cc <= 1200) {
-            precio = cita.promo_precio_comision_alto_cc;
-          }
+        // Calcular ingreso cliente (lo que realmente paga)
+        let precioCliente = 0;
+        const cc = parseInt(cita.cilindraje || 0);
+        
+        if (cita.promocion_id && cita.promo_precio_cliente_bajo_cc && cita.promo_precio_cliente_alto_cc) {
+          if (cc >= 50 && cc <= 405) precioCliente = cita.promo_precio_cliente_bajo_cc;
+          else if (cc > 405) precioCliente = cita.promo_precio_cliente_alto_cc;
         }
-        // PRIORIDAD 2: Si es un taller aliado, usar los precios del taller
-        else if (cita.tipo_cliente === 'taller' && cita.taller_precio_bajo_cc && cita.taller_precio_alto_cc) {
-          const cc = parseInt(cita.cilindraje);
-          if (cc >= 50 && cc <= 405) {
-            precio = cita.taller_precio_bajo_cc;
-          } else if (cc > 405 && cc <= 1200) {
-            precio = cita.taller_precio_alto_cc;
-          }
+        else if (cita.tipo_cliente === 'taller') {
+          precioCliente = precioComision; // Para taller, ingreso cliente = comisión
         }
-        // PRIORIDAD 3: Si es un cliente regular, usar los precios del servicio
         else if (cita.precio_bajo_cc && cita.precio_alto_cc) {
-          const cc = parseInt(cita.cilindraje);
-          if (cc >= 100 && cc <= 405) {
-            precio = cita.precio_bajo_cc;
-          } else if (cc > 405 && cc <= 1200) {
-            precio = cita.precio_alto_cc;
-          }
+          if (cc >= 50 && cc <= 405) precioCliente = cita.precio_bajo_cc;
+          else if (cc > 405) precioCliente = cita.precio_alto_cc;
         }
-        // Fallback: usar el precio del servicio
         else {
-          precio = cita.precio_servicio || 0;
+          precioCliente = cita.precio_servicio || 0;
         }
-        totalGenerado += precio;
+        
+        totalIngresoCliente += precioCliente;
       });
       
       const comision = totalGenerado * (lavador.comision_porcentaje / 100);
@@ -335,12 +324,14 @@ router.get("/exportar-excel", async (req, res) => {
         cedula: lavador.cedula,
         comision_porcentaje: lavador.comision_porcentaje,
         cantidad_servicios: citasDelLavador.length,
+        ingreso_cliente: totalIngresoCliente,
         total_generado: totalGenerado,
         comision_a_pagar: comision
       };
     });
     
     const totalServicios = citasFinalizadas.length;
+    const totalIngresosCliente = reportePorLavador.reduce((sum, l) => sum + l.ingreso_cliente, 0);
     const totalIngresos = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
     const totalNomina = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
     const gananciaNeta = totalIngresos - totalNomina;
@@ -348,42 +339,7 @@ router.get("/exportar-excel", async (req, res) => {
     const serviciosUnicos = [...new Set(citasFinalizadas.map(c => c.servicio))];
     const estadisticasPorServicio = serviciosUnicos.map(servicio => {
       const citasDelServicio = citasFinalizadas.filter(c => c.servicio === servicio);
-      const ingreso = citasDelServicio.reduce((sum, c) => {
-        let precio = 0;
-        
-        // PRIORIDAD 1: Si es una promoción, usar los precios de comisión de la promoción
-        if (c.promocion_id && c.promo_precio_comision_bajo_cc && c.promo_precio_comision_alto_cc) {
-          const cc = parseInt(c.cilindraje);
-          if (cc >= 100 && cc <= 405) {
-            precio = c.promo_precio_comision_bajo_cc;
-          } else if (cc > 405 && cc <= 1200) {
-            precio = c.promo_precio_comision_alto_cc;
-          }
-        }
-        // PRIORIDAD 2: Si es un taller aliado, usar los precios del taller
-        else if (c.tipo_cliente === 'taller' && c.taller_precio_bajo_cc && c.taller_precio_alto_cc) {
-          const cc = parseInt(c.cilindraje);
-          if (cc >= 50 && cc <= 405) {
-            precio = c.taller_precio_bajo_cc;
-          } else if (cc > 405 && cc <= 1200) {
-            precio = c.taller_precio_alto_cc;
-          }
-        }
-        // PRIORIDAD 3: Si es un cliente regular, usar los precios del servicio
-        else if (c.precio_bajo_cc && c.precio_alto_cc) {
-          const cc = parseInt(c.cilindraje);
-          if (cc >= 100 && cc <= 405) {
-            precio = c.precio_bajo_cc;
-          } else if (cc > 405 && cc <= 1200) {
-            precio = c.precio_alto_cc;
-          }
-        }
-        // Fallback: usar el precio del servicio
-        else {
-          precio = c.precio_servicio || 0;
-        }
-        return sum + precio;
-      }, 0);
+      const ingreso = citasDelServicio.reduce((sum, c) => sum + calcularPrecioBase(c), 0);
       
       return {
         servicio,
@@ -403,7 +359,8 @@ router.get("/exportar-excel", async (req, res) => {
       [],
       ['RESUMEN FINANCIERO'],
       ['Total de Servicios', totalServicios],
-      ['Total Ingresos', `$${totalIngresos.toLocaleString('es-CO')}`],
+      ['Ingreso Cliente (Total Facturado)', `$${totalIngresosCliente.toLocaleString('es-CO')}`],
+      ['Base para Comisión', `$${totalIngresos.toLocaleString('es-CO')}`],
       ['Total Nómina a Pagar', `$${totalNomina.toLocaleString('es-CO')}`],
       ['Ganancia Neta', `$${gananciaNeta.toLocaleString('es-CO')}`],
       ['Margen de Ganancia', `${totalIngresos > 0 ? ((gananciaNeta / totalIngresos) * 100).toFixed(2) : 0}%`],
@@ -413,20 +370,21 @@ router.get("/exportar-excel", async (req, res) => {
     
     // HOJA 2: Nómina Detallada
     const nominaData = [
-      ['Lavador', 'Cédula', 'Servicios', 'Total Generado', '% Comisión', 'A Pagar']
+      ['Lavador', 'Cédula', 'Servicios', 'Ingreso Cliente', 'Base Comisión', '% Comisión', 'A Pagar']
     ];
     reportePorLavador.forEach(lav => {
       nominaData.push([
         lav.nombre,
         lav.cedula || 'N/A',
         lav.cantidad_servicios,
+        `$${lav.ingreso_cliente.toLocaleString('es-CO')}`,
         `$${lav.total_generado.toLocaleString('es-CO')}`,
         `${lav.comision_porcentaje}%`,
         `$${lav.comision_a_pagar.toLocaleString('es-CO')}`
       ]);
     });
     nominaData.push([]);
-    nominaData.push(['TOTAL', '', totalServicios, `$${totalIngresos.toLocaleString('es-CO')}`, '', `$${totalNomina.toLocaleString('es-CO')}`]);
+    nominaData.push(['TOTAL', '', totalServicios, `$${totalIngresosCliente.toLocaleString('es-CO')}`, `$${totalIngresos.toLocaleString('es-CO')}`, '', `$${totalNomina.toLocaleString('es-CO')}`]);
     
     const wsNomina = XLSX.utils.aoa_to_sheet(nominaData);
     XLSX.utils.book_append_sheet(workbook, wsNomina, 'Nómina Detallada');
@@ -446,6 +404,45 @@ router.get("/exportar-excel", async (req, res) => {
     
     const wsServicios = XLSX.utils.aoa_to_sheet(serviciosData);
     XLSX.utils.book_append_sheet(workbook, wsServicios, 'Ingresos por Servicio');
+
+    // HOJA 4: Ingresos por Promoción (resumen depurado)
+    const promos = citasFinalizadas.filter(c => c.promocion_id);
+    const agg = {};
+    promos.forEach(c => {
+      const nombre = c.servicio || c.promo_nombre || 'Promoción';
+      const cc = parseInt(c.cilindraje || 0);
+      let cliente = 0, base = 0;
+      if (c.promo_precio_cliente_bajo_cc || c.promo_precio_cliente_alto_cc) {
+        if (cc >= 50 && cc <= 405) {
+          cliente = c.promo_precio_cliente_bajo_cc || 0;
+          base = c.promo_precio_comision_bajo_cc || 0;
+        } else if (cc > 405) {
+          cliente = c.promo_precio_cliente_alto_cc || 0;
+          base = c.promo_precio_comision_alto_cc || 0;
+        } else {
+          cliente = c.promo_precio_cliente_bajo_cc || c.promo_precio_cliente_alto_cc || 0;
+          base = c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc || 0;
+        }
+      }
+      if (!agg[nombre]) {
+        agg[nombre] = { cantidad: 0, totalCliente: 0, totalBase: 0 };
+      }
+      agg[nombre].cantidad += 1;
+      agg[nombre].totalCliente += Number(cliente) || 0;
+      agg[nombre].totalBase += Number(base) || 0;
+    });
+
+    const promocionesData = [ ['Promoción', 'Cantidad', 'Total Cliente', 'Total Base Comisión'] ];
+    Object.entries(agg).forEach(([nombre, vals]) => {
+      promocionesData.push([
+        nombre,
+        vals.cantidad,
+        `$${Number(vals.totalCliente).toLocaleString('es-CO')}`,
+        `$${Number(vals.totalBase).toLocaleString('es-CO')}`,
+      ]);
+    });
+    const wsPromos = XLSX.utils.aoa_to_sheet(promocionesData);
+    XLSX.utils.book_append_sheet(workbook, wsPromos, 'Ingresos por Promoción');
     
     // Generar el archivo Excel en formato buffer
     const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
@@ -463,3 +460,40 @@ router.get("/exportar-excel", async (req, res) => {
 });
 
 export default router;
+
+// Función helper para calcular precio base comisión (reutilizable en GET y Excel export)
+function calcularPrecioBase(cita) {
+  let precio = 0;
+  const cc = parseInt(cita.cilindraje || 0);
+  
+  // PRIORIDAD 1: Si es una promoción
+  if (cita.promocion_id && cita.promo_precio_comision_bajo_cc && cita.promo_precio_comision_alto_cc) {
+    if (cc >= 50 && cc <= 405) {
+      precio = cita.promo_precio_comision_bajo_cc;
+    } else if (cc > 405) {
+      precio = cita.promo_precio_comision_alto_cc;
+    }
+  }
+  // PRIORIDAD 2: Si es taller
+  else if (cita.tipo_cliente === 'taller' && cita.taller_precio_bajo_cc && cita.taller_precio_alto_cc) {
+    if (cc >= 50 && cc <= 405) {
+      precio = cita.taller_precio_bajo_cc;
+    } else if (cc > 405) {
+      precio = cita.taller_precio_alto_cc;
+    }
+  }
+  // PRIORIDAD 3: Cliente regular con servicio
+  else if (cita.precio_bajo_cc && cita.precio_alto_cc) {
+    if (cc >= 50 && cc <= 405) {
+      precio = cita.precio_bajo_cc;
+    } else if (cc > 405) {
+      precio = cita.precio_alto_cc;
+    }
+  }
+  // Fallback
+  else {
+    precio = cita.precio_servicio || 0;
+  }
+  
+  return Number(precio) || 0;
+}
