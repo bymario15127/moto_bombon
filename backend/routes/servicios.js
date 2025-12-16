@@ -18,11 +18,30 @@ let db;
   });
 })();
 
-// GET all servicios
+// GET all servicios + promociones activas
 router.get("/", async (req, res) => {
   try {
+    // Obtener servicios normales
     const servicios = await db.all("SELECT * FROM servicios ORDER BY nombre");
-    res.json(servicios);
+    
+    // Obtener promociones activas (vigentes hoy)
+    const hoy = new Date().toISOString().split('T')[0];
+    const promociones = await db.all(
+      `SELECT * FROM promociones 
+       WHERE activo = 1 
+       AND fecha_inicio <= ? 
+       AND fecha_fin >= ? 
+       ORDER BY nombre`,
+      [hoy, hoy]
+    );
+    
+    // Marcar servicios y promociones con tipo
+    const serviciosConTipo = servicios.map(s => ({...s, tipo: 'servicio'}));
+    const promocionesConTipo = promociones.map(p => ({...p, tipo: 'promocion'}));
+    
+    // Combinar y devolver
+    const todos = [...serviciosConTipo, ...promocionesConTipo];
+    res.json(todos);
   } catch (error) {
     res.status(500).json({ error: "Error interno del servidor" });
   }

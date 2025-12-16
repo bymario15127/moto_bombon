@@ -190,31 +190,45 @@ router.put("/:id", async (req, res) => {
     
     const updates = [];
     const values = [];
-  const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago', 'lavador_id', 'promocion_id'];
+    const allowedFields = ['cliente', 'servicio', 'fecha', 'hora', 'telefono', 'email', 'comentarios', 'estado', 'placa', 'marca', 'modelo', 'cilindraje', 'metodo_pago', 'lavador_id', 'promocion_id'];
     
     for (const key of Object.keys(fields)) {
       if (!allowedFields.includes(key)) {
         return res.status(400).json({ error: `Campo no permitido: ${key}` });
       }
+
+      let value = fields[key];
       
       // Validar cilindraje si se está actualizando
-      if (key === 'cilindraje' && fields[key]) {
-        const cc = Number(fields[key]);
+      if (key === 'cilindraje' && value) {
+        const cc = Number(value);
         if (isNaN(cc) || cc < 50 || cc > 2000) {
           return res.status(400).json({ error: "Cilindraje inválido. Debe estar entre 50 y 2000 cc" });
         }
       }
 
-      // Validar método de pago si se actualiza
-      if (key === 'metodo_pago' && fields[key]) {
-        const metodosValidosUpdate = ["codigo_qr", "efectivo"];
-        if (!metodosValidosUpdate.includes(fields[key])) {
-          return res.status(400).json({ error: "Método de pago inválido. Use 'codigo_qr' o 'efectivo'" });
+      // Validar método de pago si se actualiza (solo rol admin)
+      if (key === 'metodo_pago') {
+        const rol = (
+          req.headers['x-user-role'] ||
+          req.body?.userRole ||
+          req.body?.role ||
+          ''
+        ).trim().toLowerCase();
+        if (rol !== 'admin') {
+          return res.status(403).json({ error: "Solo un administrador puede cambiar el método de pago" });
         }
+
+        const normalizado = typeof value === 'string' ? value.trim().toLowerCase() : value;
+        const metodosValidosUpdate = ["codigo_qr", "efectivo", "tarjeta", null, ""];
+        if (normalizado && !metodosValidosUpdate.includes(normalizado)) {
+          return res.status(400).json({ error: "Método de pago inválido. Use 'codigo_qr', 'efectivo' o 'tarjeta'" });
+        }
+        value = normalizado || null; // Guardamos valor limpio (null para vaciar)
       }
       
       updates.push(`${key} = ?`);
-      values.push(fields[key]);
+      values.push(value);
     }
     
     if (updates.length === 0) {

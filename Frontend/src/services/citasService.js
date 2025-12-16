@@ -50,9 +50,13 @@ export async function deleteCita(id) {
 }
 
 export async function updateCita(id, data) {
+  const role = localStorage.getItem('motobombon_user_role') || '';
   const res = await fetch(`${API_URL}/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "x-user-role": role
+    },
     body: JSON.stringify(data),
   });
   return res.json();
