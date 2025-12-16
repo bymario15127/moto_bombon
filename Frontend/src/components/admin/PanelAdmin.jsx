@@ -8,6 +8,8 @@ export default function PanelAdmin() {
   const [lavadores, setLavadores] = useState([]);
   const [userRole, setUserRole] = useState('admin');
   const [busqueda, setBusqueda] = useState('');
+  const [editingPayment, setEditingPayment] = useState(null);
+  const [newPaymentMethod, setNewPaymentMethod] = useState('');
 
   useEffect(() => {
     const role = localStorage.getItem('motobombon_user_role') || 'admin';
@@ -72,6 +74,32 @@ export default function PanelAdmin() {
       console.error('Error al asignar lavador:', error);
       alert('Error al asignar el lavador');
     }
+  };
+
+  const handleEditPaymentMethod = (citaId, currentMethod) => {
+    setEditingPayment(citaId);
+    setNewPaymentMethod(currentMethod || '');
+  };
+
+  const handleSavePaymentMethod = async (citaId) => {
+    if (!newPaymentMethod) {
+      alert('Por favor selecciona un método de pago');
+      return;
+    }
+    try {
+      await updateCita(citaId, { metodo_pago: newPaymentMethod });
+      load();
+      setEditingPayment(null);
+      alert('✅ Método de pago actualizado correctamente');
+    } catch (error) {
+      console.error('Error al actualizar método de pago:', error);
+      alert('❌ Error al actualizar el método de pago');
+    }
+  };
+
+  const handleCancelPaymentEdit = () => {
+    setEditingPayment(null);
+    setNewPaymentMethod('');
   };
 
   const citasFiltradas = citas.filter(cita => {
@@ -191,7 +219,133 @@ export default function PanelAdmin() {
                 )}
                 {c.metodo_pago && (
                   <div style={{gridColumn: '1 / -1', borderTop: '1px dashed #e5e7eb', paddingTop: '12px', marginTop: '8px'}}>
-                    <p className="detail-item">💳 <strong>Método de pago:</strong> {c.metodo_pago === 'codigo_qr' ? 'Código QR' : 'Efectivo'}</p>
+                    <p className="detail-item">💳 <strong>Método de pago:</strong> {editingPayment === c.id ? 'Editando...' : (c.metodo_pago === 'codigo_qr' ? 'Código QR' : c.metodo_pago === 'efectivo' ? 'Efectivo' : c.metodo_pago === 'tarjeta' ? 'Tarjeta' : c.metodo_pago)}</p>
+                    {editingPayment !== c.id && (
+                      <button
+                        onClick={() => handleEditPaymentMethod(c.id, c.metodo_pago)}
+                        style={{
+                          padding: '6px 12px',
+                          background: '#f59e0b',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          transition: 'all 0.2s ease',
+                          marginTop: '8px',
+                          display: 'inline-block'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = '#d97706'}
+                        onMouseLeave={(e) => e.target.style.background = '#f59e0b'}
+                      >
+                        ✏️ Cambiar
+                      </button>
+                    )}
+                    {editingPayment === c.id && (
+                      <div style={{padding: '12px', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)', marginTop: '8px'}}>
+                        <p style={{fontSize: '12px', fontWeight: 'bold', marginBottom: '10px', color: '#1f2937'}}>Selecciona el método de pago:</p>
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '10px', marginBottom: '12px'}}>
+                          {[
+                            { value: 'codigo_qr', label: 'Código QR', icon: '📱', color: '#3b82f6' },
+                            { value: 'efectivo', label: 'Efectivo', icon: '💵', color: '#10b981' },
+                            { value: 'tarjeta', label: 'Tarjeta', icon: '💳', color: '#8b5cf6' }
+                          ].map(method => (
+                            <button
+                              key={method.value}
+                              onClick={() => setNewPaymentMethod(method.value)}
+                              style={{
+                                padding: '12px 16px',
+                                background: newPaymentMethod === method.value 
+                                  ? `${method.color}20` 
+                                  : '#f3f4f6',
+                                border: newPaymentMethod === method.value 
+                                  ? `2px solid ${method.color}` 
+                                  : '1px solid #d1d5db',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                color: newPaymentMethod === method.value ? method.color : '#6b7280',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.transform = 'scale(1.05)';
+                                e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.transform = 'scale(1)';
+                                e.target.style.boxShadow = 'none';
+                              }}
+                            >
+                              <span style={{fontSize: '24px'}}>{method.icon}</span>
+                              <span>{method.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{display: 'flex', gap: '8px'}}>
+                          <button
+                            onClick={() => handleSavePaymentMethod(c.id)}
+                            style={{
+                              flex: 1,
+                              padding: '10px 16px',
+                              background: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: newPaymentMethod ? 'pointer' : 'not-allowed',
+                              fontSize: '13px',
+                              fontWeight: 'bold',
+                              transition: 'all 0.2s ease',
+                              opacity: newPaymentMethod ? 1 : 0.5
+                            }}
+                            disabled={!newPaymentMethod}
+                            onMouseEnter={(e) => {
+                              if (newPaymentMethod) {
+                                e.target.style.background = '#059669';
+                                e.target.style.transform = 'scale(1.02)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.background = '#10b981';
+                              e.target.style.transform = 'scale(1)';
+                            }}
+                          >
+                            ✓ Guardar
+                          </button>
+                          <button
+                            onClick={handleCancelPaymentEdit}
+                            style={{
+                              flex: 1,
+                              padding: '10px 16px',
+                              background: '#ef4444',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              fontWeight: 'bold',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.background = '#dc2626';
+                              e.target.style.transform = 'scale(1.02)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.background = '#ef4444';
+                              e.target.style.transform = 'scale(1)';
+                            }}
+                          >
+                            ✕ Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 {c.lavador_nombre && (
