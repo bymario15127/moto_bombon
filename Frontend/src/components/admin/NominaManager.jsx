@@ -231,7 +231,45 @@ const NominaManager = () => {
         border: '2px solid #EB0463'
       }}>
         <h2 style={{ margin: '0 0 20px 0', fontSize: '24px', color: '#1f2937' }}>
-          👥 Reporte de Nómina - {fechaInicio} a {fechaFin}
+          � Métodos de Pago - {fechaInicio} a {fechaFin}
+        </h2>
+
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '32px'}}>
+          {resumen.metodos_pago && (
+            <>
+              <div style={{padding: '16px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.2)', textAlign: 'center'}}>
+                <div style={{fontSize: '28px', marginBottom: '8px'}}>📱</div>
+                <div style={{fontSize: '22px', fontWeight: 'bold', color: '#3b82f6'}}>{resumen.metodos_pago.codigo_qr || 0}</div>
+                <div style={{fontSize: '12px', color: '#6b7280', marginTop: '4px'}}>Código QR</div>
+                <div style={{fontSize: '12px', color: '#3b82f6', fontWeight: '600', marginTop: '8px'}}>{formatearMoneda(resumen.ingresos_metodos?.codigo_qr || 0)}</div>
+              </div>
+              <div style={{padding: '16px', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)', textAlign: 'center'}}>
+                <div style={{fontSize: '28px', marginBottom: '8px'}}>💵</div>
+                <div style={{fontSize: '22px', fontWeight: 'bold', color: '#10b981'}}>{resumen.metodos_pago.efectivo || 0}</div>
+                <div style={{fontSize: '12px', color: '#6b7280', marginTop: '4px'}}>Efectivo</div>
+                <div style={{fontSize: '12px', color: '#10b981', fontWeight: '600', marginTop: '8px'}}>{formatearMoneda(resumen.ingresos_metodos?.efectivo || 0)}</div>
+              </div>
+              <div style={{padding: '16px', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.2)', textAlign: 'center'}}>
+                <div style={{fontSize: '28px', marginBottom: '8px'}}>💳</div>
+                <div style={{fontSize: '22px', fontWeight: 'bold', color: '#8b5cf6'}}>{resumen.metodos_pago.tarjeta || 0}</div>
+                <div style={{fontSize: '12px', color: '#6b7280', marginTop: '4px'}}>Tarjeta</div>
+                <div style={{fontSize: '12px', color: '#8b5cf6', fontWeight: '600', marginTop: '8px'}}>{formatearMoneda(resumen.ingresos_metodos?.tarjeta || 0)}</div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Tabla de Nómina por Lavador */}
+      <div style={{
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: '16px',
+        padding: '24px',
+        marginBottom: '32px',
+        border: '2px solid #EB0463'
+      }}>
+        <h2 style={{ margin: '0 0 20px 0', fontSize: '24px', color: '#1f2937' }}>
+          �👥 Reporte de Nómina - {fechaInicio} a {fechaFin}
         </h2>
 
         <div style={{ overflowX: 'auto' }}>

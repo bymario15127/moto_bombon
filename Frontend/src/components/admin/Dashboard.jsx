@@ -75,6 +75,20 @@ export default function Dashboard({ setActiveView }) {
     { name: 'Cancelada', key: 'cancelada', value: citas.filter(c => c.estado === 'cancelada').length },
   ].filter(d => d.value > 0);
 
+  // Datos para gráfico de métodos de pago
+  const paymentMethodStats = {
+    qr: citas.filter(c => c.metodo_pago === 'codigo_qr').length,
+    efectivo: citas.filter(c => c.metodo_pago === 'efectivo').length,
+    tarjeta: citas.filter(c => c.metodo_pago === 'tarjeta').length,
+    sinRegistrar: citas.filter(c => !c.metodo_pago).length
+  };
+
+  const paymentChartData = [
+    { name: 'Código QR', value: paymentMethodStats.qr, icon: '📱' },
+    { name: 'Efectivo', value: paymentMethodStats.efectivo, icon: '💵' },
+    { name: 'Tarjeta', value: paymentMethodStats.tarjeta, icon: '💳' }
+  ].filter(d => d.value > 0);
+
   const COLORS = {
     pendiente: '#f59e0b', // amarillo
     confirmada: '#10b981', // verde
@@ -129,6 +143,35 @@ export default function Dashboard({ setActiveView }) {
           <span className="chip chip-blue">En curso: {stats.enCurso}</span>
           <span className="chip chip-purple">Finalizadas: {stats.finalizadas}</span>
           <span className="chip chip-red">Canceladas: {citas.filter(c => c.estado === 'cancelada').length}</span>
+        </div>
+      </div>
+
+      {/* Acciones rápidas */}
+      <div className="card">
+        <h3 className="card-title" style={{ textAlign: 'left', marginBottom: 16 }}>💰 Métodos de Pago</h3>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px'}}>
+          <div style={{padding: '16px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.2)', textAlign: 'center'}}>
+            <div style={{fontSize: '28px', marginBottom: '8px'}}>📱</div>
+            <div style={{fontSize: '24px', fontWeight: 'bold', color: '#3b82f6'}}>{paymentMethodStats.qr}</div>
+            <div style={{fontSize: '12px', color: '#6b7280', marginTop: '4px'}}>Código QR</div>
+          </div>
+          <div style={{padding: '16px', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)', textAlign: 'center'}}>
+            <div style={{fontSize: '28px', marginBottom: '8px'}}>💵</div>
+            <div style={{fontSize: '24px', fontWeight: 'bold', color: '#10b981'}}>{paymentMethodStats.efectivo}</div>
+            <div style={{fontSize: '12px', color: '#6b7280', marginTop: '4px'}}>Efectivo</div>
+          </div>
+          <div style={{padding: '16px', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.2)', textAlign: 'center'}}>
+            <div style={{fontSize: '28px', marginBottom: '8px'}}>💳</div>
+            <div style={{fontSize: '24px', fontWeight: 'bold', color: '#8b5cf6'}}>{paymentMethodStats.tarjeta}</div>
+            <div style={{fontSize: '12px', color: '#6b7280', marginTop: '4px'}}>Tarjeta</div>
+          </div>
+          {paymentMethodStats.sinRegistrar > 0 && (
+            <div style={{padding: '16px', background: 'linear-gradient(135deg, rgba(107, 114, 128, 0.1) 0%, rgba(107, 114, 128, 0.05) 100%)', borderRadius: '12px', border: '1px solid rgba(107, 114, 128, 0.2)', textAlign: 'center'}}>
+              <div style={{fontSize: '28px', marginBottom: '8px'}}>❓</div>
+              <div style={{fontSize: '24px', fontWeight: 'bold', color: '#6b7280'}}>{paymentMethodStats.sinRegistrar}</div>
+              <div style={{fontSize: '12px', color: '#6b7280', marginTop: '4px'}}>Sin registrar</div>
+            </div>
+          )}
         </div>
       </div>
 

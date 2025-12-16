@@ -107,6 +107,46 @@ router.get("/", async (req, res) => {
     const totalIngresos = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
     const totalNomina = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
     const gananciaNeta = totalIngresos - totalNomina;
+
+    // Estadísticas de métodos de pago
+    const metodosCount = {
+      codigo_qr: citasFinalizadas.filter(c => c.metodo_pago === 'codigo_qr').length,
+      efectivo: citasFinalizadas.filter(c => c.metodo_pago === 'efectivo').length,
+      tarjeta: citasFinalizadas.filter(c => c.metodo_pago === 'tarjeta').length
+    };
+
+    const ingresosMetodos = {
+      codigo_qr: 0,
+      efectivo: 0,
+      tarjeta: 0
+    };
+
+    // Calcular ingresos por método
+    citasFinalizadas.forEach(c => {
+      const metodo = c.metodo_pago || 'sin_registrar';
+      let precioCliente = 0;
+      const cc = parseInt(c.cilindraje || 0);
+
+      if (tienePromo(c) && (c.promo_precio_cliente_bajo_cc || c.promo_precio_cliente_alto_cc || c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc)) {
+        const tramo = ccBracket(c.cilindraje);
+        const precioComisionBajo = c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc || 0;
+        const precioComisionAlto = c.promo_precio_comision_alto_cc || c.promo_precio_comision_bajo_cc || 0;
+        const precioClienteBajo = c.promo_precio_cliente_bajo_cc || precioComisionBajo;
+        const precioClienteAlto = c.promo_precio_cliente_alto_cc || precioComisionAlto;
+        precioCliente = tramo === 'bajo' ? precioClienteBajo : precioClienteAlto;
+      } else if (c.tipo_cliente === 'taller' && c.taller_precio_bajo_cc && c.taller_precio_alto_cc) {
+        precioCliente = cc >= 50 && cc <= 405 ? c.taller_precio_bajo_cc : c.taller_precio_alto_cc;
+      } else if (c.precio_bajo_cc && c.precio_alto_cc) {
+        precioCliente = cc >= 50 && cc <= 405 ? c.precio_bajo_cc : c.precio_alto_cc;
+      } else {
+        precioCliente = c.precio_servicio || 0;
+      }
+
+      if (metodo === 'codigo_qr') ingresosMetodos.codigo_qr += precioCliente;
+      else if (metodo === 'efectivo') ingresosMetodos.efectivo += precioCliente;
+      else if (metodo === 'tarjeta') ingresosMetodos.tarjeta += precioCliente;
+    });
+    
     
     // Estadísticas por tipo de servicio
     const serviciosUnicos = [...new Set(citasFinalizadas.map(c => c.servicio))];
@@ -200,7 +240,9 @@ router.get("/", async (req, res) => {
         total_ingresos_comision_base: totalIngresos,
         total_nomina: totalNomina,
         ganancia_neta: gananciaNeta,
-        margen_porcentaje: totalIngresosCliente > 0 ? ((gananciaNeta / totalIngresosCliente) * 100).toFixed(2) : 0
+        margen_porcentaje: totalIngresosCliente > 0 ? ((gananciaNeta / totalIngresosCliente) * 100).toFixed(2) : 0,
+        metodos_pago: metodosCount,
+        ingresos_metodos: ingresosMetodos
       },
       lavadores: reportePorLavador,
       servicios: estadisticasPorServicio
@@ -435,6 +477,61 @@ router.get("/exportar-excel", async (req, res) => {
     });
     const wsPromos = XLSX.utils.aoa_to_sheet(promocionesData);
     XLSX.utils.book_append_sheet(workbook, wsPromos, 'Ingresos por Promoción');
+    
+    // HOJA 5: Métodos de Pago
+    const metodosConteo = {
+      codigo_qr: citasFinalizadas.filter(c => c.metodo_pago === 'codigo_qr').length,
+      efectivo: citasFinalizadas.filter(c => c.metodo_pago === 'efectivo').length,
+      tarjeta: citasFinalizadas.filter(c => c.metodo_pago === 'tarjeta').length,
+      sin_registrar: citasFinalizadas.filter(c => !c.metodo_pago).length
+    };
+
+    const ingresosMetodosCalc = {
+      codigo_qr: 0,
+      efectivo: 0,
+      tarjeta: 0,
+      sin_registrar: 0
+    };
+
+    // Calcular ingresos por método
+    citasFinalizadas.forEach(c => {
+      const metodo = c.metodo_pago || 'sin_registrar';
+      let precioCliente = 0;
+      const cc = parseInt(c.cilindraje || 0);
+
+      if (tienePromo(c) && (c.promo_precio_cliente_bajo_cc || c.promo_precio_cliente_alto_cc || c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc)) {
+        const tramo = ccBracket(c.cilindraje);
+        const precioComisionBajo = c.promo_precio_comision_bajo_cc || c.promo_precio_comision_alto_cc || 0;
+        const precioComisionAlto = c.promo_precio_comision_alto_cc || c.promo_precio_comision_bajo_cc || 0;
+        const precioClienteBajo = c.promo_precio_cliente_bajo_cc || precioComisionBajo;
+        const precioClienteAlto = c.promo_precio_cliente_alto_cc || precioComisionAlto;
+        precioCliente = tramo === 'bajo' ? precioClienteBajo : precioClienteAlto;
+      } else if (c.tipo_cliente === 'taller' && c.taller_precio_bajo_cc && c.taller_precio_alto_cc) {
+        precioCliente = cc >= 50 && cc <= 405 ? c.taller_precio_bajo_cc : c.taller_precio_alto_cc;
+      } else if (c.precio_bajo_cc && c.precio_alto_cc) {
+        precioCliente = cc >= 50 && cc <= 405 ? c.precio_bajo_cc : c.precio_alto_cc;
+      } else {
+        precioCliente = c.precio_servicio || 0;
+      }
+
+      if (metodo === 'codigo_qr') ingresosMetodosCalc.codigo_qr += precioCliente;
+      else if (metodo === 'efectivo') ingresosMetodosCalc.efectivo += precioCliente;
+      else if (metodo === 'tarjeta') ingresosMetodosCalc.tarjeta += precioCliente;
+      else if (metodo === 'sin_registrar') ingresosMetodosCalc.sin_registrar += precioCliente;
+    });
+
+    const metodosData = [
+      ['Método de Pago', 'Cantidad de Citas', 'Ingreso Total'],
+      ['Código QR', metodosConteo.codigo_qr, `$${ingresosMetodosCalc.codigo_qr.toLocaleString('es-CO')}`],
+      ['Efectivo', metodosConteo.efectivo, `$${ingresosMetodosCalc.efectivo.toLocaleString('es-CO')}`],
+      ['Tarjeta', metodosConteo.tarjeta, `$${ingresosMetodosCalc.tarjeta.toLocaleString('es-CO')}`],
+      ...(metodosConteo.sin_registrar > 0 ? [['Sin Registrar', metodosConteo.sin_registrar, `$${ingresosMetodosCalc.sin_registrar.toLocaleString('es-CO')}`]] : []),
+      [],
+      ['TOTAL', totalServicios, `$${totalIngresosCliente.toLocaleString('es-CO')}`]
+    ];
+    
+    const wsMetodos = XLSX.utils.aoa_to_sheet(metodosData);
+    XLSX.utils.book_append_sheet(workbook, wsMetodos, 'Métodos de Pago');
     
     // Generar el archivo Excel en formato buffer
     const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
