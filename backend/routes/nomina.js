@@ -30,10 +30,38 @@ const ccBracket = (cilindraje) => {
 
 let db;
 (async () => {
-  db = await open({
-    filename: path.join(__dirname, "../database/database.sqlite"),
-    driver: sqlite3.Database,
-  });
+  try {
+    db = await open({
+      filename: path.join(__dirname, "../database/database.sqlite"),
+      driver: sqlite3.Database,
+    });
+    // Crear tabla citas si no existe
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS citas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        servicio TEXT NOT NULL,
+        telefono TEXT,
+        email TEXT,
+        comentarios TEXT,
+        estado TEXT DEFAULT 'pendiente',
+        placa TEXT,
+        marca TEXT,
+        modelo TEXT,
+        cilindraje INTEGER,
+        metodo_pago TEXT,
+        lavador_id INTEGER,
+        tipo_cliente TEXT DEFAULT 'cliente',
+        taller_id INTEGER,
+        promocion_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  } catch (e) {
+    console.error("Error inicializando DB en nomina:", e.message);
+  }
 })();
 
 // GET /api/nomina?fechaInicio=2025-12-01&fechaFin=2025-12-15
@@ -311,7 +339,19 @@ router.get("/", async (req, res) => {
       }));
     }
 
-    res.json(responsePayload);
+    res.json({
+      periodo: { fecha_inicio: inicio, fecha_fin: fin },
+      resumen: {
+        total_servicios: 0,
+        total_ingresos_cliente: 0,
+        total_ingresos_comision_base: 0,
+        total_nomina: 0,
+        ganancia_neta: 0,
+        margen_porcentaje: 0
+      },
+      lavadores: [],
+      servicios: []
+    });
     
   } catch (error) {
     console.error("Error al generar reporte de nómina:", error.message);
