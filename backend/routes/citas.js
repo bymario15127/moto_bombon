@@ -16,15 +16,36 @@ let db;
     filename: path.join(__dirname, "../database/database.sqlite"),
     driver: sqlite3.Database,
   });
-  // Ensure 'email' column exists in 'citas'
+  // Ensure required columns exist in 'citas' to avoid runtime errors in older DBs
   try {
     const columns = await db.all("PRAGMA table_info(citas)");
-    const hasEmail = columns.some((c) => c.name === "email");
-    if (!hasEmail) {
-      await db.exec("ALTER TABLE citas ADD COLUMN email TEXT");
+    const col = (n) => columns.some((c) => c.name === n);
+
+    const pending = [];
+    if (!col("email")) pending.push("ALTER TABLE citas ADD COLUMN email TEXT");
+    if (!col("placa")) pending.push("ALTER TABLE citas ADD COLUMN placa TEXT");
+    if (!col("marca")) pending.push("ALTER TABLE citas ADD COLUMN marca TEXT");
+    if (!col("modelo")) pending.push("ALTER TABLE citas ADD COLUMN modelo TEXT");
+    if (!col("cilindraje")) pending.push("ALTER TABLE citas ADD COLUMN cilindraje INTEGER");
+    if (!col("metodo_pago")) pending.push("ALTER TABLE citas ADD COLUMN metodo_pago TEXT");
+    if (!col("lavador_id")) pending.push("ALTER TABLE citas ADD COLUMN lavador_id INTEGER");
+    if (!col("tipo_cliente")) pending.push("ALTER TABLE citas ADD COLUMN tipo_cliente TEXT DEFAULT 'cliente'");
+    if (!col("taller_id")) pending.push("ALTER TABLE citas ADD COLUMN taller_id INTEGER");
+    if (!col("promocion_id")) pending.push("ALTER TABLE citas ADD COLUMN promocion_id INTEGER");
+
+    for (const stmt of pending) {
+      try {
+        await db.exec(stmt);
+      } catch (e) {
+        // If running concurrently or already applied, ignore duplicate errors
+        if (!/duplicate column|already exists/i.test(e.message || "")) {
+          console.error("Schema update error:", e.message);
+        }
+      }
     }
-  } catch (_) {
-    // ignore migration errors silently
+  } catch (e) {
+    console.error("Failed to verify/patch citas schema:", e.message);
+    // continue; server will still try, but POST may fail with clearer logs
   }
 })();
 
