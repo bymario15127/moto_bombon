@@ -47,38 +47,85 @@ router.get("/", async (req, res) => {
     const inicio = fechaInicio || primerDiaDelMes.toISOString().split('T')[0];
     const fin = fechaFin || now.toISOString().split('T')[0];
     
-    // Obtener todos los lavadores activos
-    const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1 ORDER BY nombre");
+    // Obtener todos los lavadores activos (tolerar si no existe tabla)
+    let lavadores = [];
+    try {
+      lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1 ORDER BY nombre");
+    } catch (e) {
+      if (!/no such table/i.test(e.message || "")) console.error("Error al obtener lavadores:", e);
+      lavadores = [];
+    }
     
-    // Obtener citas finalizadas O confirmadas del rango de fechas con información del servicio, promoción y taller
-    const citasFinalizadas = await db.all(`
+    // Comprobar si existe tabla promociones
+    let puedeJoinPromociones = false;
+    try {
+      const colsPromo = await db.all("PRAGMA table_info(promociones)");
+      puedeJoinPromociones = Array.isArray(colsPromo) && colsPromo.length > 0;
+    } catch (_) {
+      puedeJoinPromociones = false;
+    }
+    
+    // Comprobar si existe tabla talleres
+    let puedeJoinTalleres = false;
+    try {
+      const colsTaller = await db.all("PRAGMA table_info(talleres)");
+      puedeJoinTalleres = Array.isArray(colsTaller) && colsTaller.length > 0;
+    } catch (_) {
+      puedeJoinTalleres = false;
+    }
+    
+    // Construir query dinámicamente
+    let sqlBase = `
       SELECT 
         c.*,
         s.precio as precio_servicio,
         s.precio_bajo_cc,
-        s.precio_alto_cc,
+        s.precio_alto_cc
+    `;
+    if (puedeJoinPromociones) {
+      sqlBase += `,
         p.precio_cliente_bajo_cc as promo_precio_cliente_bajo_cc,
         p.precio_cliente_alto_cc as promo_precio_cliente_alto_cc,
         p.precio_comision_bajo_cc as promo_precio_comision_bajo_cc,
-        p.precio_comision_alto_cc as promo_precio_comision_alto_cc,
+        p.precio_comision_alto_cc as promo_precio_comision_alto_cc`;
+    }
+    if (puedeJoinTalleres) {
+      sqlBase += `,
         t.precio_bajo_cc as taller_precio_bajo_cc,
-        t.precio_alto_cc as taller_precio_alto_cc,
+        t.precio_alto_cc as taller_precio_alto_cc`;
+    }
+    sqlBase += `,
         l.nombre as lavador_nombre,
         l.comision_porcentaje
       FROM citas c
       LEFT JOIN servicios s ON s.nombre = c.servicio
-      LEFT JOIN promociones p ON (
+    `;
+    if (puedeJoinPromociones) {
+      sqlBase += `LEFT JOIN promociones p ON (
         p.id = c.promocion_id OR 
         TRIM(LOWER(p.nombre)) = TRIM(LOWER(c.servicio))
       )
-      LEFT JOIN talleres t ON t.id = c.taller_id
-      LEFT JOIN lavadores l ON l.id = c.lavador_id
+    `;
+    }
+    if (puedeJoinTalleres) {
+      sqlBase += `LEFT JOIN talleres t ON t.id = c.taller_id
+    `;
+    }
+    sqlBase += `LEFT JOIN lavadores l ON l.id = c.lavador_id
       WHERE c.estado IN ('finalizada', 'confirmada')
         AND c.fecha >= ?
         AND c.fecha <= ?
         AND c.lavador_id IS NOT NULL
       ORDER BY c.fecha, c.hora
-    `, [inicio, fin]);
+    `;
+    
+    let citasFinalizadas = [];
+    try {
+      citasFinalizadas = await db.all(sqlBase, [inicio, fin]);
+    } catch (e) {
+      if (!/no such table/i.test(e.message || "")) console.error("Error al obtener citas nómina:", e);
+      citasFinalizadas = [];
+    }
     
     // Calcular estadísticas por lavador (usando helpers coherentes)
     const reportePorLavador = lavadores.map(lavador => {
@@ -267,8 +314,8 @@ router.get("/", async (req, res) => {
     res.json(responsePayload);
     
   } catch (error) {
-    console.error("Error al generar reporte de nómina:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("Error al generar reporte de nómina:", error.message);
+    res.status(500).json({ error: "Error interno del servidor", message: error.message });
   }
 });
 
@@ -282,22 +329,85 @@ router.get("/exportar-excel", async (req, res) => {
     const inicio = fechaInicio || primerDiaDelMes.toISOString().split('T')[0];
     const fin = fechaFin || now.toISOString().split('T')[0];
     
-    // Reutilizar la lógica del endpoint GET /
-    const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1 ORDER BY nombre");
+    // Obtener todos los lavadores activos (tolerar si no existe tabla)
+    let lavadores = [];
+    try {
+      lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1 ORDER BY nombre");
+    } catch (e) {
+      if (!/no such table/i.test(e.message || "")) console.error("Error al obtener lavadores:", e);
+      lavadores = [];
+    }
     
-    const citasFinalizadas = await db.all(`
+    // Comprobar si existe tabla promociones
+    let puedeJoinPromociones = false;
+    try {
+      const colsPromo = await db.all("PRAGMA table_info(promociones)");
+      puedeJoinPromociones = Array.isArray(colsPromo) && colsPromo.length > 0;
+    } catch (_) {
+      puedeJoinPromociones = false;
+    }
+    
+    // Comprobar si existe tabla talleres
+    let puedeJoinTalleres = false;
+    try {
+      const colsTaller = await db.all("PRAGMA table_info(talleres)");
+      puedeJoinTalleres = Array.isArray(colsTaller) && colsTaller.length > 0;
+    } catch (_) {
+      puedeJoinTalleres = false;
+    }
+    
+    // Construir query dinámicamente
+    let sqlBase = `
       SELECT 
         c.*,
         s.precio as precio_servicio,
         s.precio_bajo_cc,
-        s.precio_alto_cc,
+        s.precio_alto_cc
+    `;
+    if (puedeJoinPromociones) {
+      sqlBase += `,
         p.precio_cliente_bajo_cc as promo_precio_cliente_bajo_cc,
         p.precio_cliente_alto_cc as promo_precio_cliente_alto_cc,
         p.precio_comision_bajo_cc as promo_precio_comision_bajo_cc,
-        p.precio_comision_alto_cc as promo_precio_comision_alto_cc,
+        p.precio_comision_alto_cc as promo_precio_comision_alto_cc`;
+    }
+    if (puedeJoinTalleres) {
+      sqlBase += `,
         t.precio_bajo_cc as taller_precio_bajo_cc,
-        t.precio_alto_cc as taller_precio_alto_cc,
+        t.precio_alto_cc as taller_precio_alto_cc`;
+    }
+    sqlBase += `,
         l.nombre as lavador_nombre,
+        l.comision_porcentaje
+      FROM citas c
+      LEFT JOIN servicios s ON s.nombre = c.servicio
+    `;
+    if (puedeJoinPromociones) {
+      sqlBase += `LEFT JOIN promociones p ON (
+        p.id = c.promocion_id OR 
+        TRIM(LOWER(p.nombre)) = TRIM(LOWER(c.servicio))
+      )
+    `;
+    }
+    if (puedeJoinTalleres) {
+      sqlBase += `LEFT JOIN talleres t ON t.id = c.taller_id
+    `;
+    }
+    sqlBase += `LEFT JOIN lavadores l ON l.id = c.lavador_id
+      WHERE c.estado IN ('finalizada', 'confirmada')
+        AND c.fecha >= ?
+        AND c.fecha <= ?
+        AND c.lavador_id IS NOT NULL
+      ORDER BY c.fecha, c.hora
+    `;
+    
+    let citasFinalizadas = [];
+    try {
+      citasFinalizadas = await db.all(sqlBase, [inicio, fin]);
+    } catch (e) {
+      if (!/no such table/i.test(e.message || "")) console.error("Error al obtener citas nómina export:", e);
+      citasFinalizadas = [];
+    }
         l.comision_porcentaje
       FROM citas c
       LEFT JOIN servicios s ON s.nombre = c.servicio
