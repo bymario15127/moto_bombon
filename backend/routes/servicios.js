@@ -16,6 +16,28 @@ let db;
     filename: path.join(__dirname, "../database/database.sqlite"),
     driver: sqlite3.Database,
   });
+  // Asegurar tabla servicios en instalaciones antiguas
+  try {
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS servicios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL,
+        duracion INTEGER NOT NULL,
+        precio REAL,
+        descripcion TEXT,
+        imagen TEXT,
+        precio_bajo_cc REAL,
+        precio_alto_cc REAL,
+        imagen_bajo_cc TEXT,
+        imagen_alto_cc TEXT,
+        precio_base_comision_bajo REAL,
+        precio_base_comision_alto REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  } catch (e) {
+    console.error("No se pudo asegurar tabla servicios:", e.message);
+  }
 })();
 
 // GET all servicios + promociones activas

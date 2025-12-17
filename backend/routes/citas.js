@@ -16,8 +16,33 @@ let db;
     filename: path.join(__dirname, "../database/database.sqlite"),
     driver: sqlite3.Database,
   });
-  // Ensure required columns exist in 'citas' to avoid runtime errors in older DBs
+  // Ensure table and required columns exist in 'citas' to avoid runtime errors in older DBs
   try {
+    // Crear tabla si no existe
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS citas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        servicio TEXT NOT NULL,
+        telefono TEXT,
+        email TEXT,
+        comentarios TEXT,
+        estado TEXT DEFAULT 'pendiente',
+        placa TEXT,
+        marca TEXT,
+        modelo TEXT,
+        cilindraje INTEGER,
+        metodo_pago TEXT,
+        lavador_id INTEGER,
+        tipo_cliente TEXT DEFAULT 'cliente',
+        taller_id INTEGER,
+        promocion_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     const columns = await db.all("PRAGMA table_info(citas)");
     const col = (n) => columns.some((c) => c.name === n);
 
@@ -68,11 +93,16 @@ router.get("/", async (req, res) => {
     // Si se pasa ?all=true, devuelve todas las citas
     const incluirTodas = req.query.all === 'true';
     
-    let query = `
-      SELECT c.*, l.nombre as lavador_nombre 
-      FROM citas c
-      LEFT JOIN lavadores l ON c.lavador_id = l.id
-    `;
+    // Construir query evitando fallar si no existe tabla lavadores
+    let joinLavadores = '';
+    try {
+      const colsLav = await db.all("PRAGMA table_info(lavadores)");
+      if (Array.isArray(colsLav) && colsLav.length > 0) {
+        joinLavadores = ' LEFT JOIN lavadores l ON c.lavador_id = l.id ';
+      }
+    } catch (_) { /* ignore */ }
+
+    let query = `SELECT c.*${joinLavadores ? ', l.nombre as lavador_nombre' : ''} FROM citas c${joinLavadores}`;
     
     if (!incluirTodas) {
       query += ` WHERE c.fecha = ?`;
