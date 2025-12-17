@@ -40,13 +40,12 @@ router.get("/", async (req, res) => {
       lavadores = [];
     }
 
-    // Obtener citas finalizadas con lavador
+    // Obtener citas con lavador asignado (cualquier estado)
     let citas = [];
     try {
       citas = await db.all(`
         SELECT c.* FROM citas c
-        WHERE c.estado IN ('finalizada', 'confirmada')
-          AND c.lavador_id IS NOT NULL
+        WHERE c.lavador_id IS NOT NULL
           AND c.fecha >= ?
           AND c.fecha <= ?
         ORDER BY c.fecha, c.hora
