@@ -76,6 +76,19 @@ router.get("/", async (req, res) => {
     const totalIngresos = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
     const totalNomina = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
 
+    // Calcular métodos de pago
+    const metodosCount = {
+      codigo_qr: citas.filter(c => c.metodo_pago === 'codigo_qr').length,
+      efectivo: citas.filter(c => c.metodo_pago === 'efectivo').length,
+      tarjeta: citas.filter(c => c.metodo_pago === 'tarjeta').length
+    };
+
+    const ingresosMetodos = {
+      codigo_qr: citas.filter(c => c.metodo_pago === 'codigo_qr').reduce((sum, c) => sum + (Number(c.precio) || 25000), 0),
+      efectivo: citas.filter(c => c.metodo_pago === 'efectivo').reduce((sum, c) => sum + (Number(c.precio) || 25000), 0),
+      tarjeta: citas.filter(c => c.metodo_pago === 'tarjeta').reduce((sum, c) => sum + (Number(c.precio) || 25000), 0)
+    };
+
     res.json({
       periodo: { fecha_inicio: inicio, fecha_fin: fin },
       resumen: {
@@ -84,7 +97,9 @@ router.get("/", async (req, res) => {
         total_ingresos_comision_base: totalIngresos,
         total_nomina: totalNomina,
         ganancia_neta: totalIngresos - totalNomina,
-        margen_porcentaje: totalIngresos > 0 ? (((totalIngresos - totalNomina) / totalIngresos) * 100).toFixed(2) : 0
+        margen_porcentaje: totalIngresos > 0 ? (((totalIngresos - totalNomina) / totalIngresos) * 100).toFixed(2) : 0,
+        metodos_pago: metodosCount,
+        ingresos_metodos: ingresosMetodos
       },
       lavadores: reportePorLavador,
       servicios: []
