@@ -22,25 +22,72 @@ let db;
   }
 })();
 
-// GET /api/nomina - Retorna reporte vacío para ahora
+// GET /api/nomina - Retorna reporte de nómina
 router.get("/", async (req, res) => {
   try {
+    const { fechaInicio, fechaFin } = req.query;
     const now = new Date();
     const primerDiaDelMes = new Date(now.getFullYear(), now.getMonth(), 1);
-    const inicio = primerDiaDelMes.toISOString().split('T')[0];
-    const fin = now.toISOString().split('T')[0];
+    const inicio = fechaInicio || primerDiaDelMes.toISOString().split('T')[0];
+    const fin = fechaFin || now.toISOString().split('T')[0];
+
+    // Obtener lavadores
+    let lavadores = [];
+    try {
+      lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1 ORDER BY nombre");
+    } catch (e) {
+      console.error("Error obteniendo lavadores:", e.message);
+      lavadores = [];
+    }
+
+    // Obtener citas finalizadas con lavador
+    let citas = [];
+    try {
+      citas = await db.all(`
+        SELECT c.* FROM citas c
+        WHERE c.estado IN ('finalizada', 'confirmada')
+          AND c.lavador_id IS NOT NULL
+          AND c.fecha >= ?
+          AND c.fecha <= ?
+        ORDER BY c.fecha, c.hora
+      `, [inicio, fin]);
+    } catch (e) {
+      console.error("Error obteniendo citas:", e.message);
+      citas = [];
+    }
+
+    // Agrupar citas por lavador y calcular comisión
+    const reportePorLavador = lavadores.map(lavador => {
+      const citasLavador = citas.filter(c => c.lavador_id === lavador.id);
+      const totalBase = citasLavador.reduce((sum, c) => sum + (Number(c.precio) || 25000), 0);
+      const comision = totalBase * (lavador.comision_porcentaje / 100);
+
+      return {
+        lavador_id: lavador.id,
+        nombre: lavador.nombre,
+        cedula: lavador.cedula || '',
+        comision_porcentaje: lavador.comision_porcentaje,
+        cantidad_servicios: citasLavador.length,
+        total_generado: totalBase,
+        comision_a_pagar: comision
+      };
+    });
+
+    const totalServicios = citas.length;
+    const totalIngresos = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
+    const totalNomina = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
 
     res.json({
       periodo: { fecha_inicio: inicio, fecha_fin: fin },
       resumen: {
-        total_servicios: 0,
-        total_ingresos_cliente: 0,
-        total_ingresos_comision_base: 0,
-        total_nomina: 0,
-        ganancia_neta: 0,
-        margen_porcentaje: 0
+        total_servicios: totalServicios,
+        total_ingresos_cliente: totalIngresos,
+        total_ingresos_comision_base: totalIngresos,
+        total_nomina: totalNomina,
+        ganancia_neta: totalIngresos - totalNomina,
+        margen_porcentaje: totalIngresos > 0 ? (((totalIngresos - totalNomina) / totalIngresos) * 100).toFixed(2) : 0
       },
-      lavadores: [],
+      lavadores: reportePorLavador,
       servicios: []
     });
   } catch (error) {
