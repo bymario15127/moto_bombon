@@ -36,6 +36,26 @@ const dbReady = (async () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Parchear columnas faltantes en instalaciones antiguas
+    const cols = await db.all("PRAGMA table_info(servicios)");
+    const has = (n) => Array.isArray(cols) && cols.some(c => c.name === n);
+    const alterStmts = [];
+    if (!has('precio_bajo_cc')) alterStmts.push("ALTER TABLE servicios ADD COLUMN precio_bajo_cc REAL");
+    if (!has('precio_alto_cc')) alterStmts.push("ALTER TABLE servicios ADD COLUMN precio_alto_cc REAL");
+    if (!has('imagen_bajo_cc')) alterStmts.push("ALTER TABLE servicios ADD COLUMN imagen_bajo_cc TEXT");
+    if (!has('imagen_alto_cc')) alterStmts.push("ALTER TABLE servicios ADD COLUMN imagen_alto_cc TEXT");
+    if (!has('precio_base_comision_bajo')) alterStmts.push("ALTER TABLE servicios ADD COLUMN precio_base_comision_bajo REAL");
+    if (!has('precio_base_comision_alto')) alterStmts.push("ALTER TABLE servicios ADD COLUMN precio_base_comision_alto REAL");
+
+    for (const stmt of alterStmts) {
+      try {
+        await db.exec(stmt);
+      } catch (e) {
+        if (!/duplicate column|already exists/i.test(e.message || "")) {
+          console.error("Error aplicando parche de esquema en servicios:", e.message);
+        }
+      }
+    }
   } catch (e) {
     console.error("No se pudo asegurar tabla servicios:", e.message);
   }
@@ -123,22 +143,46 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Debe proporcionar al menos un precio" });
     }
 
-    const result = await db.run(
-      "INSERT INTO servicios (nombre, duracion, precio, descripcion, imagen, precio_bajo_cc, precio_alto_cc, imagen_bajo_cc, imagen_alto_cc, precio_base_comision_bajo, precio_base_comision_alto) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [
+    let result;
+    try {
+      result = await db.run(
+        "INSERT INTO servicios (nombre, duracion, precio, descripcion, imagen, precio_bajo_cc, precio_alto_cc, imagen_bajo_cc, imagen_alto_cc, precio_base_comision_bajo, precio_base_comision_alto) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          nombre,
+          duracionNum,
+          Number.isNaN(precioNum) ? null : precioNum,
+          descripcion || "",
+          imagen || "/img/default.jpg",
+          Number.isNaN(precioBajoNum) ? null : precioBajoNum,
+          Number.isNaN(precioAltoNum) ? null : precioAltoNum,
+          imagen_bajo_cc || null,
+          imagen_alto_cc || null,
+          Number.isNaN(precioBaseBajoNum) ? null : precioBaseBajoNum,
+          Number.isNaN(precioBaseAltoNum) ? null : precioBaseAltoNum,
+        ]
+      );
+    } catch (dbErr) {
+      console.error("❌ Error INSERT en servicios. Payload:", {
         nombre,
-        duracionNum,
-        Number.isNaN(precioNum) ? null : precioNum,
-        descripcion || "",
-        imagen || "/img/default.jpg",
-        Number.isNaN(precioBajoNum) ? null : precioBajoNum,
-        Number.isNaN(precioAltoNum) ? null : precioAltoNum,
-        imagen_bajo_cc || null,
-        imagen_alto_cc || null,
-        Number.isNaN(precioBaseBajoNum) ? null : precioBaseBajoNum,
-        Number.isNaN(precioBaseAltoNum) ? null : precioBaseAltoNum,
-      ]
-    );
+        duracion: duracionNum,
+        precio: precioNum,
+        precio_bajo_cc: precioBajoNum,
+        precio_alto_cc: precioAltoNum,
+        imagen,
+        imagen_bajo_cc,
+        imagen_alto_cc,
+        precio_base_comision_bajo: precioBaseBajoNum,
+        precio_base_comision_alto: precioBaseAltoNum,
+      });
+      console.error("DB error:", dbErr);
+      if (/no such column/i.test(dbErr.message || "")) {
+        return res.status(500).json({ error: "Esquema desactualizado: faltan columnas en 'servicios'. Ejecuta deploy para migrar DB.", detail: dbErr.message });
+      }
+      if (dbErr.message?.includes("NOT NULL") || dbErr.code === 'SQLITE_CONSTRAINT') {
+        return res.status(400).json({ error: "Error de datos: " + dbErr.message });
+      }
+      return res.status(500).json({ error: "Error guardando el servicio", detail: dbErr.message });
+    }
 
     res.status(201).json({ id: result.lastID, message: "Servicio creado exitosamente" });
   } catch (error) {
