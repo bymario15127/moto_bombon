@@ -67,6 +67,7 @@ router.get("/", async (req, res) => {
         cedula: lavador.cedula || '',
         comision_porcentaje: lavador.comision_porcentaje,
         cantidad_servicios: citasLavador.length,
+        ingreso_cliente: totalBase,
         total_generado: totalBase,
         comision_a_pagar: comision
       };
