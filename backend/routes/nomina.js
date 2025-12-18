@@ -172,6 +172,26 @@ router.get("/", async (req, res) => {
     const totalNomina = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
     const totalBaseComision = citas.reduce((sum, c) => sum + calcularBaseComision(c, ctx), 0);
 
+    // Resumen por tipo de servicio
+    const serviciosMap = new Map();
+    for (const c of citas) {
+      const nombreServ = normalize(c.servicio);
+      if (!nombreServ) continue;
+      const ingreso = calcularPrecioCliente(c, ctx);
+      const item = serviciosMap.get(nombreServ) || { servicio: c.servicio, cantidad: 0, ingreso_total: 0 };
+      item.cantidad += 1;
+      item.ingreso_total += ingreso;
+      serviciosMap.set(nombreServ, item);
+    }
+    const serviciosResumen = Array.from(serviciosMap.values())
+      .map(s => ({
+        servicio: s.servicio,
+        cantidad: s.cantidad,
+        ingreso_total: s.ingreso_total,
+        porcentaje: totalServicios > 0 ? ((s.cantidad / totalServicios) * 100).toFixed(1) : 0
+      }))
+      .sort((a, b) => b.ingreso_total - a.ingreso_total);
+
     // Calcular métodos de pago
     const metodosCount = {
       codigo_qr: citas.filter(c => c.metodo_pago === 'codigo_qr').length,
@@ -198,7 +218,7 @@ router.get("/", async (req, res) => {
         ingresos_metodos: ingresosMetodos
       },
       lavadores: reportePorLavador,
-      servicios: []
+      servicios: serviciosResumen
     });
   } catch (error) {
     console.error("Error en GET /api/nomina:", error.message);
