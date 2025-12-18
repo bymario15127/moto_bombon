@@ -31,6 +31,7 @@ const ccIsAlto = (cc) => {
   const n = Number(cc || 0);
   return !Number.isNaN(n) && n > 405;
 };
+const normalize = (s) => String(s || '').trim().toLowerCase();
 
 function calcularPrecioCliente(cita, ctx) {
   // ctx: { serviciosByNombre, promocionesById, talleresById }
@@ -54,7 +55,7 @@ function calcularPrecioCliente(cita, ctx) {
     }
   }
   // Servicio normal
-  const s = ctx.serviciosByNombre.get((cita.servicio || '').trim());
+  const s = ctx.serviciosByNombre.get(normalize(cita.servicio));
   if (s) {
     if (ccIsBajo(cc)) return Number(s.precio_bajo_cc ?? s.precio ?? 0) || 0;
     if (ccIsAlto(cc)) return Number(s.precio_alto_cc ?? s.precio ?? 0) || 0;
@@ -85,7 +86,7 @@ function calcularBaseComision(cita, ctx) {
     }
   }
   // Servicio normal: usar precio_base_comision_* si existe, si no el precio cliente
-  const s = ctx.serviciosByNombre.get((cita.servicio || '').trim());
+  const s = ctx.serviciosByNombre.get(normalize(cita.servicio));
   if (s) {
     if (ccIsBajo(cc)) return Number(s.precio_base_comision_bajo ?? s.precio_bajo_cc ?? s.precio ?? 0) || 0;
     if (ccIsAlto(cc)) return Number(s.precio_base_comision_alto ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
@@ -122,6 +123,7 @@ router.get("/", async (req, res) => {
         WHERE c.lavador_id IS NOT NULL
           AND c.fecha >= ?
           AND c.fecha <= ?
+          AND COALESCE(c.estado,'') IN ('finalizada','confirmada')
         ORDER BY c.fecha, c.hora
       `, [inicio, fin]);
     } catch (e) {
@@ -140,7 +142,7 @@ router.get("/", async (req, res) => {
       try { return await db.all("SELECT * FROM talleres"); } catch (_) { return []; }
     })();
 
-    const serviciosByNombre = new Map(servicios.map(s => [String(s.nombre || '').trim(), s]));
+    const serviciosByNombre = new Map(servicios.map(s => [normalize(s.nombre), s]));
     const promocionesById = new Map(promociones.map(p => [p.id, p]));
     const talleresById = new Map(talleres.map(t => [t.id, t]));
 
@@ -168,6 +170,7 @@ router.get("/", async (req, res) => {
     const totalServicios = citas.length;
     const totalIngresos = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
     const totalNomina = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
+    const totalBaseComision = citas.reduce((sum, c) => sum + calcularBaseComision(c, ctx), 0);
 
     // Calcular métodos de pago
     const metodosCount = {
@@ -187,7 +190,7 @@ router.get("/", async (req, res) => {
       resumen: {
         total_servicios: totalServicios,
         total_ingresos_cliente: totalIngresos,
-        total_ingresos_comision_base: reportePorLavador.reduce((sum, l) => sum + (l.comision_porcentaje ? (l.comision_a_pagar / (l.comision_porcentaje/100)) : 0), 0),
+        total_ingresos_comision_base: totalBaseComision,
         total_nomina: totalNomina,
         ganancia_neta: totalIngresos - totalNomina,
         margen_porcentaje: totalIngresos > 0 ? (((totalIngresos - totalNomina) / totalIngresos) * 100).toFixed(2) : 0,
