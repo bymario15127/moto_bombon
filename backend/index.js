@@ -9,8 +9,7 @@ import serviciosRouter from "./routes/servicios.js";
 import lavadoresRouter from "./routes/lavadores.js";
 import nominaRouter from "./routes/nomina.js";
 import talleresRouter from "./routes/talleres.js";
-import promocionesRouter from "./routes/promociones.js";
-import reportesRouter from "./routes/reportes.js";
+// Promociones y reportes de promociones removidos
 
 const app = express();
 
@@ -60,8 +59,7 @@ app.use("/api/servicios", serviciosRouter);
 app.use("/api/lavadores", lavadoresRouter);
 app.use("/api/nomina", nominaRouter);
 app.use("/api/talleres", talleresRouter);
-app.use("/api/promociones", promocionesRouter);
-app.use("/api/reportes", reportesRouter);
+// Rutas de promociones/reportes deshabilitadas
 
 // Subida de imagen vía base64 (evita dependencias externas)
 app.post('/api/upload-image', async (req, res) => {

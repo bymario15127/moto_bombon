@@ -61,47 +61,13 @@ const dbReady = (async () => {
   }
 })();
 
-// GET all servicios + promociones activas
+// GET solo servicios
 router.get("/", async (req, res) => {
   try {
     await dbReady;
-    // Obtener servicios normales
     const servicios = await db.all("SELECT * FROM servicios ORDER BY nombre");
-    
-    // Obtener promociones activas (vigentes hoy)
-    const hoy = new Date().toISOString().split('T')[0];
-    let promociones = [];
-    try {
-      // Si la tabla promociones no existe en algunos servidores antiguos,
-      // devolvemos lista vacía en lugar de romper con 500.
-      const cols = await db.all("PRAGMA table_info(promociones)");
-      if (Array.isArray(cols) && cols.length > 0) {
-        promociones = await db.all(
-          `SELECT * FROM promociones 
-           WHERE activo = 1 
-           AND fecha_inicio <= ? 
-           AND fecha_fin >= ? 
-           ORDER BY nombre`,
-          [hoy, hoy]
-        );
-      } else {
-        promociones = [];
-      }
-    } catch (e) {
-      // Si falla por "no such table", continuar con promociones vacías
-      if (!/no such table/i.test(e.message || "")) {
-        console.error("Error consultando promociones:", e.message);
-      }
-      promociones = [];
-    }
-    
-    // Marcar servicios y promociones con tipo
     const serviciosConTipo = servicios.map(s => ({...s, tipo: 'servicio'}));
-    const promocionesConTipo = promociones.map(p => ({...p, tipo: 'promocion'}));
-    
-    // Combinar y devolver
-    const todos = [...serviciosConTipo, ...promocionesConTipo];
-    res.json(todos);
+    res.json(serviciosConTipo);
   } catch (error) {
     console.error("Error en GET /api/servicios:", error);
     res.status(500).json({ error: "Error interno del servidor", detail: error?.message });

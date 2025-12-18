@@ -14,9 +14,7 @@ export default function ReservaForm() {
     servicio: "",
     comentarios: "",
     metodo_pago: "",
-    servicioId: null,  // ID del servicio o promoción
-    esPromocion: false, // Flag para saber si es promoción
-    promocionId: null,  // ID de la promoción
+    servicioId: null,
   });
   
   const [servicios, setServicios] = useState([]);
@@ -71,14 +69,9 @@ export default function ReservaForm() {
     const cc = parseInt(form.cilindraje);
     const disponibles = [];
 
-    // Agregar servicios y promociones
+    // Agregar solo servicios
     servicios.forEach(item => {
-      // Si ya tiene tipo (servicio o promocion), lo mantiene
-      // Si no, es un servicio
-      disponibles.push({
-        ...item,
-        tipo: item.tipo || 'servicio'
-      });
+      disponibles.push({ ...item, tipo: 'servicio' });
     });
 
     setServiciosDisponibles(disponibles);
@@ -131,9 +124,7 @@ export default function ReservaForm() {
   const handleServicioSelect = (servicioObj) => {
     setForm({ 
       ...form, 
-      servicio: servicioObj.nombre,
-      esPromocion: servicioObj.tipo === 'promocion',
-      promocionId: servicioObj.tipo === 'promocion' ? servicioObj.id : null,
+      servicio: servicioObj.nombre
     });
   };
 
@@ -186,10 +177,7 @@ export default function ReservaForm() {
       hora: horaActual,
     };
     
-    // Si es una promoción, añadir el promocion_id
-    if (form.esPromocion && form.promocionId) {
-      citaData.promocion_id = form.promocionId;
-    }
+    // Promociones removidas
 
     console.log('📤 Enviando datos:', citaData);
 
@@ -210,8 +198,7 @@ export default function ReservaForm() {
         comentarios: "",
         metodo_pago: "",
         servicioId: null,
-        esPromocion: false,
-        promocionId: null,
+        servicioId: null,
       });
       
     } catch (error) {
@@ -400,18 +387,8 @@ export default function ReservaForm() {
                 // Determinar precio a mostrar
                 let precioMostrar = s.precio_mostrar || s.precio;
                 
-                // Si es una PROMOCIÓN
-                if (s.tipo === 'promocion') {
-                  if (esBajoCC && s.precio_cliente_bajo_cc) {
-                    precioMostrar = s.precio_cliente_bajo_cc;
-                  } else if (esAltoCC && s.precio_cliente_alto_cc) {
-                    precioMostrar = s.precio_cliente_alto_cc;
-                  } else if (s.precio_cliente_bajo_cc) {
-                    precioMostrar = s.precio_cliente_bajo_cc;
-                  }
-                } 
-                // Si es un SERVICIO NORMAL
-                else if (form.cilindraje && s.precio_bajo_cc && s.precio_alto_cc) {
+                // Precio por servicio normal
+                if (form.cilindraje && s.precio_bajo_cc && s.precio_alto_cc) {
                   if (esBajoCC) {
                     precioMostrar = s.precio_bajo_cc;
                   } else if (esAltoCC) {
@@ -431,22 +408,11 @@ export default function ReservaForm() {
                       // Determinar qué imagen mostrar según el cilindraje
                       let imagenMostrar = s.imagen || s.img || "/img/default.jpg";
                       
-                      if (s.tipo === 'promocion') {
-                        // Para promociones, buscar imagen_bajo_cc o imagen_alto_cc primero
-                        if (esBajoCC && s.imagen_bajo_cc) {
-                          imagenMostrar = s.imagen_bajo_cc;
-                        } else if (esAltoCC && s.imagen_alto_cc) {
-                          imagenMostrar = s.imagen_alto_cc;
-                        } else {
-                          imagenMostrar = s.imagen || "/img/default.jpg";
-                        }
-                      } else {
-                        // Para servicios
-                        if (esBajoCC && s.imagen_bajo_cc) {
-                          imagenMostrar = s.imagen_bajo_cc;
-                        } else if (esAltoCC && s.imagen_alto_cc) {
-                          imagenMostrar = s.imagen_alto_cc;
-                        }
+                      // Imagen por servicio
+                      if (esBajoCC && s.imagen_bajo_cc) {
+                        imagenMostrar = s.imagen_bajo_cc;
+                      } else if (esAltoCC && s.imagen_alto_cc) {
+                        imagenMostrar = s.imagen_alto_cc;
                       }
                       
                       return <img src={imagenMostrar} alt={s.nombre} loading="lazy" />;
@@ -454,7 +420,7 @@ export default function ReservaForm() {
                     <div className="servicio-info">
                       <p className="servicio-nombre">
                         {s.nombre}
-                        {s.tipo === 'promocion' && ' 🎄'}
+                        
                       </p>
                       {precioMostrar && (
                         <p className="servicio-precio">${precioMostrar.toLocaleString('es-CO')}</p>
