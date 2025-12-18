@@ -1,4 +1,4 @@
-// backend/routes/nomina.js - PLACEHOLDER (se implementará después)
+// backend/routes/nomina.js - Reporte de nómina y métodos de pago
 import express from "express";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
@@ -21,6 +21,80 @@ let db;
     console.error("Error inicializando DB en nomina:", e.message);
   }
 })();
+
+// Helpers de precio
+const ccIsBajo = (cc) => {
+  const n = Number(cc || 0);
+  return !Number.isNaN(n) && n >= 50 && n <= 405; // alineado con reportes
+};
+const ccIsAlto = (cc) => {
+  const n = Number(cc || 0);
+  return !Number.isNaN(n) && n > 405;
+};
+
+function calcularPrecioCliente(cita, ctx) {
+  // ctx: { serviciosByNombre, promocionesById, talleresById }
+  const cc = cita.cilindraje;
+  // Promoción
+  if (cita.promocion_id) {
+    const p = ctx.promocionesById.get(cita.promocion_id);
+    if (p) {
+      if (ccIsBajo(cc)) return Number(p.precio_cliente_bajo_cc) || 0;
+      if (ccIsAlto(cc)) return Number(p.precio_cliente_alto_cc) || 0;
+      return Number(p.precio_cliente_bajo_cc || p.precio_cliente_alto_cc || 0);
+    }
+  }
+  // Taller (si aplica)
+  if (cita.taller_id) {
+    const t = ctx.talleresById.get(cita.taller_id);
+    if (t) {
+      if (ccIsBajo(cc)) return Number(t.precio_bajo_cc) || 0;
+      if (ccIsAlto(cc)) return Number(t.precio_alto_cc) || 0;
+      return Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
+    }
+  }
+  // Servicio normal
+  const s = ctx.serviciosByNombre.get((cita.servicio || '').trim());
+  if (s) {
+    if (ccIsBajo(cc)) return Number(s.precio_bajo_cc ?? s.precio ?? 0) || 0;
+    if (ccIsAlto(cc)) return Number(s.precio_alto_cc ?? s.precio ?? 0) || 0;
+    return Number(s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+  }
+  // Fallback histórico
+  return 25000;
+}
+
+function calcularBaseComision(cita, ctx) {
+  // Promociones tienen precio de comisión específico
+  const cc = cita.cilindraje;
+  if (cita.promocion_id) {
+    const p = ctx.promocionesById.get(cita.promocion_id);
+    if (p) {
+      if (ccIsBajo(cc)) return Number(p.precio_comision_bajo_cc) || 0;
+      if (ccIsAlto(cc)) return Number(p.precio_comision_alto_cc) || 0;
+      return Number(p.precio_comision_bajo_cc || p.precio_comision_alto_cc || 0);
+    }
+  }
+  // Talleres: usan sus precios como base (si no hay lógica diferente)
+  if (cita.taller_id) {
+    const t = ctx.talleresById.get(cita.taller_id);
+    if (t) {
+      if (ccIsBajo(cc)) return Number(t.precio_bajo_cc) || 0;
+      if (ccIsAlto(cc)) return Number(t.precio_alto_cc) || 0;
+      return Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
+    }
+  }
+  // Servicio normal: usar precio_base_comision_* si existe, si no el precio cliente
+  const s = ctx.serviciosByNombre.get((cita.servicio || '').trim());
+  if (s) {
+    if (ccIsBajo(cc)) return Number(s.precio_base_comision_bajo ?? s.precio_bajo_cc ?? s.precio ?? 0) || 0;
+    if (ccIsAlto(cc)) return Number(s.precio_base_comision_alto ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+    return Number(
+      s.precio_base_comision_bajo ?? s.precio_base_comision_alto ?? s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0
+    ) || 0;
+  }
+  return 25000;
+}
 
 // GET /api/nomina - Retorna reporte de nómina
 router.get("/", async (req, res) => {
@@ -55,11 +129,29 @@ router.get("/", async (req, res) => {
       citas = [];
     }
 
+    // Contexto de precios: servicios, promociones, talleres
+    const servicios = await (async () => {
+      try { return await db.all("SELECT * FROM servicios"); } catch (_) { return []; }
+    })();
+    const promociones = await (async () => {
+      try { return await db.all("SELECT * FROM promociones"); } catch (_) { return []; }
+    })();
+    const talleres = await (async () => {
+      try { return await db.all("SELECT * FROM talleres"); } catch (_) { return []; }
+    })();
+
+    const serviciosByNombre = new Map(servicios.map(s => [String(s.nombre || '').trim(), s]));
+    const promocionesById = new Map(promociones.map(p => [p.id, p]));
+    const talleresById = new Map(talleres.map(t => [t.id, t]));
+
+    const ctx = { serviciosByNombre, promocionesById, talleresById };
+
     // Agrupar citas por lavador y calcular comisión
     const reportePorLavador = lavadores.map(lavador => {
       const citasLavador = citas.filter(c => c.lavador_id === lavador.id);
-      const totalBase = citasLavador.reduce((sum, c) => sum + (Number(c.precio) || 25000), 0);
-      const comision = totalBase * (lavador.comision_porcentaje / 100);
+      const ingresoCliente = citasLavador.reduce((sum, c) => sum + calcularPrecioCliente(c, ctx), 0);
+      const baseComision = citasLavador.reduce((sum, c) => sum + calcularBaseComision(c, ctx), 0);
+      const comision = baseComision * ((Number(lavador.comision_porcentaje) || 0) / 100);
 
       return {
         lavador_id: lavador.id,
@@ -67,8 +159,8 @@ router.get("/", async (req, res) => {
         cedula: lavador.cedula || '',
         comision_porcentaje: lavador.comision_porcentaje,
         cantidad_servicios: citasLavador.length,
-        ingreso_cliente: totalBase,
-        total_generado: totalBase,
+        ingreso_cliente: ingresoCliente,
+        total_generado: ingresoCliente,
         comision_a_pagar: comision
       };
     });
@@ -85,9 +177,9 @@ router.get("/", async (req, res) => {
     };
 
     const ingresosMetodos = {
-      codigo_qr: citas.filter(c => c.metodo_pago === 'codigo_qr').reduce((sum, c) => sum + (Number(c.precio) || 25000), 0),
-      efectivo: citas.filter(c => c.metodo_pago === 'efectivo').reduce((sum, c) => sum + (Number(c.precio) || 25000), 0),
-      tarjeta: citas.filter(c => c.metodo_pago === 'tarjeta').reduce((sum, c) => sum + (Number(c.precio) || 25000), 0)
+      codigo_qr: citas.filter(c => c.metodo_pago === 'codigo_qr').reduce((sum, c) => sum + calcularPrecioCliente(c, ctx), 0),
+      efectivo: citas.filter(c => c.metodo_pago === 'efectivo').reduce((sum, c) => sum + calcularPrecioCliente(c, ctx), 0),
+      tarjeta: citas.filter(c => c.metodo_pago === 'tarjeta').reduce((sum, c) => sum + calcularPrecioCliente(c, ctx), 0)
     };
 
     res.json({
@@ -95,7 +187,7 @@ router.get("/", async (req, res) => {
       resumen: {
         total_servicios: totalServicios,
         total_ingresos_cliente: totalIngresos,
-        total_ingresos_comision_base: totalIngresos,
+        total_ingresos_comision_base: reportePorLavador.reduce((sum, l) => sum + (l.comision_porcentaje ? (l.comision_a_pagar / (l.comision_porcentaje/100)) : 0), 0),
         total_nomina: totalNomina,
         ganancia_neta: totalIngresos - totalNomina,
         margen_porcentaje: totalIngresos > 0 ? (((totalIngresos - totalNomina) / totalIngresos) * 100).toFixed(2) : 0,
