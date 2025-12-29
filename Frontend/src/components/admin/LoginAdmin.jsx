@@ -43,14 +43,6 @@ export default function LoginAdmin() {
           <input type="password" placeholder="Contraseña" value={pass} onChange={(e) => setPass(e.target.value)} required />
           <button type="submit">Entrar</button>
           {err && <p style={{ color: "crimson" }}>{err}</p>}
-
-          {/* Ayuda rápida si algo falla */}
-          <div style={{ marginTop: 12 }}>
-            <small style={{ color: "#6b7280" }}>
-              Admin: <b>admin</b> / <b>motobombon123</b><br />
-              Supervisor: <b>supervisor</b> / <b>supervisor123</b>
-            </small>
-          </div>
         </form>
       </div>
     </div>
