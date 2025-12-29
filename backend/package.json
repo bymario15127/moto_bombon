@@ -1,0 +1,21 @@
+{
+  "name": "motobombon-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "init": "node database/init.js",
+    "init-lavadores": "node database/initLavadores.js",
+    "init-services": "node database/initServicios.js",
+    "init-all": "node database/initAll.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5"
+  }
+}
