@@ -10,6 +10,9 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Orden preferido para mostrar servicios clave primero
+const PREFERRED_ORDER = ["BASIC", "DELUXE", "GOLD"];
+
 let db;
 // Garantiza que la BD esté lista antes de atender solicitudes
 const dbReady = (async () => {
@@ -65,7 +68,11 @@ const dbReady = (async () => {
 router.get("/", async (req, res) => {
   try {
     await dbReady;
-    const servicios = await db.all("SELECT * FROM servicios ORDER BY nombre");
+    const orderCase = PREFERRED_ORDER.map((name, idx) => `WHEN '${name}' THEN ${idx}`).join(" ");
+    const servicios = await db.all(
+      `SELECT * FROM servicios
+       ORDER BY CASE UPPER(nombre) ${orderCase} ELSE 99 END, created_at, id`
+    );
     const serviciosConTipo = servicios.map(s => ({...s, tipo: 'servicio'}));
     res.json(serviciosConTipo);
   } catch (error) {
