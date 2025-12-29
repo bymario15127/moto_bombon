@@ -8,24 +8,28 @@ let serviciosCache = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
-export async function getServicios() {
+export function invalidateServiciosCache() {
+  serviciosCache = null;
+  cacheTimestamp = 0;
+}
+
+export async function getServicios({ force = false } = {}) {
   const now = Date.now();
-  
-  // Si hay cache válido, devolverlo
-  if (serviciosCache && (now - cacheTimestamp) < CACHE_DURATION) {
+
+  if (!force && serviciosCache && (now - cacheTimestamp) < CACHE_DURATION) {
     return serviciosCache;
   }
-  
+
   const res = await fetch(API_URL);
   if (!res.ok) {
     console.error("Error fetching servicios:", res.status);
-    return serviciosCache || []; // Return cached data if available, else empty array
+    return serviciosCache || [];
   }
-  
+
   const data = await res.json();
   serviciosCache = data;
   cacheTimestamp = now;
-  
+
   return data;
 }
 
@@ -42,6 +46,7 @@ export async function addServicio(data) {
     throw new Error(result.error || "Error al crear el servicio");
   }
   
+  invalidateServiciosCache();
   return result;
 }
 
@@ -58,6 +63,7 @@ export async function updateServicio(id, data) {
     throw new Error(result.error || "Error al actualizar el servicio");
   }
   
+  invalidateServiciosCache();
   return result;
 }
 
@@ -70,6 +76,7 @@ export async function deleteServicio(id) {
     throw new Error("Error al eliminar el servicio");
   }
   
+  invalidateServiciosCache();
   return res.json();
 }
 
@@ -109,4 +116,5 @@ export default {
   updateServicio,
   deleteServicio,
   uploadImagen,
+  invalidateServiciosCache,
 };

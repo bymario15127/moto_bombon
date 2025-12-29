@@ -1,6 +1,6 @@
 // src/components/admin/ServiciosManager.jsx
 import { useState, useEffect } from "react";
-import serviciosService, { uploadImagen } from "../../services/serviciosService";
+import serviciosService, { uploadImagen, invalidateServiciosCache } from "../../services/serviciosService";
 
 export default function ServiciosManager() {
   const [servicios, setServicios] = useState([]);
@@ -54,6 +54,7 @@ export default function ServiciosManager() {
       });
 
       if (response.ok) {
+        invalidateServiciosCache();
         loadServicios();
         resetForm();
         alert(editingService ? "Servicio actualizado" : "Servicio creado");
@@ -88,6 +89,7 @@ export default function ServiciosManager() {
       });
       
       if (response.ok) {
+        invalidateServiciosCache();
         loadServicios();
         alert("Servicio eliminado");
       }
@@ -112,23 +114,28 @@ export default function ServiciosManager() {
     setShowForm(false);
   };
 
-  // Manejar selección de archivo local y cargarlo al backend
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
+  // Subir archivo a backend y actualizar campo indicado (reduce duplicación)
+  const uploadFileToField = async (file, field) => {
     if (!file) return;
-    // Previsualización rápida
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
         const dataUrl = ev.target.result;
         const { url } = await uploadImagen(dataUrl);
-        setFormData((prev) => ({ ...prev, imagen: url }));
+        setFormData((prev) => ({ ...prev, [field]: url }));
       } catch (err) {
         console.error('Error subiendo imagen:', err);
         alert('No se pudo subir la imagen');
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  // Manejar selección de archivo local y cargarlo al backend
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    uploadFileToField(file, 'imagen');
   };
 
   const formatPrecio = (precio) => {
@@ -226,19 +233,7 @@ export default function ServiciosManager() {
                   <label>Imagen para Bajo CC (100-405cc)</label>
                   <input type="file" accept="image/*" onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = async (ev) => {
-                      try {
-                        const dataUrl = ev.target.result;
-                        const { url } = await uploadImagen(dataUrl);
-                        setFormData((prev) => ({ ...prev, imagen_bajo_cc: url }));
-                      } catch (err) {
-                        console.error('Error subiendo imagen:', err);
-                        alert('No se pudo subir la imagen');
-                      }
-                    };
-                    reader.readAsDataURL(file);
+                    uploadFileToField(file, 'imagen_bajo_cc');
                   }} />
                   {formData.imagen_bajo_cc && (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
@@ -252,19 +247,7 @@ export default function ServiciosManager() {
                   <label>Imagen para Alto CC (405-1200cc)</label>
                   <input type="file" accept="image/*" onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = async (ev) => {
-                      try {
-                        const dataUrl = ev.target.result;
-                        const { url } = await uploadImagen(dataUrl);
-                        setFormData((prev) => ({ ...prev, imagen_alto_cc: url }));
-                      } catch (err) {
-                        console.error('Error subiendo imagen:', err);
-                        alert('No se pudo subir la imagen');
-                      }
-                    };
-                    reader.readAsDataURL(file);
+                    uploadFileToField(file, 'imagen_alto_cc');
                   }} />
                   {formData.imagen_alto_cc && (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
