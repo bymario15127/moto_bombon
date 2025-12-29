@@ -68,8 +68,9 @@ body {
 .admin-main {
   flex: 1;
   margin-left: 240px;
-  padding: 32px;
-  max-width: 1280px;
+  padding: 24px;
+  width: 100%;
+  max-width: 100%;
   background: #0a0a0a;
   min-height: 100vh;
 }
@@ -186,6 +187,8 @@ body {
   .admin-main {
     margin-left: 0;
     padding: 72px 16px 16px 16px; /* espacio arriba para hamburguesa */
+    width: 100%;
+    max-width: 100%;
   }
 
   /* Ajustar header del sidebar */
