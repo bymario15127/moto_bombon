@@ -302,12 +302,14 @@ router.put("/:id", async (req, res) => {
     }
     
     // Si el estado cambió a "completada" o "finalizada", registrar la lavada para el cliente
+    // Solo contar citas normales (taller_id IS NULL), no talleres aliados
     const estadoNuevo = fields.estado?.toLowerCase();
     const estadoAnterior = citaAnterior.estado?.toLowerCase();
     
     if ((estadoNuevo === 'completada' || estadoNuevo === 'finalizada') && 
-        estadoAnterior !== 'completada' && estadoAnterior !== 'finalizada') {
-      console.log(`🎯 Cita ${id} marcada como ${estadoNuevo}. Procesando lavada del cliente...`);
+        estadoAnterior !== 'completada' && estadoAnterior !== 'finalizada' &&
+        citaAnterior.taller_id === null) {
+      console.log(`🎯 Cita ${id} (normal) marcada como ${estadoNuevo}. Procesando lavada del cliente...`);
       
       // Verificar que tenga email
       const email = fields.email || citaAnterior.email;

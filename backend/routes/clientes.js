@@ -20,6 +20,7 @@ let db;
 })();
 
 // Función auxiliar para registrar o actualizar cliente y verificar lavadas
+// NOTA: Solo se cuentan citas normales (taller_id IS NULL), no talleres aliados
 export async function procesarLavadaCliente(email, nombre, telefono) {
   if (!email || !nombre) {
     return { success: false, error: 'Email y nombre son requeridos' };
@@ -143,6 +144,7 @@ router.get("/email/:email", async (req, res) => {
 });
 
 // GET - Obtener todos los clientes
+// NOTA: Las estadísticas solo incluyen citas normales (taller_id IS NULL)
 router.get("/", async (req, res) => {
   try {
     const clientes = await db.all('SELECT * FROM clientes ORDER BY lavadas_completadas DESC');

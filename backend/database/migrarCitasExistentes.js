@@ -18,13 +18,14 @@ async function migrarCitasExistentes() {
   console.log("================================================\n");
 
   try {
-    // 1. Obtener todas las citas finalizadas con email
+    // 1. Obtener todas las citas finalizadas con email (solo citas normales, no talleres aliados)
     const citasCompletadas = await db.all(`
       SELECT cliente, email, telefono, COUNT(*) as total_lavadas
       FROM citas 
       WHERE estado = 'finalizada' 
         AND email IS NOT NULL 
         AND email != ''
+        AND taller_id IS NULL
       GROUP BY LOWER(email)
       ORDER BY total_lavadas DESC
     `);

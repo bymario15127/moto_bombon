@@ -17,9 +17,14 @@ async function verificarCitas() {
   try {
     console.log("🔍 Verificando estado de las citas...\n");
 
-    // Total de citas
+    // Total de citas (separando normales y talleres aliados)
     const total = await db.get("SELECT COUNT(*) as total FROM citas");
+    const citasNormales = await db.get("SELECT COUNT(*) as total FROM citas WHERE taller_id IS NULL");
+    const citasTalleres = await db.get("SELECT COUNT(*) as total FROM citas WHERE taller_id IS NOT NULL");
+    
     console.log(`📊 Total de citas: ${total.total}`);
+    console.log(`   - Citas normales: ${citasNormales.total}`);
+    console.log(`   - Citas talleres aliados: ${citasTalleres.total}`);
 
     // Citas por estado
     const porEstado = await db.all(`
@@ -38,15 +43,16 @@ async function verificarCitas() {
     const conEmail = await db.get("SELECT COUNT(*) as total FROM citas WHERE email IS NOT NULL AND email != ''");
     console.log(`\n📧 Citas con email: ${conEmail.total}`);
 
-    // Citas completadas con email
+    // Citas completadas con email (solo citas normales)
     const completadasConEmail = await db.get(`
       SELECT COUNT(*) as total 
       FROM citas 
       WHERE estado = 'completada' 
         AND email IS NOT NULL 
         AND email != ''
+        AND taller_id IS NULL
     `);
-    console.log(`✅ Citas completadas con email: ${completadasConEmail.total}`);
+    console.log(`✅ Citas completadas con email (normales): ${completadasConEmail.total}`);
 
     // Citas finalizadas con email (si usan ese estado)
     const finalizadasConEmail = await db.get(`
@@ -55,8 +61,9 @@ async function verificarCitas() {
       WHERE estado = 'finalizada' 
         AND email IS NOT NULL 
         AND email != ''
+        AND taller_id IS NULL
     `);
-    console.log(`✅ Citas finalizadas con email: ${finalizadasConEmail.total}`);
+    console.log(`✅ Citas finalizadas con email (normales): ${finalizadasConEmail.total}`);
 
     // Ejemplos de citas recientes
     console.log("\n📋 Ejemplos de citas recientes:");
