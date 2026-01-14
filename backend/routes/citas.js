@@ -301,12 +301,13 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ error: "Cita no encontrada" });
     }
     
-    // Si el estado cambió a "completada", registrar la lavada para el cliente
+    // Si el estado cambió a "completada" o "finalizada", registrar la lavada para el cliente
     const estadoNuevo = fields.estado?.toLowerCase();
     const estadoAnterior = citaAnterior.estado?.toLowerCase();
     
-    if (estadoNuevo === 'completada' && estadoAnterior !== 'completada') {
-      console.log(`🎯 Cita ${id} marcada como completada. Procesando lavada del cliente...`);
+    if ((estadoNuevo === 'completada' || estadoNuevo === 'finalizada') && 
+        estadoAnterior !== 'completada' && estadoAnterior !== 'finalizada') {
+      console.log(`🎯 Cita ${id} marcada como ${estadoNuevo}. Procesando lavada del cliente...`);
       
       // Verificar que tenga email
       const email = fields.email || citaAnterior.email;

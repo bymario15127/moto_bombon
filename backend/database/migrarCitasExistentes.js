@@ -18,11 +18,11 @@ async function migrarCitasExistentes() {
   console.log("================================================\n");
 
   try {
-    // 1. Obtener todas las citas completadas con email
+    // 1. Obtener todas las citas finalizadas con email
     const citasCompletadas = await db.all(`
       SELECT cliente, email, telefono, COUNT(*) as total_lavadas
       FROM citas 
-      WHERE estado = 'completada' 
+      WHERE estado = 'finalizada' 
         AND email IS NOT NULL 
         AND email != ''
       GROUP BY LOWER(email)
@@ -32,9 +32,9 @@ async function migrarCitasExistentes() {
     console.log(`📊 Encontradas ${citasCompletadas.length} clientes con citas completadas\n`);
 
     if (citasCompletadas.length === 0) {
-      console.log("⚠️ No se encontraron citas completadas con email");
+      console.log("⚠️ No se encontraron citas finalizadas con email");
       console.log("💡 Asegúrate de que las citas tengan:");
-      console.log("   - estado = 'completada'");
+      console.log("   - estado = 'finalizada'");
       console.log("   - email válido\n");
       await db.close();
       return;
