@@ -143,12 +143,24 @@ router.get("/email/:email", async (req, res) => {
   }
 });
 
-// GET - Obtener todos los clientes
+// GET - Obtener todos los clientes con sus cupones
 // NOTA: Las estadísticas solo incluyen citas normales (taller_id IS NULL)
 router.get("/", async (req, res) => {
   try {
     const clientes = await db.all('SELECT * FROM clientes ORDER BY lavadas_completadas DESC');
-    res.json(clientes);
+    
+    // Agregar cupones a cada cliente
+    const clientesConCupones = await Promise.all(
+      clientes.map(async (cliente) => {
+        const cupones = await db.all(
+          'SELECT codigo, usado, created_at, fecha_uso FROM cupones WHERE email_cliente = ? ORDER BY created_at DESC',
+          [cliente.email]
+        );
+        return { ...cliente, cupones };
+      })
+    );
+    
+    res.json(clientesConCupones);
   } catch (error) {
     console.error('Error obteniendo clientes:', error);
     res.status(500).json({ error: "Error interno del servidor" });

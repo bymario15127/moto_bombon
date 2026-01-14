@@ -359,6 +359,44 @@ export default function ClientesManager() {
                     <strong>{cliente.lavadas_gratis_pendientes || 0}</strong><br />Cupones
                   </div>
                 </div>
+
+                {/* Cupones disponibles */}
+                {cliente.cupones?.filter(c => !c.usado).length > 0 && (
+                  <div style={{
+                    marginTop: "1rem",
+                    padding: "0.75rem",
+                    background: "rgba(67,226,123,0.1)",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(67,226,123,0.3)"
+                  }}>
+                    <p style={{ color: "#43e97b", fontWeight: "bold", margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>
+                      🎫 Cupones Disponibles:
+                    </p>
+                    {cliente.cupones.filter(c => !c.usado).map(cupon => (
+                      <div key={cupon.codigo} style={{
+                        background: "rgba(0,212,255,0.2)",
+                        padding: "0.5rem",
+                        borderRadius: "6px",
+                        marginBottom: "0.5rem",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}>
+                        <code style={{
+                          color: "#00d4ff",
+                          fontSize: "0.85rem",
+                          fontWeight: "bold",
+                          userSelect: "all"
+                        }}>
+                          {cupon.codigo}
+                        </code>
+                        <span style={{ color: "#aaa", fontSize: "0.75rem" }}>
+                          {new Date(cupon.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
