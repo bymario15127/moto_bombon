@@ -255,4 +255,98 @@ router.post("/cupon/:codigo/usar", async (req, res) => {
   }
 });
 
+// POST - Fusionar dos clientes (para resolver duplicados)
+router.post("/fusionar", async (req, res) => {
+  try {
+    const { emailPrincipal, emailDuplicado } = req.body;
+    
+    if (!emailPrincipal || !emailDuplicado) {
+      return res.status(400).json({ error: "Se requieren ambos emails" });
+    }
+
+    if (emailPrincipal === emailDuplicado) {
+      return res.status(400).json({ error: "Los emails deben ser diferentes" });
+    }
+
+    const clientePrincipal = await db.get('SELECT * FROM clientes WHERE LOWER(email) = LOWER(?)', [emailPrincipal]);
+    const clienteDuplicado = await db.get('SELECT * FROM clientes WHERE LOWER(email) = LOWER(?)', [emailDuplicado]);
+
+    if (!clientePrincipal || !clienteDuplicado) {
+      return res.status(404).json({ error: "Uno o ambos clientes no existen" });
+    }
+
+    // Sumar lavadas
+    const totalLavadas = clientePrincipal.total_lavadas_historico + clienteDuplicado.total_lavadas_historico;
+    const lavadaActual = (totalLavadas % 10);
+    const cuponesGenerados = Math.floor(totalLavadas / 10);
+
+    // Actualizar cliente principal
+    await db.run(
+      'UPDATE clientes SET total_lavadas_historico = ?, lavadas_completadas = ?, lavadas_gratis_pendientes = lavadas_gratis_pendientes + ? WHERE email = ?',
+      [totalLavadas, lavadaActual, cuponesGenerados, emailPrincipal]
+    );
+
+    // Transferir cupones no usados
+    await db.run(
+      'UPDATE cupones SET email_cliente = ? WHERE email_cliente = ? AND usado = 0',
+      [emailPrincipal, emailDuplicado]
+    );
+
+    // Eliminar cliente duplicado
+    await db.run('DELETE FROM clientes WHERE LOWER(email) = LOWER(?)', [emailDuplicado]);
+
+    console.log(`✅ Clientes fusionados: ${emailDuplicado} → ${emailPrincipal}`);
+    console.log(`   Total lavadas históricas: ${totalLavadas}`);
+    console.log(`   Cupones a generar: ${cuponesGenerados}`);
+
+    res.json({
+      success: true,
+      mensaje: `Clientes fusionados exitosamente. Total lavadas: ${totalLavadas}, Cupones ganados: ${cuponesGenerados}`,
+      clientePrincipal: {
+        email: emailPrincipal,
+        total_lavadas_historico: totalLavadas,
+        lavadas_completadas: lavadaActual,
+        lavadas_gratis_pendientes: clientePrincipal.lavadas_gratis_pendientes + cuponesGenerados
+      }
+    });
+  } catch (error) {
+    console.error('Error fusionando clientes:', error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// GET - Detectar clientes posiblemente duplicados
+router.get("/duplicados/detectar", async (req, res) => {
+  try {
+    // Buscar clientes con nombres similares (primeras 3 letras del nombre)
+    const duplicados = await db.all(`
+      SELECT 
+        LOWER(SUBSTR(nombre, 1, 3)) as inicial,
+        telefono,
+        COUNT(*) as cantidad,
+        GROUP_CONCAT(email, '|') as emails,
+        GROUP_CONCAT(total_lavadas_historico, '|') as lavadas
+      FROM clientes 
+      WHERE telefono IS NOT NULL AND telefono != ''
+      GROUP BY LOWER(SUBSTR(nombre, 1, 3)), telefono
+      HAVING cantidad > 1
+      ORDER BY cantidad DESC
+    `);
+
+    const resultado = duplicados.map(d => ({
+      ...d,
+      emails: d.emails.split('|'),
+      lavadas: d.lavadas.split('|').map(l => parseInt(l))
+    }));
+
+    res.json({
+      posibles_duplicados: resultado,
+      cantidad: resultado.length
+    });
+  } catch (error) {
+    console.error('Error detectando duplicados:', error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
 export default router;
