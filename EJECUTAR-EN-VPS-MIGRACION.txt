@@ -1,0 +1,78 @@
+# ====================================================
+# COMANDOS PARA EJECUTAR EN EL VPS
+# ====================================================
+
+# 1. Conectarse al VPS
+ssh tu_usuario@tu_servidor_ip
+
+# 2. Ir al directorio del proyecto
+cd /var/www/motobombon
+
+# 3. Actualizar código desde GitHub
+git pull origin main
+
+# 4. PRIMERO: Verificar el estado de las citas
+cd backend
+node database/verificarCitas.js
+
+# Esto te mostrará:
+# - Cuántas citas tienes en total
+# - Qué estados tienen (completada, finalizada, pendiente, etc.)
+# - Cuántas tienen email
+# - Ejemplos de citas
+
+# 5. Si usa el estado "completada": Ejecutar migración directamente
+node database/migrarCitasExistentes.js
+
+# 6. Si usa otro estado (ej: "finalizada"), primero editar el script:
+nano database/migrarCitasExistentes.js
+# Buscar la línea que dice: WHERE estado = 'completada'
+# Cambiar por: WHERE estado = 'finalizada'
+# (o el estado que uses)
+# Guardar con Ctrl+O, Enter, Ctrl+X
+
+# Luego ejecutar:
+node database/migrarCitasExistentes.js
+
+# 7. Actualizar frontend
+cd ../Frontend
+npm run build
+
+# 8. Reiniciar servicios
+cd ..
+pm2 restart motobombon-backend
+
+# 9. Verificar logs
+pm2 logs motobombon-backend --lines 50
+
+# ====================================================
+# VERIFICACIÓN
+# ====================================================
+
+# Ver los clientes creados en la base de datos:
+cd backend
+sqlite3 database/database.sqlite
+
+# Dentro de sqlite3, ejecutar:
+SELECT COUNT(*) FROM clientes;
+SELECT nombre, email, lavadas_completadas, total_lavadas_historico FROM clientes ORDER BY total_lavadas_historico DESC LIMIT 10;
+.exit
+
+# ====================================================
+# ALTERNATIVA: Script único
+# ====================================================
+
+# O ejecutar todo en un solo comando:
+cd /var/www/motobombon && \
+git pull origin main && \
+cd backend && \
+node database/verificarCitas.js && \
+read -p "¿Ejecutar migración? (s/n): " respuesta && \
+if [ "$respuesta" = "s" ]; then \
+  node database/migrarCitasExistentes.js && \
+  cd ../Frontend && \
+  npm run build && \
+  cd .. && \
+  pm2 restart motobombon-backend && \
+  echo "✅ Migración completada. Recarga motobombon.com/admin"; \
+fi
