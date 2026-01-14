@@ -1,9 +1,9 @@
 // Frontend/src/services/clientesService.js
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_URL = "/api/clientes";
 
 // Obtener todos los clientes ordenados por lavadas
 export const getClientes = async () => {
-  const response = await fetch(`${API_URL}/clientes`);
+  const response = await fetch(API_URL);
   if (!response.ok) {
     throw new Error("Error al obtener clientes");
   }
@@ -12,7 +12,7 @@ export const getClientes = async () => {
 
 // Obtener información de un cliente por email
 export const getClienteByEmail = async (email) => {
-  const response = await fetch(`${API_URL}/clientes/email/${encodeURIComponent(email)}`);
+  const response = await fetch(`${API_URL}/email/${encodeURIComponent(email)}`);
   if (!response.ok) {
     throw new Error("Error al obtener cliente");
   }
@@ -21,7 +21,7 @@ export const getClienteByEmail = async (email) => {
 
 // Verificar un cupón
 export const verificarCupon = async (codigo) => {
-  const response = await fetch(`${API_URL}/clientes/cupon/${codigo}`);
+  const response = await fetch(`${API_URL}/cupon/${codigo}`);
   if (!response.ok) {
     throw new Error("Error al verificar cupón");
   }
@@ -30,7 +30,7 @@ export const verificarCupon = async (codigo) => {
 
 // Usar/redimir un cupón
 export const usarCupon = async (codigo, citaId = null) => {
-  const response = await fetch(`${API_URL}/clientes/cupon/${codigo}/usar`, {
+  const response = await fetch(`${API_URL}/cupon/${codigo}/usar`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -45,7 +45,7 @@ export const usarCupon = async (codigo, citaId = null) => {
 
 // Crear o actualizar cliente
 export const guardarCliente = async (cliente) => {
-  const response = await fetch(`${API_URL}/clientes`, {
+  const response = await fetch(API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
