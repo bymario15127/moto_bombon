@@ -12,11 +12,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Función para generar código de cupón único
+// Función para generar código de cupón único (formato: MOTO-XXXX)
 export function generarCodigoCupon() {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `GRATIS-${timestamp}-${random}`;
+  // Generar 4 caracteres aleatorios (letras y números)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Sin letras confusas (I, O, 1, 0)
+  let codigo = '';
+  for (let i = 0; i < 4; i++) {
+    codigo += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `MOTO-${codigo}`;
 }
 
 // Función para enviar cupón de lavada gratis
