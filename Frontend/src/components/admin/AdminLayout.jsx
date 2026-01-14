@@ -8,6 +8,7 @@ import ServiciosManager from "./ServiciosManager";
 import TalleresManager from "./TalleresManager";
 import LavadoresManager from "./LavadoresManager";
 import NominaManager from "./NominaManager";
+import ClientesManager from "./ClientesManager";
 
 export default function AdminLayout() {
   const [activeView, setActiveView] = useState('dashboard');
@@ -26,6 +27,7 @@ export default function AdminLayout() {
           case 'services': return 'Servicios';
           case 'talleres': return 'Talleres Aliados';
           case 'lavadores': return 'Lavadores';
+          case 'clientes': return 'Clientes y Fidelización';
           case 'nomina': return 'Nómina y CRM';
           case 'settings': return 'Ajustes';
           default: return 'Dashboard';
@@ -42,6 +44,7 @@ export default function AdminLayout() {
             {activeView === 'services' && 'Configura servicios y precios'}
             {activeView === 'talleres' && 'Gestiona talleres aliados y sus precios especiales'}
             {activeView === 'lavadores' && 'Administra el equipo de trabajo'}
+            {activeView === 'clientes' && 'Sistema de fidelización y gestión de clientes'}
             {activeView === 'nomina' && 'Control financiero y reportes de nómina'}
             {activeView === 'settings' && 'Preferencias y configuración del sistema'}
           </p>
@@ -63,6 +66,8 @@ export default function AdminLayout() {
                 return <TalleresManager />;
               case 'lavadores':
                 return <LavadoresManager />;
+              case 'clientes':
+                return <ClientesManager />;
               case 'nomina':
                 return <NominaManager />;
               case 'settings':

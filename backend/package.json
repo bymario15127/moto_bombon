@@ -9,11 +9,14 @@
     "init": "node database/init.js",
     "init-lavadores": "node database/initLavadores.js",
     "init-services": "node database/initServicios.js",
-    "init-all": "node database/initAll.js"
+    "init-all": "node database/initAll.js",
+    "init-clientes": "node database/initClientes.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.19.2",
+    "nodemailer": "^7.0.12",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "xlsx": "^0.18.5"

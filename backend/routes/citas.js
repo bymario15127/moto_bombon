@@ -4,6 +4,7 @@ import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import path from "path";
 import { fileURLToPath } from "url";
+import { procesarLavadaCliente } from "./clientes.js";
 
 const router = express.Router();
 
@@ -286,11 +287,57 @@ router.put("/:id", async (req, res) => {
       return res.status(400).json({ error: "Nada para actualizar" });
     }
     
+    // Obtener la cita antes de actualizar para verificar cambios de estado
+    const citaAnterior = await db.get("SELECT * FROM citas WHERE id = ?", id);
+    
+    if (!citaAnterior) {
+      return res.status(404).json({ error: "Cita no encontrada" });
+    }
+    
     values.push(id);
     const result = await db.run(`UPDATE citas SET ${updates.join(", ")} WHERE id = ?`, values);
     
     if (result.changes === 0) {
       return res.status(404).json({ error: "Cita no encontrada" });
+    }
+    
+    // Si el estado cambió a "completada", registrar la lavada para el cliente
+    const estadoNuevo = fields.estado?.toLowerCase();
+    const estadoAnterior = citaAnterior.estado?.toLowerCase();
+    
+    if (estadoNuevo === 'completada' && estadoAnterior !== 'completada') {
+      console.log(`🎯 Cita ${id} marcada como completada. Procesando lavada del cliente...`);
+      
+      // Verificar que tenga email
+      const email = fields.email || citaAnterior.email;
+      const cliente = fields.cliente || citaAnterior.cliente;
+      const telefono = fields.telefono || citaAnterior.telefono;
+      
+      if (email && cliente) {
+        const resultado = await procesarLavadaCliente(email, cliente, telefono);
+        
+        if (resultado.success && resultado.cuponGenerado) {
+          console.log(`🎉 ¡Cupón generado para ${email}!`);
+          return res.json({ 
+            message: "Cita actualizada exitosamente", 
+            cuponGenerado: true,
+            codigoCupon: resultado.codigoCupon,
+            lavadas: resultado.lavadas,
+            mensajeFidelizacion: resultado.mensaje
+          });
+        } else if (resultado.success) {
+          console.log(`📊 Lavada registrada para ${email}. Total: ${resultado.lavadas}`);
+          return res.json({ 
+            message: "Cita actualizada exitosamente",
+            lavadas: resultado.lavadas,
+            mensajeFidelizacion: resultado.mensaje
+          });
+        } else {
+          console.warn(`⚠️ No se pudo procesar lavada: ${resultado.error}`);
+        }
+      } else {
+        console.warn(`⚠️ Cita completada sin email o nombre de cliente. No se puede rastrear lavadas.`);
+      }
     }
     
     res.json({ message: "Cita actualizada exitosamente" });

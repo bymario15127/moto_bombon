@@ -22,6 +22,7 @@ export default function Sidebar({ activeView, setActiveView, onLogout }) {
     { id: 'services', icon: '🏍️', label: 'Servicios', roles: ['admin'] },
     { id: 'talleres', icon: '🏢', label: 'Talleres Aliados', roles: ['admin'] },
     { id: 'lavadores', icon: '👤', label: 'Lavadores', roles: ['admin'] },
+    { id: 'clientes', icon: '🎁', label: 'Clientes', roles: ['admin', 'supervisor'] },
     { id: 'nomina', icon: '💰', label: 'Nómina', roles: ['admin'] },
     { id: 'settings', icon: '⚙️', label: 'Ajustes', roles: ['admin'] },
   ];

@@ -1,0 +1,135 @@
+# Comandos para subir a VPS - Copiar y Pegar
+
+# ============================================
+# DESDE TU COMPUTADORA LOCAL (Windows)
+# ============================================
+
+# 1. Verificar que todos los archivos estén guardados
+git status
+
+# 2. Agregar todos los cambios nuevos
+git add .
+
+# 3. Commit con los cambios del sistema de fidelización
+git commit -m "feat: Sistema de fidelización - 10 lavadas = 1 gratis
+
+- Nueva sección Clientes en admin panel
+- Contador de lavadas que se reinicia cada 10
+- Sistema de cupones automático
+- Envío de emails con nodemailer
+- Historial total de lavadas por cliente
+- Tablas: clientes, cupones
+- Migración: total_lavadas_historico"
+
+# 4. Subir a GitHub
+git push origin main
+
+# ============================================
+# DESDE EL VPS (Conectarse por SSH)
+# ============================================
+
+# 1. Conectarse al servidor
+ssh usuario@tu-servidor-ip
+
+# 2. Ir al directorio del proyecto
+cd /var/www/motobombon
+
+# 3. Hacer backup de la base de datos (IMPORTANTE)
+cp backend/database/database.sqlite backend/database/database.sqlite.backup-$(date +%Y%m%d)
+
+# 4. Actualizar código desde GitHub
+git pull origin main
+
+# 5. Instalar nuevas dependencias del backend
+cd backend
+npm install
+
+# 6. Ejecutar migraciones de base de datos
+node database/initClientes.js
+node database/addTotalLavadas.js
+
+# 7. Verificar archivo .env (o crearlo)
+nano .env
+
+# Contenido mínimo del .env:
+# NODE_ENV=production
+# PORT=3000
+# CORS_ORIGINS=https://tudominio.com
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=tucorreo@gmail.com
+# SMTP_PASS=tu_contraseña_aplicacion
+
+# 8. Compilar frontend
+cd ../Frontend
+npm install
+npm run build
+
+# 9. Reiniciar backend
+cd ..
+pm2 restart motobombon-backend
+
+# 10. Verificar logs
+pm2 logs motobombon-backend --lines 50
+
+# 11. Verificar estado
+pm2 status
+
+# ============================================
+# CONFIGURAR EMAIL (Después del deploy)
+# ============================================
+
+# 1. Generar contraseña de aplicación de Gmail
+# Visitar: https://myaccount.google.com/apppasswords
+# Generar nueva contraseña para "Otra aplicación"
+
+# 2. Editar .env con la contraseña generada
+cd /var/www/motobombon/backend
+nano .env
+
+# Agregar:
+# SMTP_USER=tucorreo@gmail.com
+# SMTP_PASS=xxxx xxxx xxxx xxxx  (16 caracteres)
+
+# 3. Guardar (Ctrl+O, Enter, Ctrl+X)
+
+# 4. Reiniciar backend
+pm2 restart motobombon-backend
+
+# 5. Verificar que funciona
+pm2 logs motobombon-backend
+
+# ============================================
+# VERIFICACIÓN RÁPIDA
+# ============================================
+
+# Ver tablas de la base de datos
+cd /var/www/motobombon/backend
+sqlite3 database/database.sqlite ".tables"
+
+# Debe mostrar: clientes, cupones, citas, lavadores, etc.
+
+# Ver estructura de tabla clientes
+sqlite3 database/database.sqlite ".schema clientes"
+
+# Ver logs en tiempo real
+pm2 logs motobombon-backend --lines 100
+
+# ============================================
+# SI ALGO FALLA
+# ============================================
+
+# Restaurar backup de base de datos
+cp backend/database/database.sqlite.backup-FECHA backend/database/database.sqlite
+
+# Ver errores
+pm2 logs motobombon-backend --err
+
+# Reiniciar desde cero
+pm2 delete motobombon-backend
+pm2 start ecosystem.config.json
+pm2 save
+
+# Ver estado de Nginx
+sudo systemctl status nginx
+sudo nginx -t

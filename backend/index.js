@@ -4,12 +4,17 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 import citasRouter from "./routes/citas.js";
 import serviciosRouter from "./routes/servicios.js";
 import lavadoresRouter from "./routes/lavadores.js";
 import nominaRouter from "./routes/nomina.js";
 import talleresRouter from "./routes/talleres.js";
+import clientesRouter from "./routes/clientes.js";
 // Promociones y reportes de promociones removidos
+
+// Cargar variables de entorno
+dotenv.config();
 
 const app = express();
 
@@ -59,6 +64,7 @@ app.use("/api/servicios", serviciosRouter);
 app.use("/api/lavadores", lavadoresRouter);
 app.use("/api/nomina", nominaRouter);
 app.use("/api/talleres", talleresRouter);
+app.use("/api/clientes", clientesRouter);
 // Rutas de promociones/reportes deshabilitadas
 
 // Subida de imagen vía base64 (evita dependencias externas)
