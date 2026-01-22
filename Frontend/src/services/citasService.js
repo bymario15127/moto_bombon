@@ -1,5 +1,5 @@
 // Use relative URLs - works in both dev (via Vite proxy) and prod (via Nginx proxy)
-const API_URL = "/api/citas";
+const API_URL = "http://localhost:3000/api/citas";
 
 export async function getCitas() {
   // Por defecto, obtiene solo citas del día actual

@@ -9,6 +9,7 @@
     "init": "node database/init.js",
     "init-lavadores": "node database/initLavadores.js",
     "init-services": "node database/initServicios.js",
+    "init-productos": "node database/initProductos.js",
     "init-all": "node database/initAll.js",
     "init-clientes": "node database/initClientes.js"
   },
@@ -16,6 +17,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.3",
     "nodemailer": "^7.0.12",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",

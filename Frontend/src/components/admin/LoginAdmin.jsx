@@ -15,21 +15,43 @@ export default function LoginAdmin() {
     }
   }, [nav]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Credenciales simples (cambiar en producción)
-    if (user === "admin" && pass === "motobombon123") {
+    try {
+      setErr("");
+      
+      console.log("🔑 Intentando login con:", user);
+      
+      // Hacer petición al backend para obtener token real
+      const response = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: user, password: pass })
+      });
+
+      console.log("📡 Respuesta del servidor:", response.status);
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("❌ Error del servidor:", error);
+        throw new Error(error.error || "Error al autenticar");
+      }
+
+      const data = await response.json();
+      console.log("✅ Login exitoso, datos recibidos:", data);
+      
+      // Guardar token y datos en localStorage
+      console.log("💾 Guardando token:", data.token);
+      localStorage.setItem("motobombon_token", data.token);
       localStorage.setItem("motobombon_is_admin", "true");
-      localStorage.setItem("motobombon_user_role", "admin");
-      localStorage.setItem("motobombon_user_name", "Paula Espinosa");
+      localStorage.setItem("motobombon_user_role", data.user.role);
+      localStorage.setItem("motobombon_user_name", data.user.name);
+      
+      console.log("✅ Token guardado en localStorage");
       nav("/admin");
-    } else if (user === "supervisor" && pass === "supervisor123") {
-      localStorage.setItem("motobombon_is_admin", "true");
-      localStorage.setItem("motobombon_user_role", "supervisor");
-      localStorage.setItem("motobombon_user_name", "Supervisor");
-      nav("/admin");
-    } else {
-      setErr("Usuario o contraseña incorrectos");
+    } catch (error) {
+      console.error("❌ Error en login:", error);
+      setErr(error.message || "Error al autenticar");
       setTimeout(() => setErr(""), 3000);
     }
   };

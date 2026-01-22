@@ -9,12 +9,16 @@ import TalleresManager from "./TalleresManager";
 import LavadoresManager from "./LavadoresManager";
 import NominaManager from "./NominaManager";
 import ClientesManager from "./ClientesManager";
+import ProductosManagement from "./ProductosManagement";
 
 export default function AdminLayout() {
   const [activeView, setActiveView] = useState('dashboard');
 
   const handleLogout = () => {
+    localStorage.removeItem("motobombon_token");
     localStorage.removeItem("motobombon_is_admin");
+    localStorage.removeItem("motobombon_user_role");
+    localStorage.removeItem("motobombon_user_name");
     window.location.href = "/login";
   };
 
@@ -29,6 +33,7 @@ export default function AdminLayout() {
           case 'lavadores': return 'Lavadores';
           case 'clientes': return 'Clientes y Fidelización';
           case 'nomina': return 'Nómina y CRM';
+          case 'productos': return 'Productos y Ventas';
           case 'settings': return 'Ajustes';
           default: return 'Dashboard';
         }
@@ -46,6 +51,7 @@ export default function AdminLayout() {
             {activeView === 'lavadores' && 'Administra el equipo de trabajo'}
             {activeView === 'clientes' && 'Sistema de fidelización y gestión de clientes'}
             {activeView === 'nomina' && 'Control financiero y reportes de nómina'}
+            {activeView === 'productos' && 'Gestión de bebidas y productos, registro de ventas'}
             {activeView === 'settings' && 'Preferencias y configuración del sistema'}
           </p>
         </div>
@@ -70,6 +76,8 @@ export default function AdminLayout() {
                 return <ClientesManager />;
               case 'nomina':
                 return <NominaManager />;
+              case 'productos':
+                return <ProductosManagement />;
               case 'settings':
                 return <div className="bg-white rounded-lg shadow-md p-8 text-center">
                   <div className="text-6xl mb-4">🚧</div>

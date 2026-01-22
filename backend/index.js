@@ -11,6 +11,8 @@ import lavadoresRouter from "./routes/lavadores.js";
 import nominaRouter from "./routes/nomina.js";
 import talleresRouter from "./routes/talleres.js";
 import clientesRouter from "./routes/clientes.js";
+import productosRouter from "./routes/productos.js";
+import authRouter from "./routes/auth.js";
 // Promociones y reportes de promociones removidos
 
 // Cargar variables de entorno
@@ -59,12 +61,14 @@ if (!fs.existsSync(servicesDir)) {
 }
 app.use('/uploads', express.static(uploadsDir));
 
+app.use("/api/auth", authRouter);
 app.use("/api/citas", citasRouter);
 app.use("/api/servicios", serviciosRouter);
 app.use("/api/lavadores", lavadoresRouter);
 app.use("/api/nomina", nominaRouter);
 app.use("/api/talleres", talleresRouter);
 app.use("/api/clientes", clientesRouter);
+app.use("/api/productos", productosRouter);
 // Rutas de promociones/reportes deshabilitadas
 
 // Subida de imagen vía base64 (evita dependencias externas)

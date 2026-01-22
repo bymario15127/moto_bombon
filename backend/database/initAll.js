@@ -136,7 +136,33 @@ async function initAll() {
       console.log("✅ Servicios de ejemplo insertados");
     }
 
-    // 4. Crear tabla nomina (si se necesita)
+    // 4. Crear tabla talleres
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS talleres (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL UNIQUE,
+        contacto TEXT,
+        telefono TEXT,
+        email TEXT,
+        precio_bajo_cc REAL,
+        precio_alto_cc REAL,
+        activo INTEGER DEFAULT 1,
+        fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log("✅ Tabla 'talleres' creada");
+
+    // 5. Agregar columna tipo_cliente a citas si no existe
+    try {
+      await db.exec("ALTER TABLE citas ADD COLUMN tipo_cliente TEXT DEFAULT 'cliente'");
+      console.log("✅ Columna tipo_cliente agregada a citas");
+    } catch (error) {
+      if (!error.message.includes("duplicate column")) {
+        console.log("ℹ️ La columna tipo_cliente ya existe");
+      }
+    }
+
+    // 6. Crear tabla nomina
     await db.exec(`
       CREATE TABLE IF NOT EXISTS nomina (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -153,6 +179,35 @@ async function initAll() {
       )
     `);
     console.log("✅ Tabla 'nomina' creada");
+
+    // 7. Crear tabla productos
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS productos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre TEXT NOT NULL UNIQUE,
+        precio_compra REAL NOT NULL,
+        precio_venta REAL NOT NULL,
+        stock INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log("✅ Tabla 'productos' creada");
+
+    // 8. Crear tabla ventas
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS ventas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        producto_id INTEGER NOT NULL,
+        cantidad INTEGER NOT NULL,
+        precio_unitario REAL NOT NULL,
+        total REAL NOT NULL,
+        registrado_por TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (producto_id) REFERENCES productos(id)
+      )
+    `);
+    console.log("✅ Tabla 'ventas' creada");
 
     console.log("\n🎉 Base de datos inicializada correctamente!");
     await db.close();

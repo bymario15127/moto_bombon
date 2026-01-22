@@ -1,0 +1,437 @@
+// Frontend/src/components/admin/ProductosManagement.jsx
+import { useState, useEffect } from 'react';
+import { 
+  obtenerProductos, 
+  crearProducto, 
+  actualizarProducto, 
+  eliminarProducto,
+  registrarVenta,
+  obtenerReporteDiario 
+} from '../../services/productosService';
+import './ProductosManagement.css';
+
+export default function ProductosManagement() {
+  const [productos, setProductos] = useState([]);
+  const [ventas, setVentas] = useState([]);
+  const [activeTab, setActiveTab] = useState('ventas');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  
+  // Form para crear/editar producto
+  const [formProducto, setFormProducto] = useState({
+    nombre: '',
+    precio_compra: '',
+    precio_venta: '',
+    stock: 0
+  });
+  const [editingId, setEditingId] = useState(null);
+
+  // Form para registrar venta
+  const [formVenta, setFormVenta] = useState({
+    producto_id: '',
+    cantidad: 1
+  });
+
+  // Filtro de fecha para reportes
+  const [filtroFecha, setFiltroFecha] = useState(new Date().toISOString().split('T')[0]);
+
+  // Debug: mostrar token en consola
+  useEffect(() => {
+    const token = localStorage.getItem("motobombon_token");
+    const isAdmin = localStorage.getItem("motobombon_is_admin");
+    console.log("🔐 Token:", token ? "✅ Existe" : "❌ NO EXISTE");
+    console.log("👤 Is Admin:", isAdmin);
+    if (!token) {
+      setMessage("⚠️ No hay sesión activa. Por favor, vuelve a hacer login.");
+    } else {
+      cargarProductos();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'ventas') {
+      cargarVentas();
+    }
+  }, [activeTab, filtroFecha]);
+
+  const cargarProductos = async () => {
+    try {
+      setLoading(true);
+      const data = await obtenerProductos();
+      setProductos(data);
+      setMessage('');
+    } catch (error) {
+      setMessage(`❌ Error: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cargarVentas = async () => {
+    try {
+      setLoading(true);
+      const data = await obtenerReporteDiario(filtroFecha);
+      setVentas(data.ventas || []);
+      setMessage('');
+    } catch (error) {
+      setMessage(`❌ Error: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitProducto = async (e) => {
+    e.preventDefault();
+
+    if (!formProducto.nombre || !formProducto.precio_compra || !formProducto.precio_venta) {
+      setMessage('❌ Completa todos los campos');
+      return;
+    }
+
+    if (parseFloat(formProducto.precio_venta) < parseFloat(formProducto.precio_compra)) {
+      setMessage('❌ El precio de venta debe ser mayor o igual al de compra');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      if (editingId) {
+        await actualizarProducto(editingId, formProducto);
+        setMessage('✅ Producto actualizado');
+        setEditingId(null);
+      } else {
+        await crearProducto(formProducto);
+        setMessage('✅ Producto creado');
+      }
+
+      setFormProducto({
+        nombre: '',
+        precio_compra: '',
+        precio_venta: '',
+        stock: 0
+      });
+      
+      await cargarProductos();
+    } catch (error) {
+      setMessage(`❌ Error: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditarProducto = (producto) => {
+    setFormProducto({
+      nombre: producto.nombre,
+      precio_compra: producto.precio_compra,
+      precio_venta: producto.precio_venta,
+      stock: producto.stock
+    });
+    setEditingId(producto.id);
+  };
+
+  const handleEliminarProducto = async (id) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este producto?')) return;
+
+    try {
+      setLoading(true);
+      await eliminarProducto(id);
+      setMessage('✅ Producto eliminado');
+      await cargarProductos();
+    } catch (error) {
+      setMessage(`❌ Error: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegistrarVenta = async (e) => {
+    e.preventDefault();
+
+    if (!formVenta.producto_id || !formVenta.cantidad || formVenta.cantidad <= 0) {
+      setMessage('❌ Selecciona producto y cantidad válida');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const producto = productos.find(p => p.id === parseInt(formVenta.producto_id));
+      
+      if (producto.stock < formVenta.cantidad) {
+        setMessage(`❌ Stock insuficiente. Stock disponible: ${producto.stock}`);
+        return;
+      }
+
+      await registrarVenta(formVenta.producto_id, formVenta.cantidad);
+      setMessage('✅ Venta registrada');
+      setFormVenta({ producto_id: '', cantidad: 1 });
+      await cargarProductos();
+      await cargarVentas();
+    } catch (error) {
+      setMessage(`❌ Error: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelarEdicion = () => {
+    setEditingId(null);
+    setFormProducto({
+      nombre: '',
+      precio_compra: '',
+      precio_venta: '',
+      stock: 0
+    });
+  };
+
+  const calcularGanancia = (venta) => {
+    return (venta.precio_unitario - venta.precio_compra) * venta.cantidad;
+  };
+
+  const calcularGananciaTotal = () => {
+    return ventas.reduce((sum, v) => sum + calcularGanancia(v), 0);
+  };
+
+  const calcularVentasTotal = () => {
+    return ventas.reduce((sum, v) => sum + v.total, 0);
+  };
+
+  return (
+    <div className="productos-management">
+      <h2>📦 Gestión de Productos y Ventas</h2>
+
+      {message && (
+        <div className={`message ${message.includes('✅') ? 'success' : 'error'}`}>
+          {message}
+        </div>
+      )}
+
+      <div className="tabs">
+        <button 
+          className={`tab ${activeTab === 'ventas' ? 'active' : ''}`}
+          onClick={() => setActiveTab('ventas')}
+        >
+          💰 Registrar Venta
+        </button>
+        <button 
+          className={`tab ${activeTab === 'productos' ? 'active' : ''}`}
+          onClick={() => setActiveTab('productos')}
+        >
+          📦 Productos
+        </button>
+        <button 
+          className={`tab ${activeTab === 'reportes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('reportes')}
+        >
+          📊 Reportes
+        </button>
+      </div>
+
+      {loading && <p className="loading">Cargando...</p>}
+
+      {/* TAB: PRODUCTOS */}
+      {activeTab === 'productos' && (
+        <div className="tab-content">
+          <div className="form-section">
+            <h3>{editingId ? '✏️ Editar Producto' : '➕ Nuevo Producto'}</h3>
+            <form onSubmit={handleSubmitProducto}>
+              <input
+                type="text"
+                placeholder="Nombre del producto"
+                value={formProducto.nombre}
+                onChange={(e) => setFormProducto({...formProducto, nombre: e.target.value})}
+                disabled={editingId !== null}
+              />
+              
+              <div className="input-group">
+                <input
+                  type="number"
+                  placeholder="Precio de compra"
+                  value={formProducto.precio_compra}
+                  onChange={(e) => setFormProducto({...formProducto, precio_compra: e.target.value})}
+                  step="0.01"
+                />
+                <input
+                  type="number"
+                  placeholder="Precio de venta"
+                  value={formProducto.precio_venta}
+                  onChange={(e) => setFormProducto({...formProducto, precio_venta: e.target.value})}
+                  step="0.01"
+                />
+              </div>
+
+              <input
+                type="number"
+                placeholder="Stock"
+                value={formProducto.stock}
+                onChange={(e) => setFormProducto({...formProducto, stock: e.target.value})}
+              />
+
+              <div className="button-group">
+                <button type="submit" className="btn-primary">
+                  {editingId ? 'Actualizar' : 'Crear'}
+                </button>
+                {editingId && (
+                  <button 
+                    type="button" 
+                    className="btn-secondary"
+                    onClick={handleCancelarEdicion}
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="products-list">
+            <h3>Productos registrados</h3>
+            {productos.length === 0 ? (
+              <p>No hay productos registrados</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Precio Compra</th>
+                    <th>Precio Venta</th>
+                    <th>Margen</th>
+                    <th>Stock</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productos.map(producto => (
+                    <tr key={producto.id}>
+                      <td>{producto.nombre}</td>
+                      <td>${producto.precio_compra.toLocaleString()}</td>
+                      <td>${producto.precio_venta.toLocaleString()}</td>
+                      <td>{(((producto.precio_venta - producto.precio_compra) / producto.precio_compra) * 100).toFixed(1)}%</td>
+                      <td>{producto.stock}</td>
+                      <td>
+                        <button 
+                          className="btn-edit"
+                          onClick={() => handleEditarProducto(producto)}
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          className="btn-delete"
+                          onClick={() => handleEliminarProducto(producto.id)}
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: REGISTRAR VENTA */}
+      {activeTab === 'ventas' && (
+        <div className="tab-content">
+          <div className="form-section">
+            <h3>💳 Registrar Nueva Venta</h3>
+            <form onSubmit={handleRegistrarVenta}>
+              <select
+                value={formVenta.producto_id}
+                onChange={(e) => setFormVenta({...formVenta, producto_id: e.target.value})}
+              >
+                <option value="">Selecciona un producto</option>
+                {productos.map(producto => (
+                  <option key={producto.id} value={producto.id}>
+                    {producto.nombre} - Stock: {producto.stock}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                placeholder="Cantidad"
+                value={formVenta.cantidad}
+                onChange={(e) => setFormVenta({...formVenta, cantidad: parseInt(e.target.value) || 0})}
+                min="1"
+              />
+
+              <button type="submit" className="btn-primary">
+                Registrar Venta
+              </button>
+            </form>
+          </div>
+
+          <div className="sales-list">
+            <h3>Ventas del día ({filtroFecha})</h3>
+            <input 
+              type="date" 
+              value={filtroFecha}
+              onChange={(e) => setFiltroFecha(e.target.value)}
+              className="date-filter"
+            />
+            
+            {ventas.length === 0 ? (
+              <p>No hay ventas registradas para este día</p>
+            ) : (
+              <>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Hora</th>
+                      <th>Producto</th>
+                      <th>Cantidad</th>
+                      <th>Precio Unitario</th>
+                      <th>Total</th>
+                      <th>Ganancia</th>
+                      <th>Registrado por</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ventas.map(venta => (
+                      <tr key={venta.id}>
+                        <td>{new Date(venta.created_at).toLocaleTimeString('es-ES')}</td>
+                        <td>{venta.producto}</td>
+                        <td>{venta.cantidad}</td>
+                        <td>${venta.precio_unitario.toLocaleString()}</td>
+                        <td>${venta.total.toLocaleString()}</td>
+                        <td className="ganancia">${calcularGanancia(venta).toLocaleString()}</td>
+                        <td>{venta.registrado_por}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                <div className="resumen">
+                  <div className="resumen-item">
+                    <strong>Total Ventas:</strong> ${calcularVentasTotal().toLocaleString()}
+                  </div>
+                  <div className="resumen-item">
+                    <strong>Ganancia Neta:</strong> ${calcularGananciaTotal().toLocaleString()}
+                  </div>
+                  <div className="resumen-item">
+                    <strong>Cantidad de ventas:</strong> {ventas.length}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: REPORTES */}
+      {activeTab === 'reportes' && (
+        <div className="tab-content">
+          <h3>📊 Reportes de Ventas</h3>
+          <p className="info-text">
+            Aquí puedes ver los reportes detallados de ganancias por cada día.
+          </p>
+          <p className="info-text">
+            <strong>Nota:</strong> Recuerda que la ganancia = (Precio de Venta - Precio de Compra) × Cantidad
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

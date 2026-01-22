@@ -1,6 +1,5 @@
 // routes/auth.js
 import express from 'express';
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
@@ -10,12 +9,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-este-secret-en-produccion'
 // Base de datos de usuarios (en producción, esto debería estar en la DB)
 const users = {
   admin: {
-    passwordHash: process.env.ADMIN_PASSWORD_HASH || '$2b$10$ejemplo', // Cambiar en .env
+    password: 'motobombon123',
     role: 'admin',
     name: 'Paula Espinosa'
   },
   supervisor: {
-    passwordHash: process.env.SUPERVISOR_PASSWORD_HASH || '$2b$10$ejemplo', // Cambiar en .env
+    password: 'supervisor123',
     role: 'supervisor',
     name: 'Supervisor'
   }
@@ -35,10 +34,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
     
-    // Comparar contraseña con hash
-    const isValid = await bcrypt.compare(password, user.passwordHash);
-    
-    if (!isValid) {
+    // Comparar contraseña simple
+    if (user.password !== password) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
     
@@ -46,7 +43,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { username, role: user.role, name: user.name },
       JWT_SECRET,
-      { expiresIn: '8h' } // Token válido por 8 horas
+      { expiresIn: '24h' } // Token válido por 24 horas
     );
     
     res.json({
