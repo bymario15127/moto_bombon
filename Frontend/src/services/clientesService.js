@@ -1,5 +1,5 @@
 // Frontend/src/services/clientesService.js
-const API_URL = "http://localhost:3000/api/clientes";
+const API_URL = "/api/clientes";
 
 // Obtener todos los clientes ordenados por lavadas
 export const getClientes = async () => {

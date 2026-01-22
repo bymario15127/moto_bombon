@@ -1,6 +1,6 @@
 // src/services/lavadoresService.js
 // Use relative URLs - works in both dev (via Vite proxy) and prod (via Nginx proxy)
-const API_URL = "http://localhost:3000/api/lavadores";
+const API_URL = "/api/lavadores";
 
 export async function getLavadores() {
   const res = await fetch(API_URL);

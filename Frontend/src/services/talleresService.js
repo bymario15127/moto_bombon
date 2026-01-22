@@ -1,7 +1,7 @@
 // Frontend/src/services/talleresService.js
 class TalleresService {
   async getTalleres() {
-    const response = await fetch('http://localhost:3000/api/talleres');
+    const response = await fetch('/api/talleres');
     if (!response.ok) throw new Error('Error al obtener talleres');
     return response.json();
   }

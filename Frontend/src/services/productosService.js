@@ -1,5 +1,5 @@
 // src/services/productosService.js
-const API_URL = "http://localhost:3000/api/productos";
+const API_URL = "/api/productos";
 
 const getAuthHeader = () => {
   const token = localStorage.getItem("motobombon_token");

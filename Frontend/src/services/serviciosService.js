@@ -1,6 +1,6 @@
 // src/services/serviciosService.js
 // Use relative URLs - works in both dev (via Vite proxy) and prod (via Nginx proxy)
-const API_URL = "http://localhost:3000/api/servicios";
+const API_URL = "/api/servicios";
 const UPLOAD_URL = "/api/upload-image";
 
 // Cache para servicios (se actualiza cada 5 minutos)
