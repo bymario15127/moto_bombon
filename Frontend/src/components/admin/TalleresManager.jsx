@@ -232,13 +232,13 @@ export default function TalleresManager() {
                 className="btn-edit"
                 onClick={() => handleEdit(taller)}
               >
-                ✏️ Editar
+                Editar
               </button>
               <button 
                 className="btn-delete"
                 onClick={() => handleDelete(taller.id)}
               >
-                🗑️ Eliminar
+                Eliminar
               </button>
             </div>
           </div>

@@ -323,13 +323,13 @@ export default function ServiciosManager() {
                 className="btn-edit"
                 onClick={() => handleEdit(servicio)}
               >
-                ✏️ Editar
+                Editar
               </button>
               <button 
                 className="btn-delete"
                 onClick={() => handleDelete(servicio.id)}
               >
-                🗑️ Eliminar
+                Eliminar
               </button>
             </div>
           </div>

@@ -478,13 +478,13 @@ export default function PromocionesManager() {
                     onClick={() => handleEdit(promo)}
                     className="btn-edit"
                   >
-                    ✏️ Editar
+                    Editar
                   </button>
                   <button 
                     onClick={() => handleDelete(promo.id)}
                     className="btn-delete"
                   >
-                    🗑️ Eliminar
+                    Eliminar
                   </button>
                 </div>
               </div>
