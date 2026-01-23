@@ -1,6 +1,6 @@
 // Frontend/src/components/admin/ClientesManager.jsx
 import { useState, useEffect } from "react";
-import { getClientes, verificarCupon, usarCupon } from "../../services/clientesService";
+import { getClientes, verificarCupon, usarCupon, exportarClientesExcel } from "../../services/clientesService";
 import "../../App.css";
 
 export default function ClientesManager() {
@@ -173,7 +173,8 @@ export default function ClientesManager() {
 
           <ActionButton label="🔗 Fusionar" color="#ff6b6b" onClick={() => setMostrarFusionar(!mostrarFusionar)} />
           <ActionButton label="🎫 Cupón" color="#667eea" onClick={() => setMostrarCupon(!mostrarCupon)} />
-          <ActionButton label="🔄 Actualizar" color="#43e97b" onClick={cargarClientes} />
+          <ActionButton label="� Exportar Excel" color="#ffa500" onClick={() => exportarClientesExcel(clientes).catch(err => alert(err.message))} />
+          <ActionButton label="�🔄 Actualizar" color="#43e97b" onClick={cargarClientes} />
         </div>
 
         {/* Panel Fusionar */}

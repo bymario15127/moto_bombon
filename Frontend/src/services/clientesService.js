@@ -57,3 +57,38 @@ export const guardarCliente = async (cliente) => {
   }
   return response.json();
 };
+
+// Exportar clientes a Excel (nombre, celular, placa)
+export const exportarClientesExcel = async (clientes) => {
+  try {
+    const XLSX = await import('xlsx');
+    
+    // Preparar datos: solo nombre, celular, placa
+    const datos = clientes.map(cliente => ({
+      "Nombre": cliente.nombre || "-",
+      "Celular": cliente.telefono || cliente.celular || "-",
+      "Placa": cliente.placa_principal || "-"
+    }));
+
+    // Crear workbook
+    const ws = XLSX.utils.json_to_sheet(datos);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Clientes");
+
+    // Ajustar ancho de columnas
+    ws['!cols'] = [
+      { wch: 25 },  // Nombre
+      { wch: 15 },  // Celular
+      { wch: 12 }   // Placa
+    ];
+
+    // Descargar
+    const fecha = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `clientes_${fecha}.xlsx`);
+
+    return { success: true, mensaje: "Archivo descargado correctamente" };
+  } catch (error) {
+    console.error("Error exportando Excel:", error);
+    throw new Error("Error al exportar a Excel");
+  }
+};
