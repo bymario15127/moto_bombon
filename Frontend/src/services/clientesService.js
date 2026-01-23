@@ -63,11 +63,12 @@ export const exportarClientesExcel = async (clientes) => {
   try {
     const XLSX = await import('xlsx');
     
-    // Preparar datos: solo nombre, celular, placa
+    // Preparar datos: obtener placa más reciente por cliente
+    // La placa está en citas, así que traeremos la del cliente si hay
     const datos = clientes.map(cliente => ({
       "Nombre": cliente.nombre || "-",
       "Celular": cliente.telefono || cliente.celular || "-",
-      "Placa": cliente.placa_principal || "-"
+      "Placa": cliente.placa || cliente.placa_principal || "-"
     }));
 
     // Crear workbook

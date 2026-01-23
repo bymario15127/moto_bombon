@@ -143,21 +143,33 @@ router.get("/email/:email", async (req, res) => {
   }
 });
 
-// GET - Obtener todos los clientes con sus cupones
+// GET - Obtener todos los clientes con sus cupones y placa más reciente
 // NOTA: Las estadísticas solo incluyen citas normales (taller_id IS NULL)
 router.get("/", async (req, res) => {
   try {
     const clientes = await db.all('SELECT * FROM clientes ORDER BY lavadas_completadas DESC');
     
-    // Agregar cupones a cada cliente
+    // Agregar cupones y placa a cada cliente
     const clientesConCupones = await Promise.all(
       clientes.map(async (cliente) => {
         const cupones = await db.all(
           'SELECT codigo, usado, created_at, fecha_uso FROM cupones WHERE email_cliente = ? ORDER BY created_at DESC',
           [cliente.email]
         );
-        return { ...cliente, cupones };
+        
+        // Obtener placa más reciente del cliente
+        const citaConPlaca = await db.get(
+          'SELECT placa FROM citas WHERE email = ? AND placa IS NOT NULL ORDER BY fecha DESC, id DESC LIMIT 1',
+          [cliente.email]
+        );
+        
+        return { 
+          ...cliente, 
+          cupones,
+          placa: citaConPlaca?.placa || null
+        };
       })
+    );
     );
     
     res.json(clientesConCupones);
