@@ -70,9 +70,66 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
       ORDER BY total DESC
     `, [`${anioActual}-${mesActual}`]);
 
+    // Calcular comisiones de lavadores automáticamente
+    const servicios = await db.all("SELECT * FROM servicios");
+    const promociones = await db.all("SELECT * FROM promociones").catch(() => []);
+    const talleres = await db.all("SELECT * FROM talleres").catch(() => []);
+    const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1");
+    const citas = await db.all(`
+      SELECT c.* FROM citas c
+      WHERE c.lavador_id IS NOT NULL
+        AND c.fecha >= ? AND c.fecha <= ?
+        AND COALESCE(c.estado,'') = 'finalizada'
+      ORDER BY c.fecha, c.hora
+    `, [`${anioActual}-${mesActual}-01`, `${anioActual}-${mesActual}-31`]);
+
+    const serviciosByNombre = new Map(servicios.map(s => [String(s.nombre || '').trim().toLowerCase(), s]));
+    const promocionesById = new Map(promociones.map(p => [p.id, p]));
+    const talleresById = new Map(talleres.map(t => [t.id, t]));
+
+    // Función para calcular base de comisión
+    const calcularBaseComision = (cita) => {
+      const cc = cita.cilindraje;
+      if (cita.promocion_id) {
+        const p = promocionesById.get(cita.promocion_id);
+        if (p) {
+          if (cc >= 50 && cc <= 405) return Number(p.precio_comision_bajo_cc) || 0;
+          if (cc > 405) return Number(p.precio_comision_alto_cc) || 0;
+          return Number(p.precio_comision_bajo_cc || p.precio_comision_alto_cc || 0);
+        }
+      }
+      if (cita.taller_id) {
+        const t = talleresById.get(cita.taller_id);
+        if (t) {
+          if (cc >= 50 && cc <= 405) return Number(t.precio_bajo_cc) || 0;
+          if (cc > 405) return Number(t.precio_alto_cc) || 0;
+          return Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
+        }
+      }
+      const s = serviciosByNombre.get(String(cita.servicio || '').trim().toLowerCase());
+      if (s) {
+        if (cc >= 50 && cc <= 405) return Number(s.precio_base_comision_bajo ?? s.precio_bajo_cc ?? s.precio ?? 0) || 0;
+        if (cc > 405) return Number(s.precio_base_comision_alto ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+        return Number(s.precio_base_comision_bajo ?? s.precio_base_comision_alto ?? s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+      }
+      return 25000;
+    };
+
+    // Calcular total de comisiones
+    let totalComisiones = 0;
+    for (const cita of citas) {
+      const lavador = lavadores.find(l => l.id === cita.lavador_id);
+      if (lavador) {
+        const baseComision = calcularBaseComision(cita);
+        const comision = baseComision * ((Number(lavador.comision_porcentaje) || 0) / 100);
+        totalComisiones += comision;
+      }
+    }
+
     // Calcular totales
     const totalIngresos = (ingresosCitas?.total || 0) + (ingresosProductos?.total || 0);
-    const totalGastosCompleto = totalGastos?.total || 0;
+    const gastosManualesTotales = totalGastos?.total || 0;
+    const totalGastosCompleto = gastosManualesTotales + totalComisiones;
     const utilidadNeta = totalIngresos - totalGastosCompleto;
 
     res.json({
@@ -82,6 +139,8 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
         total: totalIngresos
       },
       gastos: {
+        manuales: gastosManualesTotales,
+        comisiones: totalComisiones,
         total: totalGastosCompleto,
         porCategoria: gastosPorCategoria
       },

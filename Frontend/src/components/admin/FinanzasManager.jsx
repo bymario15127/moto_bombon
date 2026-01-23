@@ -156,6 +156,8 @@ export default function FinanzasManager() {
             <div style={{background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", padding: "1.5rem", borderRadius: "8px"}}>
               <h3 style={{margin: 0, fontSize: "0.9rem", opacity: 0.9}}>Total Gastos</h3>
               <p style={{fontSize: "1.8rem", fontWeight: "bold", margin: "0.5rem 0 0 0"}}>{formatMoney(dashboard.gastos.total)}</p>
+              <small style={{opacity: 0.8}}>Manuales: {formatMoney(dashboard.gastos.manuales)}</small><br/>
+              <small style={{opacity: 0.8}}>Comisiones: {formatMoney(dashboard.gastos.comisiones)}</small>
             </div>
             <div style={{background: dashboard.utilidadNeta >= 0 ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : "linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)", padding: "1.5rem", borderRadius: "8px"}}>
               <h3 style={{margin: 0, fontSize: "0.9rem", opacity: 0.9}}>Utilidad Neta</h3>
