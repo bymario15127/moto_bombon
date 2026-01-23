@@ -1111,18 +1111,20 @@ button:disabled:hover {
 .btn-edit,
 .btn-delete {
   flex: 0 0 48%;
-  padding: 3px 6px;
+  padding: 2px 4px;
   border: none;
   border-radius: 3px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 9px;
-  line-height: 1;
-  height: 24px;
+  font-size: 8px;
+  line-height: 1.1;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 1px;
+  letter-spacing: -0.5px;
 }
 
 .btn-edit {
