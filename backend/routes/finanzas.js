@@ -54,11 +54,21 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
       WHERE strftime('%Y-%m', created_at) = ?
     `, [`${anioActual}-${mesActual}`]);
 
-    // Gastos del mes
+    // Gastos del mes (gastos manuales)
     const totalGastos = await db.get(`
       SELECT COALESCE(SUM(monto), 0) as total
       FROM gastos
       WHERE strftime('%Y-%m', fecha) = ?
+    `, [`${anioActual}-${mesActual}`]);
+
+    // Gastos de nómina (comisiones pagadas a lavadores)
+    const gastosNomina = await db.get(`
+      SELECT COALESCE(SUM(comision), 0) as total
+      FROM citas
+      WHERE estado = 'completada' 
+        AND strftime('%Y-%m', fecha) = ?
+        AND comision IS NOT NULL
+        AND comision > 0
     `, [`${anioActual}-${mesActual}`]);
 
     // Gastos por categoría
@@ -72,7 +82,8 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
 
     // Calcular totales
     const totalIngresos = (ingresosCitas?.total || 0) + (ingresosProductos?.total || 0);
-    const utilidadNeta = totalIngresos - (totalGastos?.total || 0);
+    const totalGastosCompleto = (totalGastos?.total || 0) + (gastosNomina?.total || 0);
+    const utilidadNeta = totalIngresos - totalGastosCompleto;
 
     res.json({
       ingresos: {
@@ -81,7 +92,9 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
         total: totalIngresos
       },
       gastos: {
-        total: totalGastos?.total || 0,
+        manuales: totalGastos?.total || 0,
+        nomina: gastosNomina?.total || 0,
+        total: totalGastosCompleto,
         porCategoria: gastosPorCategoria
       },
       utilidadNeta,
@@ -244,8 +257,43 @@ router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, re
       ORDER BY created_at DESC
     `, [`${anioActual}-${mesActual}`]);
 
+    // Ingresos de servicios (citas completadas)
+    const ingresosServicios = await db.all(`
+      SELECT 'ingreso' as tipo, c.fecha, 
+             'Servicio: ' || c.servicio || ' - ' || c.cliente as descripcion,
+             CASE 
+               WHEN s.precio_bajo_cc IS NOT NULL AND c.cilindraje <= 150 THEN s.precio_bajo_cc
+               WHEN s.precio_alto_cc IS NOT NULL AND c.cilindraje > 150 THEN s.precio_alto_cc
+               ELSE s.precio
+             END as monto,
+             'Servicios' as categoria,
+             NULL as registrado_por
+      FROM citas c
+      LEFT JOIN servicios s ON c.servicio = s.nombre
+      WHERE c.estado = 'completada' 
+        AND strftime('%Y-%m', c.fecha) = ?
+        AND c.taller_id IS NULL
+      ORDER BY c.fecha DESC
+    `, [`${anioActual}-${mesActual}`]);
+
+    // Gastos de nómina (comisiones pagadas)
+    const gastosNomina = await db.all(`
+      SELECT 'gasto' as tipo, c.fecha,
+             'Nómina: ' || l.nombre || ' - ' || c.servicio as descripcion,
+             c.comision as monto,
+             'Nómina' as categoria,
+             NULL as registrado_por
+      FROM citas c
+      LEFT JOIN lavadores l ON c.lavador_id = l.id
+      WHERE c.estado = 'completada'
+        AND strftime('%Y-%m', c.fecha) = ?
+        AND c.comision IS NOT NULL
+        AND c.comision > 0
+      ORDER BY c.fecha DESC
+    `, [`${anioActual}-${mesActual}`]);
+
     // Combinar y ordenar todos los movimientos
-    const movimientos = [...gastos, ...ingresosProductos].sort((a, b) => {
+    const movimientos = [...gastos, ...ingresosProductos, ...ingresosServicios, ...gastosNomina].sort((a, b) => {
       return new Date(b.fecha) - new Date(a.fecha);
     });
 
