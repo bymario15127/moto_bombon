@@ -35,7 +35,6 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
     const ingresosCitas = await db.get(`
       SELECT COALESCE(SUM(
         CASE 
-          WHEN c.promocion_id IS NOT NULL THEN p.precio
           WHEN s.precio_bajo_cc IS NOT NULL AND c.cilindraje <= 150 THEN s.precio_bajo_cc
           WHEN s.precio_alto_cc IS NOT NULL AND c.cilindraje > 150 THEN s.precio_alto_cc
           ELSE s.precio
@@ -43,7 +42,6 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
       ), 0) as total
       FROM citas c
       LEFT JOIN servicios s ON c.servicio = s.nombre
-      LEFT JOIN promociones p ON c.promocion_id = p.id
       WHERE c.estado = 'completada'
       AND strftime('%Y-%m', c.fecha) = ?
       AND c.taller_id IS NULL
