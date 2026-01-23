@@ -42,7 +42,7 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
       ), 0) as total
       FROM citas c
       LEFT JOIN servicios s ON LOWER(c.servicio) = LOWER(s.nombre)
-      WHERE c.estado = 'finalizada'
+      WHERE c.estado IN ('finalizada', 'confirmada')
       AND strftime('%Y-%m', c.fecha) = ?
       AND c.taller_id IS NULL
       AND c.lavador_id IS NOT NULL
@@ -80,7 +80,7 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
       SELECT c.* FROM citas c
       WHERE c.lavador_id IS NOT NULL
         AND strftime('%Y-%m', c.fecha) = ?
-        AND c.estado = 'finalizada'
+        AND c.estado IN ('finalizada', 'confirmada')
       ORDER BY c.fecha, c.hora
     `, [`${anioActual}-${mesActual}`]);
 
@@ -305,7 +305,7 @@ router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, re
       ORDER BY created_at DESC
     `, [`${anioActual}-${mesActual}`]);
 
-    // Ingresos de servicios (citas finalizadas)
+    // Ingresos de servicios (citas finalizadas o confirmadas)
     const ingresosServicios = await db.all(`
       SELECT 'ingreso' as tipo, c.fecha, 
              'Servicio: ' || c.servicio || ' - ' || c.cliente as descripcion,
@@ -318,7 +318,7 @@ router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, re
              NULL as registrado_por
       FROM citas c
       LEFT JOIN servicios s ON LOWER(c.servicio) = LOWER(s.nombre)
-      WHERE c.estado = 'finalizada' 
+      WHERE c.estado IN ('finalizada', 'confirmada') 
         AND strftime('%Y-%m', c.fecha) = ?
         AND c.taller_id IS NULL
         AND c.lavador_id IS NOT NULL
