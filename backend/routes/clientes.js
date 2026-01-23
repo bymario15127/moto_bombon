@@ -170,7 +170,6 @@ router.get("/", async (req, res) => {
         };
       })
     );
-    );
     
     res.json(clientesConCupones);
   } catch (error) {
