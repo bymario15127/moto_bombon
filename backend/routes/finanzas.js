@@ -31,23 +31,6 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
     const mesActual = mes || (fecha.getMonth() + 1).toString().padStart(2, '0');
     const anioActual = anio || fecha.getFullYear().toString();
     
-    // Ingresos por servicios (citas finalizadas del mes)
-    const ingresosCitas = await db.get(`
-      SELECT COALESCE(SUM(
-        CASE 
-          WHEN s.precio_bajo_cc IS NOT NULL AND c.cilindraje >= 50 AND c.cilindraje <= 405 THEN s.precio_bajo_cc
-          WHEN s.precio_alto_cc IS NOT NULL AND c.cilindraje > 405 THEN s.precio_alto_cc
-          ELSE s.precio
-        END
-      ), 0) as total
-      FROM citas c
-      LEFT JOIN servicios s ON LOWER(c.servicio) = LOWER(s.nombre)
-      WHERE c.estado IN ('finalizada', 'confirmada')
-      AND strftime('%Y-%m', c.fecha) = ?
-      AND c.taller_id IS NULL
-      AND c.lavador_id IS NOT NULL
-    `, [`${anioActual}-${mesActual}`]);
-
     // Ingresos por productos (ventas del mes)
     const ingresosProductos = await db.get(`
       SELECT COALESCE(SUM(total), 0) as total
@@ -88,6 +71,44 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
     const promocionesById = new Map(promociones.map(p => [p.id, p]));
     const talleresById = new Map(talleres.map(t => [t.id, t]));
 
+    const ccIsBajo = (cc) => {
+      const n = Number(cc || 0);
+      return !Number.isNaN(n) && n >= 50 && n <= 405;
+    };
+    const ccIsAlto = (cc) => {
+      const n = Number(cc || 0);
+      return !Number.isNaN(n) && n > 405;
+    };
+    const normalize = (s) => String(s || '').trim().toLowerCase();
+
+    // Función para calcular precio cliente (mismo cálculo que nómina)
+    const calcularPrecioCliente = (cita) => {
+      const cc = cita.cilindraje;
+      if (cita.promocion_id) {
+        const p = promocionesById.get(cita.promocion_id);
+        if (p) {
+          if (ccIsBajo(cc)) return Number(p.precio_cliente_bajo_cc) || 0;
+          if (ccIsAlto(cc)) return Number(p.precio_cliente_alto_cc) || 0;
+          return Number(p.precio_cliente_bajo_cc || p.precio_cliente_alto_cc || 0);
+        }
+      }
+      if (cita.taller_id) {
+        const t = talleresById.get(cita.taller_id);
+        if (t) {
+          if (ccIsBajo(cc)) return Number(t.precio_bajo_cc) || 0;
+          if (ccIsAlto(cc)) return Number(t.precio_alto_cc) || 0;
+          return Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
+        }
+      }
+      const s = serviciosByNombre.get(normalize(cita.servicio));
+      if (s) {
+        if (ccIsBajo(cc)) return Number(s.precio_bajo_cc ?? s.precio ?? 0) || 0;
+        if (ccIsAlto(cc)) return Number(s.precio_alto_cc ?? s.precio ?? 0) || 0;
+        return Number(s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+      }
+      return 25000;
+    };
+
     // Función para calcular base de comisión
     const calcularBaseComision = (cita) => {
       const cc = cita.cilindraje;
@@ -127,15 +148,18 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
       }
     }
 
+    // Calcular ingresos por servicios usando el mismo cálculo de precio cliente que nómina
+    const ingresosServiciosTotal = citas.reduce((sum, c) => sum + calcularPrecioCliente(c), 0);
+
     // Calcular totales
-    const totalIngresos = (ingresosCitas?.total || 0) + (ingresosProductos?.total || 0);
+    const totalIngresos = ingresosServiciosTotal + (ingresosProductos?.total || 0);
     const gastosManualesTotales = totalGastos?.total || 0;
     const totalGastosCompleto = gastosManualesTotales + totalComisiones;
     const utilidadNeta = totalIngresos - totalGastosCompleto;
 
     res.json({
       ingresos: {
-        servicios: ingresosCitas?.total || 0,
+        servicios: ingresosServiciosTotal,
         productos: ingresosProductos?.total || 0,
         total: totalIngresos
       },
@@ -305,25 +329,67 @@ router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, re
       ORDER BY created_at DESC
     `, [`${anioActual}-${mesActual}`]);
 
-    // Ingresos de servicios (citas finalizadas o confirmadas)
-    const ingresosServicios = await db.all(`
-      SELECT 'ingreso' as tipo, c.fecha, 
-             'Servicio: ' || c.servicio || ' - ' || c.cliente as descripcion,
-             CASE 
-               WHEN s.precio_bajo_cc IS NOT NULL AND c.cilindraje >= 50 AND c.cilindraje <= 405 THEN s.precio_bajo_cc
-               WHEN s.precio_alto_cc IS NOT NULL AND c.cilindraje > 405 THEN s.precio_alto_cc
-               ELSE s.precio
-             END as monto,
-             'Servicios' as categoria,
-             NULL as registrado_por
-      FROM citas c
-      LEFT JOIN servicios s ON LOWER(c.servicio) = LOWER(s.nombre)
-      WHERE c.estado IN ('finalizada', 'confirmada') 
-        AND strftime('%Y-%m', c.fecha) = ?
-        AND c.taller_id IS NULL
-        AND c.lavador_id IS NOT NULL
-      ORDER BY c.fecha DESC
+    // Contexto para calcular precio cliente igual que nómina
+    const servicios = await db.all("SELECT * FROM servicios");
+    const promociones = await db.all("SELECT * FROM promociones").catch(() => []);
+    const talleres = await db.all("SELECT * FROM talleres").catch(() => []);
+    const serviciosByNombre = new Map(servicios.map(s => [String(s.nombre || '').trim().toLowerCase(), s]));
+    const promocionesById = new Map(promociones.map(p => [p.id, p]));
+    const talleresById = new Map(talleres.map(t => [t.id, t]));
+    const ccIsBajo = (cc) => {
+      const n = Number(cc || 0);
+      return !Number.isNaN(n) && n >= 50 && n <= 405;
+    };
+    const ccIsAlto = (cc) => {
+      const n = Number(cc || 0);
+      return !Number.isNaN(n) && n > 405;
+    };
+    const normalize = (s) => String(s || '').trim().toLowerCase();
+    const calcularPrecioCliente = (cita) => {
+      const cc = cita.cilindraje;
+      if (cita.promocion_id) {
+        const p = promocionesById.get(cita.promocion_id);
+        if (p) {
+          if (ccIsBajo(cc)) return Number(p.precio_cliente_bajo_cc) || 0;
+          if (ccIsAlto(cc)) return Number(p.precio_cliente_alto_cc) || 0;
+          return Number(p.precio_cliente_bajo_cc || p.precio_cliente_alto_cc || 0);
+        }
+      }
+      if (cita.taller_id) {
+        const t = talleresById.get(cita.taller_id);
+        if (t) {
+          if (ccIsBajo(cc)) return Number(t.precio_bajo_cc) || 0;
+          if (ccIsAlto(cc)) return Number(t.precio_alto_cc) || 0;
+          return Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
+        }
+      }
+      const s = serviciosByNombre.get(normalize(cita.servicio));
+      if (s) {
+        if (ccIsBajo(cc)) return Number(s.precio_bajo_cc ?? s.precio ?? 0) || 0;
+        if (ccIsAlto(cc)) return Number(s.precio_alto_cc ?? s.precio ?? 0) || 0;
+        return Number(s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+      }
+      return 25000;
+    };
+
+    // Traer citas del mes con lavador asignado y estados válidos
+    const citasServicios = await db.all(`
+      SELECT * FROM citas
+      WHERE lavador_id IS NOT NULL
+        AND estado IN ('finalizada', 'confirmada')
+        AND strftime('%Y-%m', fecha) = ?
+        AND taller_id IS NULL
+      ORDER BY fecha DESC
     `, [`${anioActual}-${mesActual}`]);
+
+    const ingresosServicios = citasServicios.map(c => ({
+      tipo: 'ingreso',
+      fecha: c.fecha,
+      descripcion: `Servicio: ${c.servicio} - ${c.cliente}`,
+      monto: calcularPrecioCliente(c),
+      categoria: 'Servicios',
+      registrado_por: null
+    }));
 
     // Combinar y ordenar todos los movimientos
     const movimientos = [...gastos, ...ingresosProductos, ...ingresosServicios].sort((a, b) => {
