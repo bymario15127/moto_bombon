@@ -35,16 +35,17 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
     const ingresosCitas = await db.get(`
       SELECT COALESCE(SUM(
         CASE 
-          WHEN s.precio_bajo_cc IS NOT NULL AND c.cilindraje <= 150 THEN s.precio_bajo_cc
-          WHEN s.precio_alto_cc IS NOT NULL AND c.cilindraje > 150 THEN s.precio_alto_cc
+          WHEN s.precio_bajo_cc IS NOT NULL AND c.cilindraje >= 50 AND c.cilindraje <= 405 THEN s.precio_bajo_cc
+          WHEN s.precio_alto_cc IS NOT NULL AND c.cilindraje > 405 THEN s.precio_alto_cc
           ELSE s.precio
         END
       ), 0) as total
       FROM citas c
-      LEFT JOIN servicios s ON c.servicio = s.nombre
+      LEFT JOIN servicios s ON LOWER(c.servicio) = LOWER(s.nombre)
       WHERE c.estado = 'finalizada'
       AND strftime('%Y-%m', c.fecha) = ?
       AND c.taller_id IS NULL
+      AND c.lavador_id IS NOT NULL
     `, [`${anioActual}-${mesActual}`]);
 
     // Ingresos por productos (ventas del mes)
@@ -78,10 +79,10 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
     const citas = await db.all(`
       SELECT c.* FROM citas c
       WHERE c.lavador_id IS NOT NULL
-        AND c.fecha >= ? AND c.fecha <= ?
-        AND COALESCE(c.estado,'') = 'finalizada'
+        AND strftime('%Y-%m', c.fecha) = ?
+        AND c.estado = 'finalizada'
       ORDER BY c.fecha, c.hora
-    `, [`${anioActual}-${mesActual}-01`, `${anioActual}-${mesActual}-31`]);
+    `, [`${anioActual}-${mesActual}`]);
 
     const serviciosByNombre = new Map(servicios.map(s => [String(s.nombre || '').trim().toLowerCase(), s]));
     const promocionesById = new Map(promociones.map(p => [p.id, p]));
@@ -309,17 +310,18 @@ router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, re
       SELECT 'ingreso' as tipo, c.fecha, 
              'Servicio: ' || c.servicio || ' - ' || c.cliente as descripcion,
              CASE 
-               WHEN s.precio_bajo_cc IS NOT NULL AND c.cilindraje <= 150 THEN s.precio_bajo_cc
-               WHEN s.precio_alto_cc IS NOT NULL AND c.cilindraje > 150 THEN s.precio_alto_cc
+               WHEN s.precio_bajo_cc IS NOT NULL AND c.cilindraje >= 50 AND c.cilindraje <= 405 THEN s.precio_bajo_cc
+               WHEN s.precio_alto_cc IS NOT NULL AND c.cilindraje > 405 THEN s.precio_alto_cc
                ELSE s.precio
              END as monto,
              'Servicios' as categoria,
              NULL as registrado_por
       FROM citas c
-      LEFT JOIN servicios s ON c.servicio = s.nombre
+      LEFT JOIN servicios s ON LOWER(c.servicio) = LOWER(s.nombre)
       WHERE c.estado = 'finalizada' 
         AND strftime('%Y-%m', c.fecha) = ?
         AND c.taller_id IS NULL
+        AND c.lavador_id IS NOT NULL
       ORDER BY c.fecha DESC
     `, [`${anioActual}-${mesActual}`]);
 
