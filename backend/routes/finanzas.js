@@ -31,7 +31,7 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
     const mesActual = mes || (fecha.getMonth() + 1).toString().padStart(2, '0');
     const anioActual = anio || fecha.getFullYear().toString();
     
-    // Ingresos por servicios (citas completadas del mes)
+    // Ingresos por servicios (citas finalizadas del mes)
     const ingresosCitas = await db.get(`
       SELECT COALESCE(SUM(
         CASE 
@@ -42,7 +42,7 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
       ), 0) as total
       FROM citas c
       LEFT JOIN servicios s ON c.servicio = s.nombre
-      WHERE c.estado = 'completada'
+      WHERE c.estado = 'finalizada'
       AND strftime('%Y-%m', c.fecha) = ?
       AND c.taller_id IS NULL
     `, [`${anioActual}-${mesActual}`]);
@@ -245,7 +245,7 @@ router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, re
       ORDER BY created_at DESC
     `, [`${anioActual}-${mesActual}`]);
 
-    // Ingresos de servicios (citas completadas)
+    // Ingresos de servicios (citas finalizadas)
     const ingresosServicios = await db.all(`
       SELECT 'ingreso' as tipo, c.fecha, 
              'Servicio: ' || c.servicio || ' - ' || c.cliente as descripcion,
@@ -258,7 +258,7 @@ router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, re
              NULL as registrado_por
       FROM citas c
       LEFT JOIN servicios s ON c.servicio = s.nombre
-      WHERE c.estado = 'completada' 
+      WHERE c.estado = 'finalizada' 
         AND strftime('%Y-%m', c.fecha) = ?
         AND c.taller_id IS NULL
       ORDER BY c.fecha DESC
