@@ -66,35 +66,41 @@ function calcularPrecioCliente(cita, ctx) {
 }
 
 function calcularBaseComision(cita, ctx) {
-  // Promociones tienen precio de comisión específico
   const cc = cita.cilindraje;
+  let base = 0;
+  // Promociones tienen precio de comisión específico
   if (cita.promocion_id) {
     const p = ctx.promocionesById.get(cita.promocion_id);
     if (p) {
-      if (ccIsBajo(cc)) return Number(p.precio_comision_bajo_cc) || 0;
-      if (ccIsAlto(cc)) return Number(p.precio_comision_alto_cc) || 0;
-      return Number(p.precio_comision_bajo_cc || p.precio_comision_alto_cc || 0);
+      if (ccIsBajo(cc)) base = Number(p.precio_comision_bajo_cc) || 0;
+      else if (ccIsAlto(cc)) base = Number(p.precio_comision_alto_cc) || 0;
+      else base = Number(p.precio_comision_bajo_cc || p.precio_comision_alto_cc || 0);
     }
   }
-  // Talleres: usan sus precios como base (si no hay lógica diferente)
-  if (cita.taller_id) {
+  // Talleres
+  if (!base && cita.taller_id) {
     const t = ctx.talleresById.get(cita.taller_id);
     if (t) {
-      if (ccIsBajo(cc)) return Number(t.precio_bajo_cc) || 0;
-      if (ccIsAlto(cc)) return Number(t.precio_alto_cc) || 0;
-      return Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
+      if (ccIsBajo(cc)) base = Number(t.precio_bajo_cc) || 0;
+      else if (ccIsAlto(cc)) base = Number(t.precio_alto_cc) || 0;
+      else base = Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
     }
   }
-  // Servicio normal: usar precio_base_comision_* si existe, si no el precio cliente
-  const s = ctx.serviciosByNombre.get(normalize(cita.servicio));
-  if (s) {
-    if (ccIsBajo(cc)) return Number(s.precio_base_comision_bajo ?? s.precio_bajo_cc ?? s.precio ?? 0) || 0;
-    if (ccIsAlto(cc)) return Number(s.precio_base_comision_alto ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
-    return Number(
-      s.precio_base_comision_bajo ?? s.precio_base_comision_alto ?? s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0
-    ) || 0;
+  // Servicio normal
+  if (!base) {
+    const s = ctx.serviciosByNombre.get(normalize(cita.servicio));
+    if (s) {
+      if (ccIsBajo(cc)) base = Number(s.precio_base_comision_bajo ?? s.precio_bajo_cc ?? s.precio ?? 0) || 0;
+      else if (ccIsAlto(cc)) base = Number(s.precio_base_comision_alto ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+      else base = Number(
+        s.precio_base_comision_bajo ?? s.precio_base_comision_alto ?? s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0
+      ) || 0;
+    }
   }
-  return 25000;
+  if (!base) base = 25000;
+  // Clamp para no superar el precio cliente
+  const precioCliente = calcularPrecioCliente(cita, ctx);
+  return Math.min(base, precioCliente);
 }
 
 // GET /api/nomina - Retorna reporte de nómina

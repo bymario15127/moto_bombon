@@ -111,30 +111,35 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
 
     // Función para calcular base de comisión
     const calcularBaseComision = (cita) => {
-      const cc = cita.cilindraje;
-      if (cita.promocion_id) {
-        const p = promocionesById.get(cita.promocion_id);
-        if (p) {
-          if (cc >= 50 && cc <= 405) return Number(p.precio_comision_bajo_cc) || 0;
-          if (cc > 405) return Number(p.precio_comision_alto_cc) || 0;
-          return Number(p.precio_comision_bajo_cc || p.precio_comision_alto_cc || 0);
-        }
-      }
-      if (cita.taller_id) {
-        const t = talleresById.get(cita.taller_id);
-        if (t) {
-          if (cc >= 50 && cc <= 405) return Number(t.precio_bajo_cc) || 0;
-          if (cc > 405) return Number(t.precio_alto_cc) || 0;
-          return Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
-        }
-      }
-      const s = serviciosByNombre.get(String(cita.servicio || '').trim().toLowerCase());
-      if (s) {
-        if (cc >= 50 && cc <= 405) return Number(s.precio_base_comision_bajo ?? s.precio_bajo_cc ?? s.precio ?? 0) || 0;
-        if (cc > 405) return Number(s.precio_base_comision_alto ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
-        return Number(s.precio_base_comision_bajo ?? s.precio_base_comision_alto ?? s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
-      }
-      return 25000;
+          const cc = cita.cilindraje;
+          let base = 0;
+          if (cita.promocion_id) {
+            const p = promocionesById.get(cita.promocion_id);
+            if (p) {
+              if (ccIsBajo(cc)) base = Number(p.precio_comision_bajo_cc) || 0;
+              else if (ccIsAlto(cc)) base = Number(p.precio_comision_alto_cc) || 0;
+              else base = Number(p.precio_comision_bajo_cc || p.precio_comision_alto_cc || 0);
+            }
+          }
+          if (!base && cita.taller_id) {
+            const t = talleresById.get(cita.taller_id);
+            if (t) {
+              if (ccIsBajo(cc)) base = Number(t.precio_bajo_cc) || 0;
+              else if (ccIsAlto(cc)) base = Number(t.precio_alto_cc) || 0;
+              else base = Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
+            }
+          }
+          if (!base) {
+            const s = serviciosByNombre.get(normalize(cita.servicio));
+            if (s) {
+              if (ccIsBajo(cc)) base = Number(s.precio_base_comision_bajo ?? s.precio_bajo_cc ?? s.precio ?? 0) || 0;
+              else if (ccIsAlto(cc)) base = Number(s.precio_base_comision_alto ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+              else base = Number(s.precio_base_comision_bajo ?? s.precio_base_comision_alto ?? s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+            }
+          }
+          if (!base) base = 25000;
+          const precioCliente = calcularPrecioCliente(cita);
+          return Math.min(base, precioCliente);
     };
 
     // Calcular total de comisiones
