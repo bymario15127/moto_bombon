@@ -10,6 +10,7 @@ import LavadoresManager from "./LavadoresManager";
 import NominaManager from "./NominaManager";
 import ClientesManager from "./ClientesManager";
 import ProductosManagement from "./ProductosManagement";
+import FinanzasManager from "./FinanzasManager";
 
 export default function AdminLayout() {
   const [activeView, setActiveView] = useState('dashboard');
@@ -34,6 +35,7 @@ export default function AdminLayout() {
           case 'clientes': return 'Clientes y Fidelización';
           case 'nomina': return 'Nómina y CRM';
           case 'productos': return 'Productos y Ventas';
+          case 'finanzas': return 'Finanzas';
           case 'settings': return 'Ajustes';
           default: return 'Dashboard';
         }
@@ -52,6 +54,7 @@ export default function AdminLayout() {
             {activeView === 'clientes' && 'Sistema de fidelización y gestión de clientes'}
             {activeView === 'nomina' && 'Control financiero y reportes de nómina'}
             {activeView === 'productos' && 'Gestión de bebidas y productos, registro de ventas'}
+            {activeView === 'finanzas' && 'Control de ingresos, gastos y utilidades'}
             {activeView === 'settings' && 'Preferencias y configuración del sistema'}
           </p>
         </div>
@@ -78,6 +81,8 @@ export default function AdminLayout() {
                 return <NominaManager />;
               case 'productos':
                 return <ProductosManagement />;
+              case 'finanzas':
+                return <FinanzasManager />;
               case 'settings':
                 return <div className="bg-white rounded-lg shadow-md p-8 text-center">
                   <div className="text-6xl mb-4">🚧</div>
