@@ -12,6 +12,7 @@ import nominaRouter from "./routes/nomina.js";
 import talleresRouter from "./routes/talleres.js";
 import clientesRouter from "./routes/clientes.js";
 import productosRouter from "./routes/productos.js";
+import finanzasRouter from "./routes/finanzas.js";
 import authRouter from "./routes/auth.js";
 // Promociones y reportes de promociones removidos
 
@@ -69,6 +70,7 @@ app.use("/api/nomina", nominaRouter);
 app.use("/api/talleres", talleresRouter);
 app.use("/api/clientes", clientesRouter);
 app.use("/api/productos", productosRouter);
+app.use("/api/finanzas", finanzasRouter);
 // Rutas de promociones/reportes deshabilitadas
 
 // Subida de imagen vía base64 (evita dependencias externas)
