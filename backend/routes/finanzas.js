@@ -155,6 +155,8 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
 
     // Calcular ingresos por servicios usando el mismo cálculo de precio cliente que nómina
     const ingresosServiciosTotal = citas.reduce((sum, c) => sum + calcularPrecioCliente(c), 0);
+    // Seguridad extra: no permitir que las comisiones superen el ingreso cliente total
+    totalComisiones = Math.min(totalComisiones, ingresosServiciosTotal);
 
     // Calcular totales
     const totalIngresos = ingresosServiciosTotal + (ingresosProductos?.total || 0);
