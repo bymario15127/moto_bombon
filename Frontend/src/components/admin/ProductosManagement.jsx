@@ -6,7 +6,8 @@ import {
   actualizarProducto, 
   eliminarProducto,
   registrarVenta,
-  obtenerReporteDiario 
+  obtenerReporteDiario,
+  eliminarVenta 
 } from '../../services/productosService';
 import './ProductosManagement.css';
 
@@ -194,6 +195,34 @@ export default function ProductosManagement() {
 
   const calcularVentasTotal = () => {
     return ventas.reduce((sum, v) => sum + v.total, 0);
+  };
+
+  const handleEliminarVenta = async (id) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar esta venta?')) return;
+
+    try {
+      setLoading(true);
+      await eliminarVenta(id);
+      setMessage('✅ Venta eliminada');
+      await cargarProductos();
+      await cargarVentas();
+    } catch (error) {
+      setMessage(`❌ Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatearFechaHora = (fechaString) => {
+    const fecha = new Date(fechaString);
+    const dia = fecha.getDate().toString().padStart(2, '0');
+    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+    const anio = fecha.getFullYear();
+    const horas = fecha.getHours().toString().padStart(2, '0');
+    const minutos = fecha.getMinutes().toString().padStart(2, '0');
+    const segundos = fecha.getSeconds().toString().padStart(2, '0');
+    
+    return `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
   };
 
   return (
@@ -386,18 +415,28 @@ export default function ProductosManagement() {
                       <th>Total</th>
                       <th>Ganancia</th>
                       <th>Registrado por</th>
+                      <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ventas.map(venta => (
                       <tr key={venta.id}>
-                        <td>{new Date(venta.created_at).toLocaleTimeString('es-ES')}</td>
+                        <td>{formatearFechaHora(venta.created_at)}</td>
                         <td>{venta.producto}</td>
                         <td>{venta.cantidad}</td>
                         <td>${venta.precio_unitario.toLocaleString()}</td>
                         <td>${venta.total.toLocaleString()}</td>
                         <td className="ganancia">${calcularGanancia(venta).toLocaleString()}</td>
                         <td>{venta.registrado_por}</td>
+                        <td>
+                          <button 
+                            className="btn-delete"
+                            onClick={() => handleEliminarVenta(venta.id)}
+                            title="Eliminar venta"
+                          >
+                            🗑️
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

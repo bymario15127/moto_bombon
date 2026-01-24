@@ -288,4 +288,36 @@ router.get("/reportes/ganancias", verifyToken, requireAdminOrSupervisor, async (
   }
 });
 
+// DELETE - Eliminar venta
+router.delete("/venta/:id", verifyToken, requireAdminOrSupervisor, async (req, res) => {
+  try {
+    await dbReady;
+    const { id } = req.params;
+
+    // Obtener la venta antes de eliminarla para devolver el stock
+    const venta = await db.get(
+      "SELECT producto_id, cantidad FROM ventas WHERE id = ?",
+      [id]
+    );
+
+    if (!venta) {
+      return res.status(404).json({ error: "Venta no encontrada" });
+    }
+
+    // Devolver el stock al producto
+    await db.run(
+      "UPDATE productos SET stock = stock + ? WHERE id = ?",
+      [venta.cantidad, venta.producto_id]
+    );
+
+    // Eliminar la venta
+    await db.run("DELETE FROM ventas WHERE id = ?", [id]);
+
+    res.json({ success: true, message: "Venta eliminada y stock restaurado" });
+  } catch (error) {
+    console.error("❌ Error eliminando venta:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

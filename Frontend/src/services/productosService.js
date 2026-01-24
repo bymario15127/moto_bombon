@@ -127,3 +127,20 @@ export const obtenerReporteGanancias = async (desde = null, hasta = null) => {
     throw error;
   }
 };
+
+export const eliminarVenta = async (id) => {
+  try {
+    const response = await fetch(`${API_URL}/venta/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeader()
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Error eliminando venta");
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Error eliminando venta:", error);
+    throw error;
+  }
+};
