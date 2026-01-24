@@ -5,7 +5,7 @@ import { open } from "sqlite";
 import path from "path";
 import { fileURLToPath } from "url";
 import { verifyToken, requireAdminOrSupervisor } from "../middleware/auth.js";
-import XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 const router = express.Router();
 
@@ -641,10 +641,15 @@ router.get("/exportar-excel", verifyToken, requireAdminOrSupervisor, async (req,
     });
 
     // Crear workbook con múltiples sheets
-    const wb = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
 
     // Sheet 1: Resumen General
-    const resumenData = [
+    const wsResumen = workbook.addWorksheet("Resumen");
+    wsResumen.columns = [
+      { header: "Concepto", key: "concepto", width: 30 },
+      { header: "Monto", key: "monto", width: 18 }
+    ];
+    wsResumen.addRows([
       { concepto: "INGRESOS", monto: "" },
       { concepto: "Servicios", monto: dashboardRes.ingresos.servicios },
       { concepto: "Productos", monto: dashboardRes.ingresos.productos },
@@ -657,60 +662,73 @@ router.get("/exportar-excel", verifyToken, requireAdminOrSupervisor, async (req,
       { concepto: "", monto: "" },
       { concepto: "UTILIDAD NETA", monto: dashboardRes.utilidadNeta },
       { concepto: "Margen %", monto: dashboardRes.ingresos.total > 0 ? ((dashboardRes.utilidadNeta / dashboardRes.ingresos.total) * 100).toFixed(2) + "%" : "0%" }
-    ];
-    const wsResumen = XLSX.utils.json_to_sheet(resumenData);
-    wsResumen['!cols'] = [{ wch: 30 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+    ]);
+    wsResumen.getCell('A1').font = { bold: true, size: 12 };
+    wsResumen.getCell('A6').font = { bold: true, size: 12 };
+    wsResumen.getCell('A11').font = { bold: true, size: 12 };
 
     // Sheet 2: Detalle de Gastos
-    const gastosExcel = dashboardRes.gastos.detalle.map(g => ({
-      "Fecha": g.fecha,
-      "Categoría": g.categoria,
-      "Descripción": g.descripcion,
-      "Monto": g.monto
-    }));
-    const wsGastos = XLSX.utils.json_to_sheet(gastosExcel);
-    wsGastos['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 35 }, { wch: 15 }];
-    XLSX.utils.book_append_sheet(wb, wsGastos, "Gastos");
+    const wsGastos = workbook.addWorksheet("Gastos");
+    wsGastos.columns = [
+      { header: "Fecha", key: "fecha", width: 12 },
+      { header: "Categoría", key: "categoria", width: 15 },
+      { header: "Descripción", key: "descripcion", width: 35 },
+      { header: "Monto", key: "monto", width: 15 }
+    ];
+    wsGastos.addRows(dashboardRes.gastos.detalle);
 
     // Sheet 3: Gastos por Categoría
+    const wsGastosCategoria = workbook.addWorksheet("Gastos por Categoría");
+    wsGastosCategoria.columns = [
+      { header: "Categoría", key: "categoria", width: 20 },
+      { header: "Total", key: "total", width: 15 },
+      { header: "% del Total", key: "porcentaje", width: 18 }
+    ];
     const gastosCategoriaData = dashboardRes.gastos.porCategoria.map(g => ({
-      "Categoría": g.categoria,
-      "Total": g.total,
-      "% del Total de Gastos": dashboardRes.gastos.manuales > 0 ? ((g.total / dashboardRes.gastos.manuales) * 100).toFixed(2) + "%" : "0%"
+      categoria: g.categoria,
+      total: g.total,
+      porcentaje: dashboardRes.gastos.manuales > 0 ? ((g.total / dashboardRes.gastos.manuales) * 100).toFixed(2) + "%" : "0%"
     }));
-    const wsGastosCategoria = XLSX.utils.json_to_sheet(gastosCategoriaData);
-    wsGastosCategoria['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 18 }];
-    XLSX.utils.book_append_sheet(wb, wsGastosCategoria, "Gastos por Categoría");
+    wsGastosCategoria.addRows(gastosCategoriaData);
 
     // Sheet 4: Detalle de Productos
-    const productosExcel = dashboardRes.productos.map(p => ({
-      "Fecha": p.fecha,
-      "Producto": p.producto || "N/A",
-      "Cantidad": p.cantidad,
-      "Total": p.total
+    const wsProductos = workbook.addWorksheet("Productos");
+    wsProductos.columns = [
+      { header: "Fecha", key: "fecha", width: 12 },
+      { header: "Producto", key: "producto", width: 30 },
+      { header: "Cantidad", key: "cantidad", width: 10 },
+      { header: "Total", key: "total", width: 15 }
+    ];
+    const productosData = dashboardRes.productos.map(p => ({
+      fecha: p.fecha,
+      producto: p.producto || "N/A",
+      cantidad: p.cantidad,
+      total: p.total
     }));
-    const wsProductos = XLSX.utils.json_to_sheet(productosExcel);
-    wsProductos['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 10 }, { wch: 15 }];
-    XLSX.utils.book_append_sheet(wb, wsProductos, "Productos");
+    wsProductos.addRows(productosData);
 
     // Sheet 5: Resumen de Ingresos
-    const ingresosResumenData = [
+    const wsIngresosResumen = workbook.addWorksheet("Ingresos Resumen");
+    wsIngresosResumen.columns = [
+      { header: "Concepto", key: "concepto", width: 30 },
+      { header: "Cantidad", key: "cantidad", width: 12 },
+      { header: "Total", key: "total", width: 15 }
+    ];
+    wsIngresosResumen.addRows([
       { concepto: "Ingresos por Servicios", cantidad: dashboardRes.servicios, total: dashboardRes.ingresos.servicios },
       { concepto: "Ingresos por Productos", cantidad: dashboardRes.productos.length, total: dashboardRes.ingresos.productos },
       { concepto: "TOTAL INGRESOS", cantidad: dashboardRes.servicios + dashboardRes.productos.length, total: dashboardRes.ingresos.total }
-    ];
-    const wsIngresosResumen = XLSX.utils.json_to_sheet(ingresosResumenData);
-    wsIngresosResumen['!cols'] = [{ wch: 30 }, { wch: 12 }, { wch: 15 }];
-    XLSX.utils.book_append_sheet(wb, wsIngresosResumen, "Ingresos Resumen");
+    ]);
+    wsIngresosResumen.getCell('A3').font = { bold: true };
 
     // Generar y enviar el archivo
-    const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
     const nombreArchivo = `finanzas_${dashboardRes.anio}-${dashboardRes.mes.padStart(2, '0')}.xlsx`;
+    const xlsxArrayBuffer = await workbook.xlsx.writeBuffer();
+    const nodeBuffer = Buffer.isBuffer(xlsxArrayBuffer) ? xlsxArrayBuffer : Buffer.from(xlsxArrayBuffer);
     
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
-    res.send(buffer);
+    res.send(nodeBuffer);
   } catch (error) {
     console.error("❌ Error exportando Excel:", error);
     res.status(500).json({ error: error.message });
