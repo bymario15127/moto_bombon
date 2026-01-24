@@ -179,7 +179,7 @@ router.get("/", async (req, res) => {
     const totalBaseComisionRaw = citas.reduce((sum, c) => sum + calcularBaseComision(c, ctx), 0);
     // Seguridad extra: no permitir que la nómina supere el ingreso cliente total
     const totalNomina = Math.min(totalNominaRaw, totalIngresos);
-    const totalBaseComision = Math.min(totalBaseComisionRaw, totalIngresos);
+    const totalBaseComision = totalBaseComisionRaw;
 
     // Resumen por tipo de servicio
     const serviciosMap = new Map();
