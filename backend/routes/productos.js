@@ -219,21 +219,9 @@ router.get("/reportes/diarias", verifyToken, requireAdminOrSupervisor, async (re
     let params = [];
 
     if (fecha) {
-      // Convertir fecha de Colombia a rango UTC
-      // Si piden 2026-01-23 en Colombia, necesito buscar desde 2026-01-23 05:00:00 UTC hasta 2026-01-24 04:59:59 UTC
-      const [year, month, day] = fecha.split('-');
-      const fechaInicio = `${fecha} 05:00:00`; // Medianoche en Colombia = 5 AM UTC
-      
-      // Calcular día siguiente
-      const fechaDate = new Date(fecha);
-      fechaDate.setDate(fechaDate.getDate() + 1);
-      const yearNext = fechaDate.getFullYear();
-      const monthNext = String(fechaDate.getMonth() + 1).padStart(2, '0');
-      const dayNext = String(fechaDate.getDate()).padStart(2, '0');
-      const fechaFin = `${yearNext}-${monthNext}-${dayNext} 04:59:59`;
-      
-      query += " WHERE v.created_at >= ? AND v.created_at <= ?";
-      params.push(fechaInicio, fechaFin);
+      // Ahora que el servidor está en zona horaria Colombia, simplemente buscar por DATE
+      query += " WHERE DATE(v.created_at) = ?";
+      params.push(fecha);
     }
 
     query += " ORDER BY v.created_at DESC";

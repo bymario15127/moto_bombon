@@ -229,43 +229,16 @@ export default function ProductosManagement() {
   };
 
   const formatearFechaHora = (fechaString) => {
-    // SQLite guarda en UTC, necesitamos mostrar en hora Colombia (UTC-5)
-    // Si viene "2026-01-24 00:31:12" (UTC), debe mostrar "23/01/2026 19:31:12" (Colombia)
+    // El servidor ahora está en zona horaria Colombia, las fechas vienen correctas
+    const fecha = new Date(fechaString);
+    const dia = fecha.getDate().toString().padStart(2, '0');
+    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+    const anio = fecha.getFullYear();
+    const horas = fecha.getHours().toString().padStart(2, '0');
+    const minutos = fecha.getMinutes().toString().padStart(2, '0');
+    const segundos = fecha.getSeconds().toString().padStart(2, '0');
     
-    const fecha = new Date(fechaString.replace(' ', 'T') + 'Z'); // Parsear como UTC
-    
-    // Obtener componentes en UTC
-    let dia = fecha.getUTCDate();
-    let mes = fecha.getUTCMonth();
-    let anio = fecha.getUTCFullYear();
-    let horas = fecha.getUTCHours();
-    let minutos = fecha.getUTCMinutes();
-    let segundos = fecha.getUTCSeconds();
-    
-    // Restar 5 horas para Colombia
-    horas -= 5;
-    
-    // Ajustar si las horas son negativas
-    if (horas < 0) {
-      horas += 24;
-      dia -= 1;
-      
-      // Ajustar el día si es necesario
-      if (dia < 1) {
-        mes -= 1;
-        if (mes < 0) {
-          mes = 11;
-          anio -= 1;
-        }
-        // Días del mes anterior
-        const diasEnMes = new Date(anio, mes + 1, 0).getDate();
-        dia = diasEnMes;
-      }
-    }
-    
-    mes += 1; // Meses van de 0-11
-    
-    return `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${anio} ${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    return `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
   };
 
   return (
