@@ -81,12 +81,12 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
     let citas;
     if (desde && hasta) {
       citas = await db.all(
-        `SELECT c.* FROM citas c WHERE c.lavador_id IS NOT NULL AND c.fecha >= ? AND c.fecha <= ? AND c.estado IN ('finalizada','confirmada') ORDER BY c.fecha, c.hora`,
+        `SELECT c.* FROM citas c WHERE c.lavador_id IS NOT NULL AND c.fecha >= ? AND c.fecha <= ? AND COALESCE(c.estado,'') IN ('finalizada','confirmada') ORDER BY c.fecha, c.hora`,
         [desde, hasta]
       );
     } else {
       citas = await db.all(
-        `SELECT c.* FROM citas c WHERE c.lavador_id IS NOT NULL AND strftime('%Y-%m', c.fecha) = ? AND c.estado IN ('finalizada', 'confirmada') ORDER BY c.fecha, c.hora`,
+        `SELECT c.* FROM citas c WHERE c.lavador_id IS NOT NULL AND strftime('%Y-%m', c.fecha) = ? AND COALESCE(c.estado,'') IN ('finalizada', 'confirmada') ORDER BY c.fecha, c.hora`,
         [`${anioActual}-${mesActual}`]
       );
     }
@@ -407,7 +407,7 @@ router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, re
     const citasServicios = await db.all(`
       SELECT * FROM citas
       WHERE lavador_id IS NOT NULL
-        AND estado IN ('finalizada', 'confirmada')
+        AND COALESCE(estado,'') IN ('finalizada', 'confirmada')
         AND strftime('%Y-%m', fecha) = ?
       ORDER BY fecha DESC
     `, [`${anioActual}-${mesActual}`]);
