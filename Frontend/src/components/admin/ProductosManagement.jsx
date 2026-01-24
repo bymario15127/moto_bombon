@@ -214,15 +214,28 @@ export default function ProductosManagement() {
   };
 
   const formatearFechaHora = (fechaString) => {
+    // SQLite guarda en UTC, necesitamos ajustar a hora de Colombia (UTC-5)
     const fecha = new Date(fechaString);
-    const dia = fecha.getDate().toString().padStart(2, '0');
-    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
-    const anio = fecha.getFullYear();
-    const horas = fecha.getHours().toString().padStart(2, '0');
-    const minutos = fecha.getMinutes().toString().padStart(2, '0');
-    const segundos = fecha.getSeconds().toString().padStart(2, '0');
     
-    return `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
+    // Obtener componentes de fecha en hora local
+    const opciones = {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    };
+    
+    const partes = new Intl.DateTimeFormat('es-CO', opciones).formatToParts(fecha);
+    const valores = {};
+    partes.forEach(parte => {
+      valores[parte.type] = parte.value;
+    });
+    
+    return `${valores.day}/${valores.month}/${valores.year} ${valores.hour}:${valores.minute}:${valores.second}`;
   };
 
   return (
