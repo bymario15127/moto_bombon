@@ -109,6 +109,30 @@ export default function FinanzasManager() {
     });
   };
 
+  const exportarExcel = async () => {
+    try {
+      const params = new URLSearchParams({ mes, anio, desde, hasta });
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/finanzas/exportar-excel?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Error descargando archivo');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `finanzas_${anio}-${mes.padStart(2, '0')}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (error) {
+      alert('Error descargando archivo: ' + error.message);
+    }
+  };
+
   const formatMoney = (value) => {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
   };
@@ -134,6 +158,7 @@ export default function FinanzasManager() {
         <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={{padding: "0.5rem", background: "#1a1a1a", color: "#fff", border: "1px solid #333", borderRadius: "4px"}} />
         <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={{padding: "0.5rem", background: "#1a1a1a", color: "#fff", border: "1px solid #333", borderRadius: "4px"}} />
         <button onClick={cargarDatos} style={{padding: "0.5rem 1rem", background: "#EB0463", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer"}}>Actualizar</button>
+        <button onClick={exportarExcel} style={{padding: "0.5rem 1rem", background: "#10b981", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold"}}>📊 Exportar Excel</button>
       </div>
 
       {/* Tabs */}
