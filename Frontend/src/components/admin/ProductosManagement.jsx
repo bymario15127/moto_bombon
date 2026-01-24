@@ -41,7 +41,9 @@ export default function ProductosManagement() {
     const year = colombiaTime.getUTCFullYear();
     const month = String(colombiaTime.getUTCMonth() + 1).padStart(2, '0');
     const day = String(colombiaTime.getUTCDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const fechaColombia = `${year}-${month}-${day}`;
+    console.log('📅 Fecha Colombia calculada:', fechaColombia);
+    return fechaColombia;
   };
 
   // Filtro de fecha para reportes (fecha de Colombia)
@@ -206,6 +208,12 @@ export default function ProductosManagement() {
 
   const calcularVentasTotal = () => {
     return ventas.reduce((sum, v) => sum + v.total, 0);
+  };
+
+  const formatearFechaLegible = (fechaISO) => {
+    // Convierte YYYY-MM-DD a DD/MM/YYYY
+    const [year, month, day] = fechaISO.split('-');
+    return `${day}/${month}/${year}`;
   };
 
   const handleEliminarVenta = async (id) => {
@@ -432,7 +440,7 @@ export default function ProductosManagement() {
           </div>
 
           <div className="sales-list">
-            <h3>Ventas del día ({filtroFecha})</h3>
+            <h3>Ventas del día {formatearFechaLegible(filtroFecha)}</h3>
             <input 
               type="date" 
               value={filtroFecha}
