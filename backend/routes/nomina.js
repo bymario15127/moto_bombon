@@ -174,11 +174,12 @@ router.get("/", async (req, res) => {
     });
 
     const totalServicios = citas.length;
-    const totalIngresos = reportePorLavador.reduce((sum, l) => sum + l.total_generado, 0);
+    const totalBaseComisionRaw = citas.reduce((sum, c) => sum + calcularBaseComision(c, ctx), 0);
+    const totalIngresos = totalBaseComisionRaw; // Ingresos = Base comisión (31,744,000)
     const totalNominaRaw = reportePorLavador.reduce((sum, l) => sum + l.comision_a_pagar, 0);
     // Seguridad extra: no permitir que la nómina supere el ingreso cliente total
     const totalNomina = Math.min(totalNominaRaw, totalIngresos);
-    const totalBaseComision = totalIngresos; // Base comisión = Ingresos cliente (mismo valor)
+    const totalBaseComision = totalIngresos; // Base comisión = Ingresos (mismo valor)
 
     // Resumen por tipo de servicio
     const serviciosMap = new Map();
