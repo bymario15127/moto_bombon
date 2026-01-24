@@ -214,21 +214,43 @@ export default function ProductosManagement() {
   };
 
   const formatearFechaHora = (fechaString) => {
-    // SQLite guarda en UTC, convertir a Colombia (UTC-5)
-    const fechaUTC = new Date(fechaString + 'Z'); // Agregar Z para indicar que es UTC
+    // SQLite guarda en UTC, necesitamos mostrar en hora Colombia (UTC-5)
+    // Si viene "2026-01-24 00:31:12" (UTC), debe mostrar "23/01/2026 19:31:12" (Colombia)
     
-    // Restar 5 horas (Colombia = UTC-5)
-    const offset = -5 * 60 * 60 * 1000; // -5 horas en milisegundos
-    const fechaColombia = new Date(fechaUTC.getTime() + offset);
+    const fecha = new Date(fechaString.replace(' ', 'T') + 'Z'); // Parsear como UTC
     
-    const dia = fechaColombia.getUTCDate().toString().padStart(2, '0');
-    const mes = (fechaColombia.getUTCMonth() + 1).toString().padStart(2, '0');
-    const anio = fechaColombia.getUTCFullYear();
-    const horas = fechaColombia.getUTCHours().toString().padStart(2, '0');
-    const minutos = fechaColombia.getUTCMinutes().toString().padStart(2, '0');
-    const segundos = fechaColombia.getUTCSeconds().toString().padStart(2, '0');
+    // Obtener componentes en UTC
+    let dia = fecha.getUTCDate();
+    let mes = fecha.getUTCMonth();
+    let anio = fecha.getUTCFullYear();
+    let horas = fecha.getUTCHours();
+    let minutos = fecha.getUTCMinutes();
+    let segundos = fecha.getUTCSeconds();
     
-    return `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
+    // Restar 5 horas para Colombia
+    horas -= 5;
+    
+    // Ajustar si las horas son negativas
+    if (horas < 0) {
+      horas += 24;
+      dia -= 1;
+      
+      // Ajustar el día si es necesario
+      if (dia < 1) {
+        mes -= 1;
+        if (mes < 0) {
+          mes = 11;
+          anio -= 1;
+        }
+        // Días del mes anterior
+        const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+        dia = diasEnMes;
+      }
+    }
+    
+    mes += 1; // Meses van de 0-11
+    
+    return `${dia.toString().padStart(2, '0')}/${mes.toString().padStart(2, '0')}/${anio} ${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
   };
 
   return (
