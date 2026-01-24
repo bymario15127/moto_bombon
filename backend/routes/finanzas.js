@@ -24,48 +24,72 @@ const dbReady = (async () => {
 router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res) => {
   try {
     await dbReady;
-    const { mes, anio } = req.query;
+    const { mes, anio, desde, hasta } = req.query;
     
     // Si no se especifica mes/año, usar el actual
     const fecha = new Date();
     const mesActual = mes || (fecha.getMonth() + 1).toString().padStart(2, '0');
     const anioActual = anio || fecha.getFullYear().toString();
     
-    // Ingresos por productos (ventas del mes)
-    const ingresosProductos = await db.get(`
-      SELECT COALESCE(SUM(total), 0) as total
-      FROM ventas
-      WHERE strftime('%Y-%m', created_at) = ?
-    `, [`${anioActual}-${mesActual}`]);
+    // Ingresos por productos
+    let ingresosProductos;
+    if (desde && hasta) {
+      ingresosProductos = await db.get(
+        `SELECT COALESCE(SUM(total), 0) as total FROM ventas WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?`,
+        [desde, hasta]
+      );
+    } else {
+      ingresosProductos = await db.get(
+        `SELECT COALESCE(SUM(total), 0) as total FROM ventas WHERE strftime('%Y-%m', created_at) = ?`,
+        [`${anioActual}-${mesActual}`]
+      );
+    }
 
     // Gastos del mes (solo gastos manuales)
-    const totalGastos = await db.get(`
-      SELECT COALESCE(SUM(monto), 0) as total
-      FROM gastos
-      WHERE strftime('%Y-%m', fecha) = ?
-    `, [`${anioActual}-${mesActual}`]);
+    let totalGastos;
+    if (desde && hasta) {
+      totalGastos = await db.get(
+        `SELECT COALESCE(SUM(monto), 0) as total FROM gastos WHERE fecha >= ? AND fecha <= ?`,
+        [desde, hasta]
+      );
+    } else {
+      totalGastos = await db.get(
+        `SELECT COALESCE(SUM(monto), 0) as total FROM gastos WHERE strftime('%Y-%m', fecha) = ?`,
+        [`${anioActual}-${mesActual}`]
+      );
+    }
 
     // Gastos por categoría
-    const gastosPorCategoria = await db.all(`
-      SELECT categoria, SUM(monto) as total
-      FROM gastos
-      WHERE strftime('%Y-%m', fecha) = ?
-      GROUP BY categoria
-      ORDER BY total DESC
-    `, [`${anioActual}-${mesActual}`]);
+    let gastosPorCategoria;
+    if (desde && hasta) {
+      gastosPorCategoria = await db.all(
+        `SELECT categoria, SUM(monto) as total FROM gastos WHERE fecha >= ? AND fecha <= ? GROUP BY categoria ORDER BY total DESC`,
+        [desde, hasta]
+      );
+    } else {
+      gastosPorCategoria = await db.all(
+        `SELECT categoria, SUM(monto) as total FROM gastos WHERE strftime('%Y-%m', fecha) = ? GROUP BY categoria ORDER BY total DESC`,
+        [`${anioActual}-${mesActual}`]
+      );
+    }
 
     // Calcular comisiones de lavadores automáticamente
     const servicios = await db.all("SELECT * FROM servicios");
     const promociones = await db.all("SELECT * FROM promociones").catch(() => []);
     const talleres = await db.all("SELECT * FROM talleres").catch(() => []);
     const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1");
-    const citas = await db.all(`
-      SELECT c.* FROM citas c
-      WHERE c.lavador_id IS NOT NULL
-        AND strftime('%Y-%m', c.fecha) = ?
-        AND c.estado IN ('finalizada', 'confirmada')
-      ORDER BY c.fecha, c.hora
-    `, [`${anioActual}-${mesActual}`]);
+    let citas;
+    if (desde && hasta) {
+      citas = await db.all(
+        `SELECT c.* FROM citas c WHERE c.lavador_id IS NOT NULL AND c.fecha >= ? AND c.fecha <= ? AND c.estado IN ('finalizada','confirmada') ORDER BY c.fecha, c.hora`,
+        [desde, hasta]
+      );
+    } else {
+      citas = await db.all(
+        `SELECT c.* FROM citas c WHERE c.lavador_id IS NOT NULL AND strftime('%Y-%m', c.fecha) = ? AND c.estado IN ('finalizada', 'confirmada') ORDER BY c.fecha, c.hora`,
+        [`${anioActual}-${mesActual}`]
+      );
+    }
 
     const serviciosByNombre = new Map(servicios.map(s => [String(s.nombre || '').trim().toLowerCase(), s]));
     const promocionesById = new Map(promociones.map(p => [p.id, p]));
@@ -385,7 +409,6 @@ router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, re
       WHERE lavador_id IS NOT NULL
         AND estado IN ('finalizada', 'confirmada')
         AND strftime('%Y-%m', fecha) = ?
-        AND taller_id IS NULL
       ORDER BY fecha DESC
     `, [`${anioActual}-${mesActual}`]);
 
