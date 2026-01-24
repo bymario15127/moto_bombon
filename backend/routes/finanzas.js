@@ -444,201 +444,187 @@ router.get("/exportar-excel", verifyToken, requireAdminOrSupervisor, async (req,
     const mesActual = mes || (fecha.getMonth() + 1).toString().padStart(2, '0');
     const anioActual = anio || fecha.getFullYear().toString();
 
-    // Obtener el dashboard financiero para los totales
-    const dashboardRes = await new Promise((resolve) => {
-      req.query = { mes: mesActual, anio: anioActual, desde, hasta };
-      const originalJson = res.json;
-      res.json = function(data) {
-        resolve(data);
-      };
-      // Reutilizar lógica del dashboard
-      (async () => {
-        const servicios = await db.all("SELECT * FROM servicios");
-        const promociones = await db.all("SELECT * FROM promociones").catch(() => []);
-        const talleres = await db.all("SELECT * FROM talleres").catch(() => []);
-        const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1");
-        
-        let ingresoProductos, totalGastos, gastosPorCategoria, citas;
-        
-        if (desde && hasta) {
-          ingresoProductos = await db.get(
-            `SELECT COALESCE(SUM(total), 0) as total FROM ventas WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?`,
-            [desde, hasta]
-          );
-          totalGastos = await db.get(
-            `SELECT COALESCE(SUM(monto), 0) as total FROM gastos WHERE fecha >= ? AND fecha <= ?`,
-            [desde, hasta]
-          );
-          gastosPorCategoria = await db.all(
-            `SELECT categoria, SUM(monto) as total FROM gastos WHERE fecha >= ? AND fecha <= ? GROUP BY categoria ORDER BY total DESC`,
-            [desde, hasta]
-          );
-          citas = await db.all(
-            `SELECT c.* FROM citas c WHERE c.lavador_id IS NOT NULL AND c.fecha >= ? AND c.fecha <= ? AND COALESCE(c.estado,'') IN ('finalizada','confirmada') ORDER BY c.fecha, c.hora`,
-            [desde, hasta]
-          );
-        } else {
-          ingresoProductos = await db.get(
-            `SELECT COALESCE(SUM(total), 0) as total FROM ventas WHERE strftime('%Y-%m', created_at) = ?`,
-            [`${anioActual}-${mesActual}`]
-          );
-          totalGastos = await db.get(
-            `SELECT COALESCE(SUM(monto), 0) as total FROM gastos WHERE strftime('%Y-%m', fecha) = ?`,
-            [`${anioActual}-${mesActual}`]
-          );
-          gastosPorCategoria = await db.all(
-            `SELECT categoria, SUM(monto) as total FROM gastos WHERE strftime('%Y-%m', fecha) = ? GROUP BY categoria ORDER BY total DESC`,
-            [`${anioActual}-${mesActual}`]
-          );
-          citas = await db.all(
-            `SELECT c.* FROM citas c WHERE c.lavador_id IS NOT NULL AND strftime('%Y-%m', c.fecha) = ? AND COALESCE(c.estado,'') IN ('finalizada', 'confirmada') ORDER BY c.fecha, c.hora`,
-            [`${anioActual}-${mesActual}`]
-          );
+    // Calcular dashboard para export sin reutilizar res
+    const servicios = await db.all("SELECT * FROM servicios");
+    const promociones = await db.all("SELECT * FROM promociones").catch(() => []);
+    const talleres = await db.all("SELECT * FROM talleres").catch(() => []);
+    const lavadores = await db.all("SELECT * FROM lavadores WHERE activo = 1");
+
+    let ingresoProductos, totalGastos, gastosPorCategoria, citas;
+    if (desde && hasta) {
+      ingresoProductos = await db.get(
+        `SELECT COALESCE(SUM(total), 0) as total FROM ventas WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?`,
+        [desde, hasta]
+      );
+      totalGastos = await db.get(
+        `SELECT COALESCE(SUM(monto), 0) as total FROM gastos WHERE fecha >= ? AND fecha <= ?`,
+        [desde, hasta]
+      );
+      gastosPorCategoria = await db.all(
+        `SELECT categoria, SUM(monto) as total FROM gastos WHERE fecha >= ? AND fecha <= ? GROUP BY categoria ORDER BY total DESC`,
+        [desde, hasta]
+      );
+      citas = await db.all(
+        `SELECT c.* FROM citas c WHERE c.lavador_id IS NOT NULL AND c.fecha >= ? AND c.fecha <= ? AND COALESCE(c.estado,'') IN ('finalizada','confirmada') ORDER BY c.fecha, c.hora`,
+        [desde, hasta]
+      );
+    } else {
+      ingresoProductos = await db.get(
+        `SELECT COALESCE(SUM(total), 0) as total FROM ventas WHERE strftime('%Y-%m', created_at) = ?`,
+        [`${anioActual}-${mesActual}`]
+      );
+      totalGastos = await db.get(
+        `SELECT COALESCE(SUM(monto), 0) as total FROM gastos WHERE strftime('%Y-%m', fecha) = ?`,
+        [`${anioActual}-${mesActual}`]
+      );
+      gastosPorCategoria = await db.all(
+        `SELECT categoria, SUM(monto) as total FROM gastos WHERE strftime('%Y-%m', fecha) = ? GROUP BY categoria ORDER BY total DESC`,
+        [`${anioActual}-${mesActual}`]
+      );
+      citas = await db.all(
+        `SELECT c.* FROM citas c WHERE c.lavador_id IS NOT NULL AND strftime('%Y-%m', c.fecha) = ? AND COALESCE(c.estado,'') IN ('finalizada', 'confirmada') ORDER BY c.fecha, c.hora`,
+        [`${anioActual}-${mesActual}`]
+      );
+    }
+
+    const serviciosByNombre = new Map(servicios.map(s => [String(s.nombre || '').trim().toLowerCase(), s]));
+    const promocionesById = new Map(promociones.map(p => [p.id, p]));
+    const talleresById = new Map(talleres.map(t => [t.id, t]));
+
+    const ccIsBajo = (cc) => {
+      const n = Number(cc || 0);
+      return !Number.isNaN(n) && n >= 50 && n <= 405;
+    };
+    const ccIsAlto = (cc) => {
+      const n = Number(cc || 0);
+      return !Number.isNaN(n) && n > 405;
+    };
+    const normalize = (s) => String(s || '').trim().toLowerCase();
+
+    const calcularPrecioCliente = (cita) => {
+      const cc = cita.cilindraje;
+      if (cita.promocion_id) {
+        const p = promocionesById.get(cita.promocion_id);
+        if (p) {
+          if (ccIsBajo(cc)) return Number(p.precio_cliente_bajo_cc) || 0;
+          if (ccIsAlto(cc)) return Number(p.precio_cliente_alto_cc) || 0;
+          return Number(p.precio_cliente_bajo_cc || p.precio_cliente_alto_cc || 0);
         }
-
-        const serviciosByNombre = new Map(servicios.map(s => [String(s.nombre || '').trim().toLowerCase(), s]));
-        const promocionesById = new Map(promociones.map(p => [p.id, p]));
-        const talleresById = new Map(talleres.map(t => [t.id, t]));
-
-        const ccIsBajo = (cc) => {
-          const n = Number(cc || 0);
-          return !Number.isNaN(n) && n >= 50 && n <= 405;
-        };
-        const ccIsAlto = (cc) => {
-          const n = Number(cc || 0);
-          return !Number.isNaN(n) && n > 405;
-        };
-        const normalize = (s) => String(s || '').trim().toLowerCase();
-
-        const calcularPrecioCliente = (cita) => {
-          const cc = cita.cilindraje;
-          if (cita.promocion_id) {
-            const p = promocionesById.get(cita.promocion_id);
-            if (p) {
-              if (ccIsBajo(cc)) return Number(p.precio_cliente_bajo_cc) || 0;
-              if (ccIsAlto(cc)) return Number(p.precio_cliente_alto_cc) || 0;
-              return Number(p.precio_cliente_bajo_cc || p.precio_cliente_alto_cc || 0);
-            }
-          }
-          if (cita.taller_id) {
-            const t = talleresById.get(cita.taller_id);
-            if (t) {
-              if (ccIsBajo(cc)) return Number(t.precio_bajo_cc) || 0;
-              if (ccIsAlto(cc)) return Number(t.precio_alto_cc) || 0;
-              return Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
-            }
-          }
-          const s = serviciosByNombre.get(normalize(cita.servicio));
-          if (s) {
-            if (ccIsBajo(cc)) return Number(s.precio_bajo_cc ?? s.precio ?? 0) || 0;
-            if (ccIsAlto(cc)) return Number(s.precio_alto_cc ?? s.precio ?? 0) || 0;
-            return Number(s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
-          }
-          return 25000;
-        };
-
-        const calcularBaseComision = (cita) => {
-          const cc = cita.cilindraje;
-          let base = 0;
-          if (cita.promocion_id) {
-            const p = promocionesById.get(cita.promocion_id);
-            if (p) {
-              if (ccIsBajo(cc)) base = Number(p.precio_comision_bajo_cc) || 0;
-              else if (ccIsAlto(cc)) base = Number(p.precio_comision_alto_cc) || 0;
-              else base = Number(p.precio_comision_bajo_cc || p.precio_comision_alto_cc || 0);
-            }
-          }
-          if (!base && cita.taller_id) {
-            const t = talleresById.get(cita.taller_id);
-            if (t) {
-              if (ccIsBajo(cc)) base = Number(t.precio_bajo_cc) || 0;
-              else if (ccIsAlto(cc)) base = Number(t.precio_alto_cc) || 0;
-              else base = Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
-            }
-          }
-          if (!base) {
-            const s = serviciosByNombre.get(normalize(cita.servicio));
-            if (s) {
-              if (ccIsBajo(cc)) base = Number(s.precio_base_comision_bajo ?? s.precio_bajo_cc ?? s.precio ?? 0) || 0;
-              else if (ccIsAlto(cc)) base = Number(s.precio_base_comision_alto ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
-              else base = Number(s.precio_base_comision_bajo ?? s.precio_base_comision_alto ?? s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
-            }
-          }
-          if (!base) base = 25000;
-          const precioCliente = calcularPrecioCliente(cita);
-          return Math.min(base, precioCliente);
-        };
-
-        // Calcular comisiones
-        let totalComisiones = 0;
-        for (const cita of citas) {
-          const lavador = lavadores.find(l => l.id === cita.lavador_id);
-          if (lavador) {
-            const baseComision = calcularBaseComision(cita);
-            const comision = baseComision * ((Number(lavador.comision_porcentaje) || 0) / 100);
-            totalComisiones += comision;
-          }
+      }
+      if (cita.taller_id) {
+        const t = talleresById.get(cita.taller_id);
+        if (t) {
+          if (ccIsBajo(cc)) return Number(t.precio_bajo_cc) || 0;
+          if (ccIsAlto(cc)) return Number(t.precio_alto_cc) || 0;
+          return Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
         }
+      }
+      const s = serviciosByNombre.get(normalize(cita.servicio));
+      if (s) {
+        if (ccIsBajo(cc)) return Number(s.precio_bajo_cc ?? s.precio ?? 0) || 0;
+        if (ccIsAlto(cc)) return Number(s.precio_alto_cc ?? s.precio ?? 0) || 0;
+        return Number(s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+      }
+      return 25000;
+    };
 
-        const ingresosServiciosTotal = citas.reduce((sum, c) => sum + calcularPrecioCliente(c), 0);
-        totalComisiones = Math.min(totalComisiones, ingresosServiciosTotal);
-
-        const totalIngresos = ingresosServiciosTotal + (ingresoProductos?.total || 0);
-        const gastosManualesTotales = totalGastos?.total || 0;
-        const totalGastosCompleto = gastosManualesTotales + totalComisiones;
-        const utilidadNeta = totalIngresos - totalGastosCompleto;
-
-        // Obtener detalle de gastos manuales
-        let gastosDetalle = [];
-        if (desde && hasta) {
-          gastosDetalle = await db.all(
-            `SELECT fecha, categoria, descripcion, monto FROM gastos WHERE fecha >= ? AND fecha <= ? ORDER BY fecha DESC`,
-            [desde, hasta]
-          );
-        } else {
-          gastosDetalle = await db.all(
-            `SELECT fecha, categoria, descripcion, monto FROM gastos WHERE strftime('%Y-%m', fecha) = ? ORDER BY fecha DESC`,
-            [`${anioActual}-${mesActual}`]
-          );
+    const calcularBaseComision = (cita) => {
+      const cc = cita.cilindraje;
+      let base = 0;
+      if (cita.promocion_id) {
+        const p = promocionesById.get(cita.promocion_id);
+        if (p) {
+          if (ccIsBajo(cc)) base = Number(p.precio_comision_bajo_cc) || 0;
+          else if (ccIsAlto(cc)) base = Number(p.precio_comision_alto_cc) || 0;
+          else base = Number(p.precio_comision_bajo_cc || p.precio_comision_alto_cc || 0);
         }
-
-        // Obtener detalle de productos vendidos
-        let productosDetalle = [];
-        if (desde && hasta) {
-          productosDetalle = await db.all(
-            `SELECT DATE(created_at) as fecha, (SELECT nombre FROM productos WHERE id = producto_id) as producto, cantidad, total 
-             FROM ventas WHERE DATE(created_at) >= ? AND DATE(created_at) <= ? ORDER BY created_at DESC`,
-            [desde, hasta]
-          );
-        } else {
-          productosDetalle = await db.all(
-            `SELECT DATE(created_at) as fecha, (SELECT nombre FROM productos WHERE id = producto_id) as producto, cantidad, total 
-             FROM ventas WHERE strftime('%Y-%m', created_at) = ? ORDER BY created_at DESC`,
-            [`${anioActual}-${mesActual}`]
-          );
+      }
+      if (!base && cita.taller_id) {
+        const t = talleresById.get(cita.taller_id);
+        if (t) {
+          if (ccIsBajo(cc)) base = Number(t.precio_bajo_cc) || 0;
+          else if (ccIsAlto(cc)) base = Number(t.precio_alto_cc) || 0;
+          else base = Number(t.precio_bajo_cc || t.precio_alto_cc || 0);
         }
+      }
+      if (!base) {
+        const s = serviciosByNombre.get(normalize(cita.servicio));
+        if (s) {
+          if (ccIsBajo(cc)) base = Number(s.precio_base_comision_bajo ?? s.precio_bajo_cc ?? s.precio ?? 0) || 0;
+          else if (ccIsAlto(cc)) base = Number(s.precio_base_comision_alto ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+          else base = Number(s.precio_base_comision_bajo ?? s.precio_base_comision_alto ?? s.precio_bajo_cc ?? s.precio_alto_cc ?? s.precio ?? 0) || 0;
+        }
+      }
+      if (!base) base = 25000;
+      const precioCliente = calcularPrecioCliente(cita);
+      return Math.min(base, precioCliente);
+    };
 
-        resolve({
-          ingresos: {
-            servicios: ingresosServiciosTotal,
-            productos: ingresoProductos?.total || 0,
-            total: totalIngresos
-          },
-          gastos: {
-            manuales: gastosManualesTotales,
-            comisiones: totalComisiones,
-            total: totalGastosCompleto,
-            porCategoria: gastosPorCategoria,
-            detalle: gastosDetalle
-          },
-          productos: productosDetalle,
-          utilidadNeta,
-          servicios: citas.length,
-          mes: mesActual,
-          anio: anioActual
-        });
-      })();
-    });
+    let totalComisiones = 0;
+    for (const cita of citas) {
+      const lavador = lavadores.find(l => l.id === cita.lavador_id);
+      if (lavador) {
+        const baseComision = calcularBaseComision(cita);
+        const comision = baseComision * ((Number(lavador.comision_porcentaje) || 0) / 100);
+        totalComisiones += comision;
+      }
+    }
+
+    const ingresosServiciosTotal = citas.reduce((sum, c) => sum + calcularPrecioCliente(c), 0);
+    totalComisiones = Math.min(totalComisiones, ingresosServiciosTotal);
+
+    const totalIngresos = ingresosServiciosTotal + (ingresoProductos?.total || 0);
+    const gastosManualesTotales = totalGastos?.total || 0;
+    const totalGastosCompleto = gastosManualesTotales + totalComisiones;
+    const utilidadNeta = totalIngresos - totalGastosCompleto;
+
+    let gastosDetalle = [];
+    if (desde && hasta) {
+      gastosDetalle = await db.all(
+        `SELECT fecha, categoria, descripcion, monto FROM gastos WHERE fecha >= ? AND fecha <= ? ORDER BY fecha DESC`,
+        [desde, hasta]
+      );
+    } else {
+      gastosDetalle = await db.all(
+        `SELECT fecha, categoria, descripcion, monto FROM gastos WHERE strftime('%Y-%m', fecha) = ? ORDER BY fecha DESC`,
+        [`${anioActual}-${mesActual}`]
+      );
+    }
+
+    let productosDetalle = [];
+    if (desde && hasta) {
+      productosDetalle = await db.all(
+        `SELECT DATE(created_at) as fecha, (SELECT nombre FROM productos WHERE id = producto_id) as producto, cantidad, total 
+         FROM ventas WHERE DATE(created_at) >= ? AND DATE(created_at) <= ? ORDER BY created_at DESC`,
+        [desde, hasta]
+      );
+    } else {
+      productosDetalle = await db.all(
+        `SELECT DATE(created_at) as fecha, (SELECT nombre FROM productos WHERE id = producto_id) as producto, cantidad, total 
+         FROM ventas WHERE strftime('%Y-%m', created_at) = ? ORDER BY created_at DESC`,
+        [`${anioActual}-${mesActual}`]
+      );
+    }
+
+    const dashboardRes = {
+      ingresos: {
+        servicios: ingresosServiciosTotal,
+        productos: ingresoProductos?.total || 0,
+        total: totalIngresos
+      },
+      gastos: {
+        manuales: gastosManualesTotales,
+        comisiones: totalComisiones,
+        total: totalGastosCompleto,
+        porCategoria: gastosPorCategoria,
+        detalle: gastosDetalle
+      },
+      productos: productosDetalle,
+      utilidadNeta,
+      servicios: citas.length,
+      mes: mesActual,
+      anio: anioActual
+    };
 
     // Crear workbook con múltiples sheets
     const workbook = new ExcelJS.Workbook();
@@ -724,8 +710,10 @@ router.get("/exportar-excel", verifyToken, requireAdminOrSupervisor, async (req,
     // Generar y enviar el archivo
     const nombreArchivo = `finanzas_${dashboardRes.anio}-${dashboardRes.mes.padStart(2, '0')}.xlsx`;
     const xlsxArrayBuffer = await workbook.xlsx.writeBuffer();
-    const nodeBuffer = Buffer.isBuffer(xlsxArrayBuffer) ? xlsxArrayBuffer : Buffer.from(xlsxArrayBuffer);
-    
+    const nodeBuffer = Buffer.isBuffer(xlsxArrayBuffer)
+      ? xlsxArrayBuffer
+      : Buffer.from(xlsxArrayBuffer instanceof ArrayBuffer ? new Uint8Array(xlsxArrayBuffer) : xlsxArrayBuffer);
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
     res.send(nodeBuffer);
