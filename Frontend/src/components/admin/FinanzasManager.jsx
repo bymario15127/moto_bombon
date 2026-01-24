@@ -112,10 +112,12 @@ export default function FinanzasManager() {
   const exportarExcel = async () => {
     try {
       const params = new URLSearchParams({ mes, anio, desde, hasta });
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/finanzas/exportar-excel?${params}`, {
+      const baseUrl = import.meta.env.VITE_API_URL || '';
+      const token = localStorage.getItem('motobombon_token') || localStorage.getItem('token');
+      const response = await fetch(`${baseUrl}/api/finanzas/exportar-excel?${params}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': token ? `Bearer ${token}` : undefined
         }
       });
       if (!response.ok) throw new Error('Error descargando archivo');
