@@ -23,19 +23,23 @@ export default function FinanzasManager() {
     notas: ""
   });
 
-  // Filtros
+  // Filtros (mes/año o rango)
   const [mes, setMes] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
+  const todayStr = new Date().toISOString().split('T')[0];
+  const firstOfMonthStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const [desde, setDesde] = useState(firstOfMonthStr);
+  const [hasta, setHasta] = useState(todayStr);
 
   useEffect(() => {
     cargarDatos();
-  }, [mes, anio]);
+  }, [mes, anio, desde, hasta]);
 
   const cargarDatos = async () => {
     try {
       setLoading(true);
       const [dashData, gastosData, movData] = await Promise.all([
-        getDashboard(mes, anio),
+        getDashboard(mes, anio, desde, hasta),
         getGastos({}),
         getMovimientos(mes, anio)
       ]);
@@ -115,8 +119,8 @@ export default function FinanzasManager() {
     <div style={{padding: "1.5rem", background: "#0a0a0a", minHeight: "100vh"}}>
       <h1 style={{color: "#EB0463", marginBottom: "1.5rem"}}>💰 Finanzas</h1>
 
-      {/* Selector de mes/año */}
-      <div style={{display: "flex", gap: "1rem", marginBottom: "1.5rem"}}>
+      {/* Selector de periodo */}
+      <div style={{display: "flex", gap: "1rem", marginBottom: "1.5rem", alignItems: "center", flexWrap: "wrap"}}>
         <select value={mes} onChange={(e) => setMes(e.target.value)} style={{padding: "0.5rem", background: "#1a1a1a", color: "#fff", border: "1px solid #333", borderRadius: "4px"}}>
           {Array.from({length: 12}, (_, i) => i + 1).map(m => (
             <option key={m} value={m.toString().padStart(2, '0')}>{m.toString().padStart(2, '0')}</option>
@@ -127,6 +131,8 @@ export default function FinanzasManager() {
             <option key={a} value={a}>{a}</option>
           ))}
         </select>
+        <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={{padding: "0.5rem", background: "#1a1a1a", color: "#fff", border: "1px solid #333", borderRadius: "4px"}} />
+        <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={{padding: "0.5rem", background: "#1a1a1a", color: "#fff", border: "1px solid #333", borderRadius: "4px"}} />
         <button onClick={cargarDatos} style={{padding: "0.5rem 1rem", background: "#EB0463", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer"}}>Actualizar</button>
       </div>
 
