@@ -30,7 +30,8 @@ export default function ProductosManagement() {
   // Form para registrar venta
   const [formVenta, setFormVenta] = useState({
     producto_id: '',
-    cantidad: 1
+    cantidad: 1,
+    metodo_pago: 'efectivo'
   });
 
   // Obtener fecha actual en Colombia de forma SIMPLE
@@ -172,9 +173,9 @@ export default function ProductosManagement() {
         return;
       }
 
-      await registrarVenta(formVenta.producto_id, formVenta.cantidad);
+      await registrarVenta(formVenta.producto_id, formVenta.cantidad, formVenta.metodo_pago);
       setMessage('✅ Venta registrada');
-      setFormVenta({ producto_id: '', cantidad: 1 });
+      setFormVenta({ producto_id: '', cantidad: 1, metodo_pago: 'efectivo' });
       await cargarProductos();
       await cargarVentas();
     } catch (error) {
@@ -402,6 +403,14 @@ export default function ProductosManagement() {
                 min="1"
               />
 
+              <select
+                value={formVenta.metodo_pago}
+                onChange={(e) => setFormVenta({...formVenta, metodo_pago: e.target.value})}
+              >
+                <option value="efectivo">💵 Efectivo</option>
+                <option value="qr">📱 Código QR</option>
+              </select>
+
               <button type="submit" className="btn-primary">
                 Registrar Venta
               </button>
@@ -429,6 +438,7 @@ export default function ProductosManagement() {
                       <th>Cantidad</th>
                       <th>Precio Unitario</th>
                       <th>Total</th>
+                      <th>Método Pago</th>
                       <th>Ganancia</th>
                       <th>Registrado por</th>
                       <th>Acciones</th>
@@ -442,6 +452,7 @@ export default function ProductosManagement() {
                         <td>{venta.cantidad}</td>
                         <td>${venta.precio_unitario.toLocaleString()}</td>
                         <td>${venta.total.toLocaleString()}</td>
+                        <td>{venta.metodo_pago === 'qr' ? '📱 QR' : '💵 Efectivo'}</td>
                         <td className="ganancia">${calcularGanancia(venta).toLocaleString()}</td>
                         <td>{venta.registrado_por}</td>
                         <td>

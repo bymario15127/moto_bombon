@@ -40,11 +40,19 @@ const dbReady = (async () => {
         cantidad INTEGER NOT NULL,
         precio_unitario REAL NOT NULL,
         total REAL NOT NULL,
+        metodo_pago TEXT DEFAULT 'efectivo',
         registrado_por TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (producto_id) REFERENCES productos(id)
       )
     `);
+
+    // Agregar columna metodo_pago si no existe
+    const columns = await db.all("PRAGMA table_info(ventas)");
+    const hasMetodoPago = columns.some(col => col.name === 'metodo_pago');
+    if (!hasMetodoPago) {
+      await db.exec("ALTER TABLE ventas ADD COLUMN metodo_pago TEXT DEFAULT 'efectivo'");
+    }
   } catch (error) {
     console.error("❌ Error creando tablas:", error);
   }
@@ -145,7 +153,7 @@ router.delete("/:id", verifyToken, requireAdminOrSupervisor, async (req, res) =>
 router.post("/venta/registrar", verifyToken, requireAdminOrSupervisor, async (req, res) => {
   try {
     await dbReady;
-    const { producto_id, cantidad } = req.body;
+    const { producto_id, cantidad, metodo_pago = 'efectivo' } = req.body;
     const registrado_por = req.user.username;
 
     if (!producto_id || !cantidad) {
@@ -181,8 +189,8 @@ router.post("/venta/registrar", verifyToken, requireAdminOrSupervisor, async (re
 
     // Registrar venta con fecha/hora de Colombia
     const result = await db.run(
-      "INSERT INTO ventas (producto_id, cantidad, precio_unitario, total, registrado_por, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-      [producto_id, cantidad, producto.precio_venta, total, registrado_por, fechaHoraColombia]
+      "INSERT INTO ventas (producto_id, cantidad, precio_unitario, total, metodo_pago, registrado_por, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [producto_id, cantidad, producto.precio_venta, total, metodo_pago, registrado_por, fechaHoraColombia]
     );
 
     // Actualizar stock
@@ -218,6 +226,7 @@ router.get("/reportes/diarias", verifyToken, requireAdminOrSupervisor, async (re
         v.cantidad,
         v.precio_unitario,
         v.total,
+        v.metodo_pago,
         p.precio_compra,
         (v.precio_unitario - p.precio_compra) * v.cantidad as ganancia,
         v.registrado_por,

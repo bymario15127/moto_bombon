@@ -75,14 +75,15 @@ export const eliminarProducto = async (id) => {
   }
 };
 
-export const registrarVenta = async (producto_id, cantidad) => {
+export const registrarVenta = async (producto_id, cantidad, metodo_pago = 'efectivo') => {
   try {
     const response = await fetch(`${API_URL}/venta/registrar`, {
       method: "POST",
       headers: getAuthHeader(),
       body: JSON.stringify({
         producto_id,
-        cantidad
+        cantidad,
+        metodo_pago
       })
     });
     if (!response.ok) {
