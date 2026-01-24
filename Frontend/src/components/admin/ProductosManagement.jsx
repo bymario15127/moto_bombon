@@ -33,8 +33,19 @@ export default function ProductosManagement() {
     cantidad: 1
   });
 
-  // Filtro de fecha para reportes
-  const [filtroFecha, setFiltroFecha] = useState(new Date().toISOString().split('T')[0]);
+  // Obtener fecha actual en Colombia (UTC-5)
+  const obtenerFechaColombia = () => {
+    const ahora = new Date();
+    // Restar 5 horas para Colombia
+    const colombiaTime = new Date(ahora.getTime() - (5 * 60 * 60 * 1000));
+    const year = colombiaTime.getUTCFullYear();
+    const month = String(colombiaTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(colombiaTime.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Filtro de fecha para reportes (fecha de Colombia)
+  const [filtroFecha, setFiltroFecha] = useState(obtenerFechaColombia());
 
   // Debug: mostrar token en consola
   useEffect(() => {
