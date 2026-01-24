@@ -7,7 +7,8 @@ import {
   eliminarProducto,
   registrarVenta,
   obtenerReporteDiario,
-  eliminarVenta 
+  eliminarVenta,
+  obtenerReporteGanancias 
 } from '../../services/productosService';
 import './ProductosManagement.css';
 
@@ -17,6 +18,7 @@ export default function ProductosManagement() {
   const [activeTab, setActiveTab] = useState('ventas');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [loadingReporte, setLoadingReporte] = useState(false);
   
   // Form para crear/editar producto
   const [formProducto, setFormProducto] = useState({
@@ -46,6 +48,13 @@ export default function ProductosManagement() {
   // Filtro de fecha para reportes (fecha de Colombia)
   const [filtroFecha, setFiltroFecha] = useState(obtenerFechaColombia());
 
+  // Filtro de rango para reportes agregados
+  const todayStr = new Date().toISOString().split('T')[0];
+  const firstOfMonthStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const [desde, setDesde] = useState(firstOfMonthStr);
+  const [hasta, setHasta] = useState(todayStr);
+  const [reporteGanancias, setReporteGanancias] = useState([]);
+
   // Debug: mostrar token en consola
   useEffect(() => {
     const token = localStorage.getItem("motobombon_token");
@@ -62,6 +71,9 @@ export default function ProductosManagement() {
   useEffect(() => {
     if (activeTab === 'ventas') {
       cargarVentas();
+    }
+    if (activeTab === 'reportes') {
+      cargarReporteGanancias();
     }
   }, [activeTab, filtroFecha]);
 
@@ -205,6 +217,25 @@ export default function ProductosManagement() {
 
   const calcularVentasTotal = () => {
     return ventas.reduce((sum, v) => sum + v.total, 0);
+  };
+
+  const cargarReporteGanancias = async () => {
+    try {
+      setLoadingReporte(true);
+      const data = await obtenerReporteGanancias(desde, hasta);
+      setReporteGanancias(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setMessage(`❌ Error: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoadingReporte(false);
+    }
+  };
+
+  const totalesRango = () => {
+    const totalVentasRango = reporteGanancias.reduce((sum, r) => sum + (Number(r.total_ventas) || 0), 0);
+    const gananciaNetaRango = reporteGanancias.reduce((sum, r) => sum + (Number(r.ganancia_neta) || 0), 0);
+    const cantidadVentasRango = reporteGanancias.reduce((sum, r) => sum + (Number(r.cantidad_ventas) || 0), 0);
+    return { totalVentasRango, gananciaNetaRango, cantidadVentasRango };
   };
 
   const formatearFechaLegible = (fechaISO) => {
@@ -491,11 +522,70 @@ export default function ProductosManagement() {
         <div className="tab-content">
           <h3>📊 Reportes de Ventas</h3>
           <p className="info-text">
-            Aquí puedes ver los reportes detallados de ganancias por cada día.
+            Usa el rango para ver totales que cuadran con Finanzas.
           </p>
-          <p className="info-text">
-            <strong>Nota:</strong> Recuerda que la ganancia = (Precio de Venta - Precio de Compra) × Cantidad
-          </p>
+
+          <div className="form-section" style={{marginBottom: '1rem'}}>
+            <div className="input-group">
+              <input
+                type="date"
+                value={desde}
+                onChange={(e) => setDesde(e.target.value)}
+              />
+              <input
+                type="date"
+                value={hasta}
+                onChange={(e) => setHasta(e.target.value)}
+              />
+              <button className="btn-primary" type="button" onClick={cargarReporteGanancias}>
+                Actualizar
+              </button>
+            </div>
+          </div>
+
+          {loadingReporte ? (
+            <p className="loading">Cargando reporte...</p>
+          ) : (
+            <>
+              <div className="resumen" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '1rem'}}>
+                {(() => {
+                  const { totalVentasRango, gananciaNetaRango, cantidadVentasRango } = totalesRango();
+                  return (
+                    <>
+                      <div className="resumen-item"><strong>Total Ventas (rango):</strong> ${totalVentasRango.toLocaleString()}</div>
+                      <div className="resumen-item"><strong>Ganancia Neta (rango):</strong> ${gananciaNetaRango.toLocaleString()}</div>
+                      <div className="resumen-item"><strong>Cantidad de ventas:</strong> {cantidadVentasRango}</div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {reporteGanancias.length > 0 ? (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Cantidad Ventas</th>
+                      <th>Total Ventas</th>
+                      <th>Ganancia Neta</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reporteGanancias.map((r, idx) => (
+                      <tr key={idx}>
+                        <td>{r.fecha}</td>
+                        <td>{r.cantidad_ventas}</td>
+                        <td>${Number(r.total_ventas || 0).toLocaleString()}</td>
+                        <td className="ganancia">${Number(r.ganancia_neta || 0).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No hay ventas en el rango seleccionado</p>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
