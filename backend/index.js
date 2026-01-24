@@ -14,6 +14,7 @@ import clientesRouter from "./routes/clientes.js";
 import productosRouter from "./routes/productos.js";
 import finanzasRouter from "./routes/finanzas.js";
 import authRouter from "./routes/auth.js";
+import debugRouter from "./routes/debug.js";
 // Promociones y reportes de promociones removidos
 
 // Cargar variables de entorno
@@ -71,6 +72,7 @@ app.use("/api/talleres", talleresRouter);
 app.use("/api/clientes", clientesRouter);
 app.use("/api/productos", productosRouter);
 app.use("/api/finanzas", finanzasRouter);
+app.use("/api/debug", debugRouter);
 // Rutas de promociones/reportes deshabilitadas
 
 // Subida de imagen vía base64 (evita dependencias externas)
