@@ -33,17 +33,13 @@ export default function ProductosManagement() {
     cantidad: 1
   });
 
-  // Obtener fecha actual en Colombia (UTC-5)
+  // Obtener fecha actual en Colombia de forma SIMPLE
   const obtenerFechaColombia = () => {
-    const ahora = new Date();
-    // Restar 5 horas para Colombia
-    const colombiaTime = new Date(ahora.getTime() - (5 * 60 * 60 * 1000));
-    const year = colombiaTime.getUTCFullYear();
-    const month = String(colombiaTime.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(colombiaTime.getUTCDate()).padStart(2, '0');
-    const fechaColombia = `${year}-${month}-${day}`;
-    console.log('📅 Fecha Colombia calculada:', fechaColombia);
-    return fechaColombia;
+    const hoy = new Date();
+    const opciones = { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' };
+    const fechaFormateada = hoy.toLocaleDateString('en-CA', opciones); // en-CA da formato YYYY-MM-DD
+    console.log('📅 Fecha Colombia:', fechaFormateada, 'Hora local:', hoy.toLocaleString('es-CO', opciones));
+    return fechaFormateada;
   };
 
   // Filtro de fecha para reportes (fecha de Colombia)
