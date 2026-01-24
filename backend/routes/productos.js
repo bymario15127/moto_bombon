@@ -169,10 +169,15 @@ router.post("/venta/registrar", verifyToken, requireAdminOrSupervisor, async (re
 
     const total = cantidad * producto.precio_venta;
 
-    // Registrar venta
+    // Obtener fecha y hora actual en Colombia (UTC-5)
+    const now = new Date();
+    const colombiaTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+    const fechaColombia = colombiaTime.toISOString().replace('T', ' ').substring(0, 19);
+
+    // Registrar venta con fecha de Colombia
     const result = await db.run(
-      "INSERT INTO ventas (producto_id, cantidad, precio_unitario, total, registrado_por) VALUES (?, ?, ?, ?, ?)",
-      [producto_id, cantidad, producto.precio_venta, total, registrado_por]
+      "INSERT INTO ventas (producto_id, cantidad, precio_unitario, total, registrado_por, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+      [producto_id, cantidad, producto.precio_venta, total, registrado_por, fechaColombia]
     );
 
     // Actualizar stock
