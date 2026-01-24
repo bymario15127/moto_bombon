@@ -214,14 +214,19 @@ export default function ProductosManagement() {
   };
 
   const formatearFechaHora = (fechaString) => {
-    // Las fechas vienen del backend ya en hora de Colombia
-    const fecha = new Date(fechaString);
-    const dia = fecha.getDate().toString().padStart(2, '0');
-    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
-    const anio = fecha.getFullYear();
-    const horas = fecha.getHours().toString().padStart(2, '0');
-    const minutos = fecha.getMinutes().toString().padStart(2, '0');
-    const segundos = fecha.getSeconds().toString().padStart(2, '0');
+    // SQLite guarda en UTC, convertir a Colombia (UTC-5)
+    const fechaUTC = new Date(fechaString + 'Z'); // Agregar Z para indicar que es UTC
+    
+    // Restar 5 horas (Colombia = UTC-5)
+    const offset = -5 * 60 * 60 * 1000; // -5 horas en milisegundos
+    const fechaColombia = new Date(fechaUTC.getTime() + offset);
+    
+    const dia = fechaColombia.getUTCDate().toString().padStart(2, '0');
+    const mes = (fechaColombia.getUTCMonth() + 1).toString().padStart(2, '0');
+    const anio = fechaColombia.getUTCFullYear();
+    const horas = fechaColombia.getUTCHours().toString().padStart(2, '0');
+    const minutos = fechaColombia.getUTCMinutes().toString().padStart(2, '0');
+    const segundos = fechaColombia.getUTCSeconds().toString().padStart(2, '0');
     
     return `${dia}/${mes}/${anio} ${horas}:${minutos}:${segundos}`;
   };

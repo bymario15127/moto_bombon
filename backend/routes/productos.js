@@ -169,23 +169,10 @@ router.post("/venta/registrar", verifyToken, requireAdminOrSupervisor, async (re
 
     const total = cantidad * producto.precio_venta;
 
-    // Obtener fecha y hora actual en Colombia (UTC-5) como en citas
-    const getColombiaDateTime = () => {
-      const d = new Date();
-      const colombiaTime = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
-      const yyyy = colombiaTime.getFullYear();
-      const mm = String(colombiaTime.getMonth() + 1).padStart(2, '0');
-      const dd = String(colombiaTime.getDate()).padStart(2, '0');
-      const hh = String(colombiaTime.getHours()).padStart(2, '0');
-      const min = String(colombiaTime.getMinutes()).padStart(2, '0');
-      const ss = String(colombiaTime.getSeconds()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
-    };
-
-    // Registrar venta con fecha de Colombia
+    // Registrar venta (dejar que SQLite use CURRENT_TIMESTAMP)
     const result = await db.run(
-      "INSERT INTO ventas (producto_id, cantidad, precio_unitario, total, registrado_por, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-      [producto_id, cantidad, producto.precio_venta, total, registrado_por, getColombiaDateTime()]
+      "INSERT INTO ventas (producto_id, cantidad, precio_unitario, total, registrado_por) VALUES (?, ?, ?, ?, ?)",
+      [producto_id, cantidad, producto.precio_venta, total, registrado_por]
     );
 
     // Actualizar stock
