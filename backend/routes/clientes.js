@@ -258,6 +258,22 @@ router.post("/cupon/:codigo/usar", async (req, res) => {
       return res.status(400).json({ error: "Este cupón ya fue utilizado" });
     }
 
+    // Validar que la cita tenga el servicio Basic
+    if (cita_id) {
+      const cita = await db.get('SELECT * FROM citas WHERE id = ?', [cita_id]);
+      
+      if (cita) {
+        const servicioNombre = cita.servicio.toLowerCase();
+        
+        // Solo válido para servicio "Basic" o "Básico"
+        if (!servicioNombre.includes('basic') && !servicioNombre.includes('básico')) {
+          return res.status(400).json({ 
+            error: "Este cupón solo es válido para el servicio Basic. El servicio de la cita es: " + cita.servicio 
+          });
+        }
+      }
+    }
+
     // Marcar cupón como usado
     const fechaUso = new Date().toISOString().split('T')[0];
     await db.run(
