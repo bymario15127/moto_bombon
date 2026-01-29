@@ -51,15 +51,42 @@ export default function ClientesManager() {
       alert("Por favor ingresa un código de cupón");
       return;
     }
-    if (!confirm("¿Estás seguro de marcar este cupón como usado?")) {
+    
+    // Solicitar email del cliente para buscar su cita
+    const emailCliente = prompt("Ingresa el email del cliente que va a usar el cupón:");
+    if (!emailCliente) {
       return;
     }
+    
+    if (!confirm("¿Estás seguro de marcar este cupón como usado y ligarlo a la cita del cliente?")) {
+      return;
+    }
+    
     try {
-      await usarCupon(codigoCupon.trim());
-      alert("✅ Cupón usado exitosamente");
+      // Buscar la cita más reciente del cliente de hoy
+      const response = await fetch('/api/citas');
+      const todasCitas = await response.json();
+      
+      const hoy = new Date();
+      const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+      
+      const citasCliente = todasCitas
+        .filter(c => c.email?.toLowerCase() === emailCliente.toLowerCase() && c.fecha === fechaHoy)
+        .sort((a, b) => b.id - a.id);
+      
+      if (citasCliente.length === 0) {
+        alert("⚠️ No se encontró ninguna cita de hoy para este email. Crea la cita primero.");
+        return;
+      }
+      
+      const citaId = citasCliente[0].id;
+      
+      await usarCupon(codigoCupon.trim(), citaId);
+      alert(`✅ Cupón usado exitosamente y ligado a la cita #${citaId}`);
       setCodigoCupon("");
       setResultadoCupon(null);
       setMostrarCupon(false);
+      cargarClientes(); // Recargar para actualizar contadores
     } catch (err) {
       alert("Error al usar cupón: " + err.message);
     }
