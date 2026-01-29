@@ -1,16 +1,18 @@
 // backend/services/emailService.js
 import nodemailer from 'nodemailer';
 
-// Configurar transporter de email
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 587,
-  secure: false, // true para 465, false para otros puertos
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+// Función para crear transporter (se llama cada vez que se necesita para obtener variables frescas)
+function crearTransporter() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: process.env.SMTP_PORT || 587,
+    secure: false, // true para 465, false para otros puertos
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+}
 
 // Función para generar código de cupón único (formato: MOTO-XXXX)
 export function generarCodigoCupon() {
@@ -32,6 +34,9 @@ export async function enviarCuponLavadaGratis(destinatario, nombreCliente, codig
       console.log(`📧 Se habría enviado cupón ${codigoCupon} a ${destinatario}`);
       return { success: false, reason: 'smtp_not_configured' };
     }
+
+    // Crear transporter con las variables actuales
+    const transporter = crearTransporter();
 
     const mailOptions = {
       from: `"MotoBombón" <${process.env.SMTP_USER}>`,
