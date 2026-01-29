@@ -13,6 +13,13 @@ const __dirname = path.dirname(__filename);
 // Cargar variables de entorno desde la ruta correcta
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
+// Debug: Verificar que las variables se cargaron
+console.log('🔧 Variables SMTP cargadas:');
+console.log('   SMTP_HOST:', process.env.SMTP_HOST);
+console.log('   SMTP_PORT:', process.env.SMTP_PORT);
+console.log('   SMTP_USER:', process.env.SMTP_USER);
+console.log('   SMTP_PASS:', process.env.SMTP_PASS ? '***' + process.env.SMTP_PASS.slice(-4) : 'NO DEFINIDA');
+
 async function reenviarCupon(codigoCupon) {
   let db;
   
