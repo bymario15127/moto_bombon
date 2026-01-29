@@ -121,15 +121,17 @@ router.get("/", async (req, res) => {
       lavadores = [];
     }
 
-    // Obtener citas con lavador asignado (cualquier estado)
+    // Obtener citas con lavador asignado (excluir citas con cupones gratis)
     let citas = [];
     try {
       citas = await db.all(`
         SELECT c.* FROM citas c
+        LEFT JOIN cupones cup ON c.id = cup.cita_id AND cup.usado = 1
         WHERE c.lavador_id IS NOT NULL
           AND c.fecha >= ?
           AND c.fecha <= ?
           AND COALESCE(c.estado,'') IN ('finalizada','confirmada')
+          AND cup.id IS NULL
         ORDER BY c.fecha, c.hora
       `, [inicio, fin]);
     } catch (e) {
