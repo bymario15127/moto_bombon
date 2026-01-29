@@ -326,9 +326,10 @@ export default function ClientesManager() {
                 border: "1px solid rgba(255,255,255,0.3)",
                 color: "white"
               }}>
-                <p><strong>Email:</strong> {resultadoCupon.email}</p>
-                <p><strong>Estado:</strong> {resultadoCupon.usado ? "✅ Usado" : "🔄 Disponible"}</p>
-                {resultadoCupon.usado && <p><strong>Usado en:</strong> {new Date(resultadoCupon.fecha_uso).toLocaleString()}</p>}
+                <p><strong>Email:</strong> {resultadoCupon.email_cliente || resultadoCupon.email || "N/A"}</p>
+                <p><strong>Estado:</strong> {resultadoCupon.valido ? "🔄 Disponible" : (resultadoCupon.usado ? "✅ Usado" : "❌ Inválido")}</p>
+                {!resultadoCupon.valido && resultadoCupon.fecha_uso && <p><strong>Usado en:</strong> {new Date(resultadoCupon.fecha_uso).toLocaleString()}</p>}
+                <p><strong>Mensaje:</strong> {resultadoCupon.mensaje}</p>
               </div>
             )}
           </div>
