@@ -1,10 +1,14 @@
 // backend/scripts/reenviarCupon.js
 // Script para reenviar cupón a un cliente específico
+import dotenv from 'dotenv';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { enviarCuponLavadaGratis } from '../services/emailService.js';
+
+// Cargar variables de entorno
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
