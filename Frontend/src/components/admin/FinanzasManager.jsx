@@ -31,6 +31,21 @@ export default function FinanzasManager() {
   const [desde, setDesde] = useState(firstOfMonthStr);
   const [hasta, setHasta] = useState(todayStr);
 
+  // Efecto para actualizar desde/hasta cuando cambia mes/anio
+  useEffect(() => {
+    const mesNum = parseInt(mes, 10);
+    const anioNum = parseInt(anio, 10);
+    
+    // Primer día del mes seleccionado
+    const primerDia = new Date(anioNum, mesNum - 1, 1).toISOString().split('T')[0];
+    
+    // Último día del mes seleccionado
+    const ultimoDia = new Date(anioNum, mesNum, 0).toISOString().split('T')[0];
+    
+    setDesde(primerDia);
+    setHasta(ultimoDia);
+  }, [mes, anio]);
+
   useEffect(() => {
     cargarDatos();
   }, [mes, anio, desde, hasta]);
