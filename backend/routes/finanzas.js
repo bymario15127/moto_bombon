@@ -349,29 +349,52 @@ router.delete("/gastos/:id", verifyToken, requireAdminOrSupervisor, async (req, 
 router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, res) => {
   try {
     await dbReady;
-    const { mes, anio } = req.query;
+    const { mes, anio, desde, hasta } = req.query;
     
     const fecha = new Date();
     const mesActual = mes || (fecha.getMonth() + 1).toString().padStart(2, '0');
     const anioActual = anio || fecha.getFullYear().toString();
+    
+    // Determinar filtro de fechas
+    let whereCondition = "";
+    let params = [];
+    
+    if (desde && hasta) {
+      whereCondition = "WHERE fecha >= ? AND fecha <= ?";
+      params = [desde, hasta];
+    } else {
+      whereCondition = "WHERE strftime('%Y-%m', fecha) = ?";
+      params = [`${anioActual}-${mesActual}`];
+    }
 
     // Gastos del mes
     const gastos = await db.all(`
       SELECT 'gasto' as tipo, fecha, descripcion, monto, categoria, registrado_por
       FROM gastos
-      WHERE strftime('%Y-%m', fecha) = ?
+      ${whereCondition}
       ORDER BY fecha DESC
-    `, [`${anioActual}-${mesActual}`]);
+    `, params);
 
     // Ingresos de productos
+    let productoCondition = "";
+    let productoParams = [];
+    
+    if (desde && hasta) {
+      productoCondition = "WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?";
+      productoParams = [desde, hasta];
+    } else {
+      productoCondition = "WHERE strftime('%Y-%m', created_at) = ?";
+      productoParams = [`${anioActual}-${mesActual}`];
+    }
+    
     const ingresosProductos = await db.all(`
       SELECT 'ingreso' as tipo, DATE(created_at) as fecha, 
              'Venta: ' || (SELECT nombre FROM productos WHERE id = producto_id) as descripcion,
              total as monto, 'Productos' as categoria, registrado_por
       FROM ventas
-      WHERE strftime('%Y-%m', created_at) = ?
+      ${productoCondition}
       ORDER BY created_at DESC
-    `, [`${anioActual}-${mesActual}`]);
+    `, productoParams);
 
     // Contexto para calcular precio cliente igual que nómina
     const servicios = await db.all("SELECT * FROM servicios");
@@ -417,13 +440,22 @@ router.get("/movimientos", verifyToken, requireAdminOrSupervisor, async (req, re
     };
 
     // Traer citas del mes con lavador asignado y estados válidos
+    let citasCondition = "";
+    let citasParams = [];
+    
+    if (desde && hasta) {
+      citasCondition = "WHERE lavador_id IS NOT NULL AND COALESCE(estado,'') IN ('finalizada', 'confirmada') AND fecha >= ? AND fecha <= ?";
+      citasParams = [desde, hasta];
+    } else {
+      citasCondition = "WHERE lavador_id IS NOT NULL AND COALESCE(estado,'') IN ('finalizada', 'confirmada') AND strftime('%Y-%m', fecha) = ?";
+      citasParams = [`${anioActual}-${mesActual}`];
+    }
+    
     const citasServicios = await db.all(`
       SELECT * FROM citas
-      WHERE lavador_id IS NOT NULL
-        AND COALESCE(estado,'') IN ('finalizada', 'confirmada')
-        AND strftime('%Y-%m', fecha) = ?
+      ${citasCondition}
       ORDER BY fecha DESC
-    `, [`${anioActual}-${mesActual}`]);
+    `, citasParams);
 
     const ingresosServicios = citasServicios.map(c => ({
       tipo: 'ingreso',
