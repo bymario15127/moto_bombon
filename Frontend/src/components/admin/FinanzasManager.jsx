@@ -40,8 +40,8 @@ export default function FinanzasManager() {
       setLoading(true);
       const [dashData, gastosData, movData] = await Promise.all([
         getDashboard(mes, anio, desde, hasta),
-        getGastos({}),
-        getMovimientos(mes, anio)
+        getGastos({ desde, hasta }),
+        getMovimientos(mes, anio, desde, hasta)
       ]);
       setDashboard(dashData);
       setGastos(gastosData);

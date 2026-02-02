@@ -108,11 +108,13 @@ export const eliminarGasto = async (id) => {
 };
 
 // Obtener movimientos (ingresos y gastos)
-export const getMovimientos = async (mes = null, anio = null) => {
+export const getMovimientos = async (mes = null, anio = null, desde = null, hasta = null) => {
   try {
     const params = new URLSearchParams();
     if (mes) params.append("mes", mes);
     if (anio) params.append("anio", anio);
+    if (desde) params.append("desde", desde);
+    if (hasta) params.append("hasta", hasta);
     
     const queryString = params.toString() ? `?${params.toString()}` : "";
     const response = await fetch(`${API_URL}/movimientos${queryString}`, {
