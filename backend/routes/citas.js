@@ -103,10 +103,21 @@ router.get("/", async (req, res) => {
       }
     } catch (_) { /* ignore */ }
 
+    // Verificar si existe columna deleted_at para filtrar citas eliminadas
+    let filtroEliminadas = '';
+    try {
+      const columns = await db.all("PRAGMA table_info(citas)");
+      if (columns.some((c) => c.name === "deleted_at")) {
+        filtroEliminadas = ' AND c.deleted_at IS NULL';
+      }
+    } catch (_) { /* ignore */ }
+
     let query = `SELECT c.*${joinLavadores ? ', l.nombre as lavador_nombre' : ''} FROM citas c${joinLavadores}`;
     
     if (!incluirTodas) {
-      query += ` WHERE c.fecha = ?`;
+      query += ` WHERE c.fecha = ?${filtroEliminadas}`;
+    } else {
+      query += filtroEliminadas ? ` WHERE c.deleted_at IS NULL` : '';
     }
     
     query += ` ORDER BY c.fecha ASC, c.hora ASC`;
@@ -349,7 +360,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE
+// DELETE (soft delete - marca como eliminada, no borra)
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -358,16 +369,146 @@ router.delete("/:id", async (req, res) => {
       return res.status(400).json({ error: "ID de cita inválido" });
     }
     
-    const result = await db.run("DELETE FROM citas WHERE id = ?", id);
+    // Verificar que la columna deleted_at existe
+    const columns = await db.all("PRAGMA table_info(citas)");
+    const tieneDeletedAt = columns.some((c) => c.name === "deleted_at");
     
-    if (result.changes === 0) {
-      return res.status(404).json({ error: "Cita no encontrada" });
+    let result;
+    if (tieneDeletedAt) {
+      // Soft delete: marcar como eliminada
+      const citaActual = await db.get("SELECT * FROM citas WHERE id = ? AND deleted_at IS NULL", id);
+      if (!citaActual) {
+        return res.status(404).json({ error: "Cita no encontrada o ya fue eliminada" });
+      }
+      
+      result = await db.run(
+        "UPDATE citas SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL",
+        id
+      );
+    } else {
+      // Fallback: eliminación física si la columna no existe
+      result = await db.run("DELETE FROM citas WHERE id = ?", id);
     }
     
-    res.json({ message: "Cita eliminada exitosamente" });
+    if (result.changes === 0) {
+      return res.status(404).json({ 
+        error: tieneDeletedAt ? "Cita no encontrada o ya fue eliminada" : "Cita no encontrada" 
+      });
+    }
+    
+    res.json({ 
+      message: "Cita eliminada exitosamente",
+      recoverable: tieneDeletedAt ? true : false
+    });
   } catch (error) {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
 export default router;
+
+// ============================================
+// ENDPOINT DE ADMINISTRACIÓN - PAPELERA
+// ============================================
+
+// GET /citas/papelera - Ver citas eliminadas
+router.get("/papelera/ver", async (req, res) => {
+  try {
+    const columns = await db.all("PRAGMA table_info(citas)");
+    const tieneDeletedAt = columns.some((c) => c.name === "deleted_at");
+
+    if (!tieneDeletedAt) {
+      return res.status(400).json({
+        error: "La función de papelera no está habilitada. Ejecutar: node scripts/recuperarCitas.js",
+      });
+    }
+
+    const citasEliminadas = await db.all(
+      `SELECT id, cliente, fecha, hora, servicio, telefono, cedula, email, deleted_at 
+       FROM citas 
+       WHERE deleted_at IS NOT NULL 
+       ORDER BY deleted_at DESC`
+    );
+
+    res.json({
+      total: citasEliminadas.length,
+      citas: citasEliminadas,
+    });
+  } catch (error) {
+    console.error("Error al obtener papelera:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// POST /citas/papelera/recuperar/:id - Recuperar una cita
+router.post("/papelera/recuperar/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: "ID de cita inválido" });
+    }
+
+    const columns = await db.all("PRAGMA table_info(citas)");
+    const tieneDeletedAt = columns.some((c) => c.name === "deleted_at");
+
+    if (!tieneDeletedAt) {
+      return res.status(400).json({
+        error: "La función de papelera no está habilitada",
+      });
+    }
+
+    const cita = await db.get(
+      "SELECT * FROM citas WHERE id = ? AND deleted_at IS NOT NULL",
+      id
+    );
+
+    if (!cita) {
+      return res.status(404).json({
+        error: "Cita no encontrada en papelera o ya fue recuperada",
+      });
+    }
+
+    await db.run("UPDATE citas SET deleted_at = NULL WHERE id = ?", id);
+
+    res.json({
+      message: "Cita recuperada exitosamente",
+      cita: cita,
+    });
+  } catch (error) {
+    console.error("Error al recuperar cita:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// DELETE /citas/papelera/permanente/:id - Eliminar permanentemente
+router.delete("/papelera/permanente/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: "ID de cita inválido" });
+    }
+
+    const cita = await db.get(
+      "SELECT * FROM citas WHERE id = ? AND deleted_at IS NOT NULL",
+      id
+    );
+
+    if (!cita) {
+      return res.status(404).json({
+        error: "Cita no encontrada en papelera o ya fue recuperada",
+      });
+    }
+
+    await db.run("DELETE FROM citas WHERE id = ?", id);
+
+    res.json({
+      message: "Cita eliminada permanentemente",
+      cita: cita,
+    });
+  } catch (error) {
+    console.error("Error al eliminar permanentemente:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
