@@ -227,6 +227,115 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
 
     const utilidadNeta = utilidadDelMes + utilidadMesAnteriorValue;
 
+    // CIERRE AUTOMÁTICO: Si el mes anterior no está cerrado, cerrarlo automáticamente
+    try {
+      let mesAnterior = parseInt(mesActual) - 1;
+      let anioAnterior = parseInt(anioActual);
+      if (mesAnterior < 1) {
+        mesAnterior = 12;
+        anioAnterior = anioAnterior - 1;
+      }
+
+      const mesAnteriorCerrado = await db.get(
+        `SELECT id FROM utilidades_mensuales WHERE mes = ? AND anio = ?`,
+        [mesAnterior, anioAnterior]
+      );
+
+      // Si el mes anterior no está cerrado, calcularlo y cerrarlo automáticamente
+      if (!mesAnteriorCerrado) {
+        console.log(`⏰ Cerrando automáticamente mes ${mesAnterior}/${anioAnterior}...`);
+        
+        // Obtener datos del mes anterior
+        const ingresosProdAnt = await db.get(
+          `SELECT COALESCE(SUM(total), 0) as total FROM ventas WHERE strftime('%Y-%m', created_at) = ?`,
+          [`${anioAnterior}-${mesAnterior.toString().padStart(2, '0')}`]
+        );
+
+        const gastosAnt = await db.get(
+          `SELECT COALESCE(SUM(monto), 0) as total FROM gastos WHERE strftime('%Y-%m', fecha) = ?`,
+          [`${anioAnterior}-${mesAnterior.toString().padStart(2, '0')}`]
+        );
+
+        const citasAnt = await db.all(
+          `SELECT c.* FROM citas c 
+           LEFT JOIN cupones cup ON c.id = cup.cita_id AND cup.usado = 1
+           WHERE c.lavador_id IS NOT NULL 
+             AND strftime('%Y-%m', c.fecha) = ? 
+             AND COALESCE(c.estado,'') IN ('finalizada', 'confirmada')
+             AND cup.id IS NULL
+           ORDER BY c.fecha, c.hora`,
+          [`${anioAnterior}-${mesAnterior.toString().padStart(2, '0')}`]
+        );
+
+        // Calcular comisiones del mes anterior
+        let totalComisionesAnt = 0;
+        for (const cita of citasAnt) {
+          const lavador = lavadores.find(l => l.id === cita.lavador_id);
+          if (lavador) {
+            const baseComision = calcularBaseComision(cita);
+            const comision = baseComision * ((Number(lavador.comision_porcentaje) || 0) / 100);
+            totalComisionesAnt += comision;
+          }
+        }
+
+        const ingresosServAnt = citasAnt.reduce((sum, c) => sum + calcularPrecioCliente(c), 0);
+        totalComisionesAnt = Math.min(totalComisionesAnt, ingresosServAnt);
+
+        const ingresosAnt = ingresosServAnt + (ingresosProdAnt?.total || 0);
+        const gastosAnt_total = (gastosAnt?.total || 0) + totalComisionesAnt;
+        const utilidadDelMesAnt = ingresosAnt - gastosAnt_total;
+
+        // Obtener la utilidad acumulada del mes anterior al anterior
+        let utilidadMesesAnteriores = 0;
+        try {
+          let mesAntAnterior = mesAnterior - 1;
+          let anioAntAnterior = anioAnterior;
+          if (mesAntAnterior < 1) {
+            mesAntAnterior = 12;
+            anioAntAnterior = anioAntAnterior - 1;
+          }
+          
+          const utilidadAntAnt = await db.get(
+            `SELECT COALESCE(utilidad_neta, 0) as utilidad_acumulada FROM utilidades_mensuales 
+             WHERE mes = ? AND anio = ?`,
+            [mesAntAnterior, anioAntAnterior]
+          );
+          
+          utilidadMesesAnteriores = utilidadAntAnt?.utilidad_acumulada || 0;
+        } catch (e) {
+          utilidadMesesAnteriores = 0;
+        }
+
+        const utilidadTotalAnt = utilidadDelMesAnt + utilidadMesesAnteriores;
+
+        // Guardar el cierre automático
+        await db.run(
+          `INSERT INTO utilidades_mensuales (mes, anio, utilidad_neta, ingresos_totales, gastos_totales)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(mes, anio) DO UPDATE SET
+           utilidad_neta = ?,
+           ingresos_totales = ?,
+           gastos_totales = ?,
+           updated_at = CURRENT_TIMESTAMP`,
+          [
+            mesAnterior,
+            anioAnterior,
+            utilidadTotalAnt,
+            ingresosAnt,
+            gastosAnt_total,
+            utilidadTotalAnt,
+            ingresosAnt,
+            gastosAnt_total
+          ]
+        );
+
+        console.log(`✅ Mes ${mesAnterior}/${anioAnterior} cerrado automáticamente con utilidad: ${utilidadTotalAnt}`);
+      }
+    } catch (error) {
+      console.warn("⚠️ Error en cierre automático de mes anterior:", error.message);
+      // No interrumpir si hay error en cierre automático
+    }
+
     res.json({
       ingresos: {
         servicios: ingresosServiciosTotal,

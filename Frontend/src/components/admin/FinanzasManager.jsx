@@ -151,44 +151,6 @@ export default function FinanzasManager() {
     }
   };
 
-  const cerrarMes = async () => {
-    if (!dashboard) return;
-    
-    const confirmar = confirm(
-      `¿Cerrar el mes ${mes}/${anio}?\n\nUtilidad Neta: ${formatMoney(dashboard.utilidadNeta)}\n\nEsta acción guardará la utilidad para que se acumule en el siguiente mes.`
-    );
-    
-    if (!confirmar) return;
-
-    try {
-      const baseUrl = import.meta.env.VITE_API_URL || '';
-      const token = localStorage.getItem('motobombon_token') || localStorage.getItem('token');
-      
-      const response = await fetch(`${baseUrl}/api/finanzas/cerrar-mes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : undefined
-        },
-        body: JSON.stringify({
-          mes: parseInt(mes),
-          anio: parseInt(anio),
-          utilidadNeta: dashboard.utilidadNeta,
-          ingresosTotales: dashboard.ingresos.total,
-          gastosTotales: dashboard.gastos.total
-        })
-      });
-
-      if (!response.ok) throw new Error('Error cerrando mes');
-      
-      const result = await response.json();
-      alert(`✅ ${result.message}`);
-      cargarDatos();
-    } catch (error) {
-      alert('Error cerrando mes: ' + error.message);
-    }
-  };
-
   const formatMoney = (value) => {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
   };
@@ -251,9 +213,6 @@ export default function FinanzasManager() {
               <p>{formatMoney(dashboard.utilidadNeta)}</p>
               <small>Mes actual: {formatMoney(dashboard.utilidadMesActual || 0)}</small>
               <small>Meses anteriores: {formatMoney(dashboard.utilidadMesAnterior || 0)}</small>
-              <div className="card-button">
-                <button onClick={() => cerrarMes()}>💾 Cerrar Mes</button>
-              </div>
             </div>
           </div>
 
