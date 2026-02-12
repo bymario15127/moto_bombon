@@ -150,6 +150,44 @@ export default function FinanzasManager() {
     }
   };
 
+  const cerrarMes = async () => {
+    if (!dashboard) return;
+    
+    const confirmar = confirm(
+      `¿Cerrar el mes ${mes}/${anio}?\n\nUtilidad Neta: ${formatMoney(dashboard.utilidadNeta)}\n\nEsta acción guardará la utilidad para que se acumule en el siguiente mes.`
+    );
+    
+    if (!confirmar) return;
+
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || '';
+      const token = localStorage.getItem('motobombon_token') || localStorage.getItem('token');
+      
+      const response = await fetch(`${baseUrl}/api/finanzas/cerrar-mes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : undefined
+        },
+        body: JSON.stringify({
+          mes: parseInt(mes),
+          anio: parseInt(anio),
+          utilidadNeta: dashboard.utilidadNeta,
+          ingresosTotales: dashboard.ingresos.total,
+          gastosTotales: dashboard.gastos.total
+        })
+      });
+
+      if (!response.ok) throw new Error('Error cerrando mes');
+      
+      const result = await response.json();
+      alert(`✅ ${result.message}`);
+      cargarDatos();
+    } catch (error) {
+      alert('Error cerrando mes: ' + error.message);
+    }
+  };
+
   const formatMoney = (value) => {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
   };
@@ -208,8 +246,27 @@ export default function FinanzasManager() {
               <small style={{opacity: 0.8}}>Comisiones: {formatMoney(dashboard.gastos.comisiones)}</small>
             </div>
             <div style={{background: dashboard.utilidadNeta >= 0 ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : "linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)", padding: "1.5rem", borderRadius: "8px"}}>
-              <h3 style={{margin: 0, fontSize: "0.9rem", opacity: 0.9}}>Utilidad Neta</h3>
+              <h3 style={{margin: 0, fontSize: "0.9rem", opacity: 0.9}}>Utilidad Neta (Acumulada)</h3>
               <p style={{fontSize: "1.8rem", fontWeight: "bold", margin: "0.5rem 0 0 0"}}>{formatMoney(dashboard.utilidadNeta)}</p>
+              <small style={{opacity: 0.8}}>Mes actual: {formatMoney(dashboard.utilidadMesActual || 0)}</small><br/>
+              <small style={{opacity: 0.8}}>Meses anteriores: {formatMoney(dashboard.utilidadMesAnterior || 0)}</small>
+              <div style={{marginTop: "1rem", display: "flex", gap: "0.5rem", flexWrap: "wrap"}}>
+                <button 
+                  onClick={() => cerrarMes()} 
+                  style={{
+                    padding: "0.5rem 1rem", 
+                    background: "#fff", 
+                    color: "#667eea", 
+                    border: "none", 
+                    borderRadius: "4px", 
+                    cursor: "pointer",
+                    fontSize: "0.9rem",
+                    fontWeight: "bold"
+                  }}
+                >
+                  💾 Cerrar Mes
+                </button>
+              </div>
             </div>
           </div>
 

@@ -45,6 +45,32 @@ async function initFinanzas() {
 
     console.log("✅ Índices de gastos creados");
 
+    // Crear tabla de utilidades mensuales para acumular de mes anterior
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS utilidades_mensuales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mes INTEGER NOT NULL,
+        anio INTEGER NOT NULL,
+        utilidad_neta REAL NOT NULL,
+        ingresos_totales REAL NOT NULL,
+        gastos_totales REAL NOT NULL,
+        utilidad_mes_anterior REAL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(mes, anio)
+      )
+    `);
+
+    console.log("✅ Tabla de utilidades mensuales creada exitosamente");
+
+    // Crear índices para optimizar consultas de utilidades
+    await db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_utilidades_mes_anio ON utilidades_mensuales(mes, anio);
+      CREATE INDEX IF NOT EXISTS idx_utilidades_anio ON utilidades_mensuales(anio);
+    `);
+
+    console.log("✅ Índices de utilidades creados");
+
     await db.close();
     console.log("✅ Módulo de finanzas inicializado correctamente");
   } catch (error) {

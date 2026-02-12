@@ -199,7 +199,24 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
     const totalIngresos = ingresosServiciosTotal + (ingresosProductos?.total || 0);
     const gastosManualesTotales = totalGastos?.total || 0;
     const totalGastosCompleto = gastosManualesTotales + totalComisiones;
-    const utilidadNeta = totalIngresos - totalGastosCompleto;
+    const utilidadDelMes = totalIngresos - totalGastosCompleto;
+
+    // Obtener utilidad del mes anterior para acumular
+    let mesAnterior = parseInt(mesActual) - 1;
+    let anioAnterior = parseInt(anioActual);
+    if (mesAnterior < 1) {
+      mesAnterior = 12;
+      anioAnterior = anioAnterior - 1;
+    }
+    
+    const utilidadMesAnterior = await db.get(
+      `SELECT COALESCE(utilidad_neta, 0) as utilidad_acumulada FROM utilidades_mensuales 
+       WHERE mes = ? AND anio = ? 
+       ORDER BY updated_at DESC LIMIT 1`,
+      [mesAnterior, anioAnterior]
+    );
+
+    const utilidadNeta = utilidadDelMes + (utilidadMesAnterior?.utilidad_acumulada || 0);
 
     res.json({
       ingresos: {
@@ -213,6 +230,8 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
         total: totalGastosCompleto,
         porCategoria: gastosPorCategoria
       },
+      utilidadMesActual: utilidadDelMes,
+      utilidadMesAnterior: utilidadMesAnterior?.utilidad_acumulada || 0,
       utilidadNeta,
       mes: mesActual,
       anio: anioActual
@@ -620,7 +639,24 @@ router.get("/exportar-excel", verifyToken, requireAdminOrSupervisor, async (req,
     const totalIngresos = ingresosServiciosTotal + (ingresoProductos?.total || 0);
     const gastosManualesTotales = totalGastos?.total || 0;
     const totalGastosCompleto = gastosManualesTotales + totalComisiones;
-    const utilidadNeta = totalIngresos - totalGastosCompleto;
+    const utilidadDelMes = totalIngresos - totalGastosCompleto;
+
+    // Obtener utilidad del mes anterior para acumular
+    let mesAnterior = parseInt(mesActual) - 1;
+    let anioAnterior = parseInt(anioActual);
+    if (mesAnterior < 1) {
+      mesAnterior = 12;
+      anioAnterior = anioAnterior - 1;
+    }
+    
+    const utilidadMesAnteriorData = await db.get(
+      `SELECT COALESCE(utilidad_neta, 0) as utilidad_acumulada FROM utilidades_mensuales 
+       WHERE mes = ? AND anio = ? 
+       ORDER BY updated_at DESC LIMIT 1`,
+      [mesAnterior, anioAnterior]
+    );
+
+    const utilidadNeta = utilidadDelMes + (utilidadMesAnteriorData?.utilidad_acumulada || 0);
 
     let gastosDetalle = [];
     if (desde && hasta) {
@@ -664,6 +700,8 @@ router.get("/exportar-excel", verifyToken, requireAdminOrSupervisor, async (req,
         detalle: gastosDetalle
       },
       productos: productosDetalle,
+      utilidadMesActual: utilidadDelMes,
+      utilidadMesAnterior: utilidadMesAnteriorData?.utilidad_acumulada || 0,
       utilidadNeta,
       servicios: citas.length,
       mes: mesActual,
@@ -763,6 +801,79 @@ router.get("/exportar-excel", verifyToken, requireAdminOrSupervisor, async (req,
     res.send(nodeBuffer);
   } catch (error) {
     console.error("❌ Error exportando Excel:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET - Obtener historial de utilidades mensuales
+router.get("/utilidades-historial", verifyToken, requireAdminOrSupervisor, async (req, res) => {
+  try {
+    await dbReady;
+    const { anio, limite } = req.query;
+    const limiteRegistros = limite ? parseInt(limite) : 12;
+
+    let query = `SELECT * FROM utilidades_mensuales`;
+    const params = [];
+
+    if (anio) {
+      query += ` WHERE anio = ?`;
+      params.push(anio);
+    }
+
+    query += ` ORDER BY anio DESC, mes DESC LIMIT ?`;
+    params.push(limiteRegistros);
+
+    const utilidades = await db.all(query, params);
+
+    res.json({
+      success: true,
+      data: utilidades,
+      cantidad: utilidades.length
+    });
+  } catch (error) {
+    console.error("❌ Error obteniendo historial de utilidades:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST - Guardar/Cerrar utilidad del mes (para acumular al siguiente)
+router.post("/cerrar-mes", verifyToken, requireAdminOrSupervisor, async (req, res) => {
+  try {
+    await dbReady;
+    const { mes, anio, utilidadNeta, ingresosTotales, gastosTotales } = req.body;
+
+    if (!mes || !anio || utilidadNeta === undefined) {
+      return res.status(400).json({ error: "mes, anio y utilidadNeta son requeridos" });
+    }
+
+    // Guardar o actualizar la utilidad del mes
+    const result = await db.run(
+      `INSERT INTO utilidades_mensuales (mes, anio, utilidad_neta, ingresos_totales, gastos_totales)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(mes, anio) DO UPDATE SET
+       utilidad_neta = ?,
+       ingresos_totales = ?,
+       gastos_totales = ?,
+       updated_at = CURRENT_TIMESTAMP`,
+      [
+        mes,
+        anio,
+        utilidadNeta,
+        ingresosTotales || 0,
+        gastosTotales || 0,
+        utilidadNeta,
+        ingresosTotales || 0,
+        gastosTotales || 0
+      ]
+    );
+
+    res.json({
+      success: true,
+      message: `Utilidad del mes ${mes}/${anio} guardada correctamente`,
+      id: result.lastID
+    });
+  } catch (error) {
+    console.error("❌ Error guardando utilidad mensual:", error);
     res.status(500).json({ error: error.message });
   }
 });
