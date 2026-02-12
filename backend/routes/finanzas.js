@@ -201,22 +201,31 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
     const totalGastosCompleto = gastosManualesTotales + totalComisiones;
     const utilidadDelMes = totalIngresos - totalGastosCompleto;
 
-    // Obtener utilidad del mes anterior para acumular
-    let mesAnterior = parseInt(mesActual) - 1;
-    let anioAnterior = parseInt(anioActual);
-    if (mesAnterior < 1) {
-      mesAnterior = 12;
-      anioAnterior = anioAnterior - 1;
+    // Obtener utilidad del mes anterior para acumular (tolerante a errores si tabla no existe)
+    let utilidadMesAnteriorValue = 0;
+    try {
+      let mesAnterior = parseInt(mesActual) - 1;
+      let anioAnterior = parseInt(anioActual);
+      if (mesAnterior < 1) {
+        mesAnterior = 12;
+        anioAnterior = anioAnterior - 1;
+      }
+      
+      const utilidadMesAnterior = await db.get(
+        `SELECT COALESCE(utilidad_neta, 0) as utilidad_acumulada FROM utilidades_mensuales 
+         WHERE mes = ? AND anio = ? 
+         ORDER BY updated_at DESC LIMIT 1`,
+        [mesAnterior, anioAnterior]
+      );
+      
+      utilidadMesAnteriorValue = utilidadMesAnterior?.utilidad_acumulada || 0;
+    } catch (error) {
+      // La tabla utilidades_mensuales podría no existir aún
+      console.warn("⚠️ Tabla utilidades_mensuales no existe o error consultándola:", error.message);
+      utilidadMesAnteriorValue = 0;
     }
-    
-    const utilidadMesAnterior = await db.get(
-      `SELECT COALESCE(utilidad_neta, 0) as utilidad_acumulada FROM utilidades_mensuales 
-       WHERE mes = ? AND anio = ? 
-       ORDER BY updated_at DESC LIMIT 1`,
-      [mesAnterior, anioAnterior]
-    );
 
-    const utilidadNeta = utilidadDelMes + (utilidadMesAnterior?.utilidad_acumulada || 0);
+    const utilidadNeta = utilidadDelMes + utilidadMesAnteriorValue;
 
     res.json({
       ingresos: {
@@ -231,7 +240,7 @@ router.get("/dashboard", verifyToken, requireAdminOrSupervisor, async (req, res)
         porCategoria: gastosPorCategoria
       },
       utilidadMesActual: utilidadDelMes,
-      utilidadMesAnterior: utilidadMesAnterior?.utilidad_acumulada || 0,
+      utilidadMesAnterior: utilidadMesAnteriorValue,
       utilidadNeta,
       mes: mesActual,
       anio: anioActual
@@ -641,22 +650,31 @@ router.get("/exportar-excel", verifyToken, requireAdminOrSupervisor, async (req,
     const totalGastosCompleto = gastosManualesTotales + totalComisiones;
     const utilidadDelMes = totalIngresos - totalGastosCompleto;
 
-    // Obtener utilidad del mes anterior para acumular
-    let mesAnterior = parseInt(mesActual) - 1;
-    let anioAnterior = parseInt(anioActual);
-    if (mesAnterior < 1) {
-      mesAnterior = 12;
-      anioAnterior = anioAnterior - 1;
+    // Obtener utilidad del mes anterior para acumular (tolerante a errores si tabla no existe)
+    let utilidadMesAnteriorValue = 0;
+    try {
+      let mesAnterior = parseInt(mesActual) - 1;
+      let anioAnterior = parseInt(anioActual);
+      if (mesAnterior < 1) {
+        mesAnterior = 12;
+        anioAnterior = anioAnterior - 1;
+      }
+      
+      const utilidadMesAnteriorData = await db.get(
+        `SELECT COALESCE(utilidad_neta, 0) as utilidad_acumulada FROM utilidades_mensuales 
+         WHERE mes = ? AND anio = ? 
+         ORDER BY updated_at DESC LIMIT 1`,
+        [mesAnterior, anioAnterior]
+      );
+      
+      utilidadMesAnteriorValue = utilidadMesAnteriorData?.utilidad_acumulada || 0;
+    } catch (error) {
+      // La tabla utilidades_mensuales podría no existir aún
+      console.warn("⚠️ Tabla utilidades_mensuales no existe o error consultándola:", error.message);
+      utilidadMesAnteriorValue = 0;
     }
-    
-    const utilidadMesAnteriorData = await db.get(
-      `SELECT COALESCE(utilidad_neta, 0) as utilidad_acumulada FROM utilidades_mensuales 
-       WHERE mes = ? AND anio = ? 
-       ORDER BY updated_at DESC LIMIT 1`,
-      [mesAnterior, anioAnterior]
-    );
 
-    const utilidadNeta = utilidadDelMes + (utilidadMesAnteriorData?.utilidad_acumulada || 0);
+    const utilidadNeta = utilidadDelMes + utilidadMesAnteriorValue;
 
     let gastosDetalle = [];
     if (desde && hasta) {
