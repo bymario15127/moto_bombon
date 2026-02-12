@@ -436,69 +436,69 @@ table .ganancia {
 /* Tabletas pequeñas y móviles */
 @media (max-width: 480px) {
   .productos-management {
-    padding: 12px;
+    padding: var(--spacing-md);
   }
 
   .productos-management h2 {
-    font-size: 24px;
-    margin-bottom: 20px;
+    font-size: var(--font-lg);
+    margin-bottom: var(--spacing-lg);
   }
 
   .tabs {
-    padding: 6px;
-    gap: 5px;
+    padding: var(--spacing-xs);
+    gap: var(--spacing-xs);
   }
 
   .tab {
-    padding: 10px 12px;
-    font-size: 13px;
+    padding: var(--spacing-md) var(--spacing-sm);
+    font-size: var(--font-sm);
     flex: 1;
   }
 
   .form-section {
-    padding: 12px;
-    margin-bottom: 15px;
-    border-radius: 8px;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    border-radius: var(--radius-lg);
   }
 
   .form-section h3 {
-    font-size: 18px;
-    margin-bottom: 15px;
+    font-size: var(--font-base);
+    margin-bottom: var(--spacing-md);
   }
 
   .form-section input,
   .form-section select {
-    padding: 10px;
-    font-size: 14px;
+    padding: var(--spacing-sm);
+    font-size: var(--font-base);
   }
 
   .input-group {
-    gap: 10px;
+    gap: var(--spacing-md);
   }
 
   .button-group {
-    gap: 8px;
+    gap: var(--spacing-md);
   }
 
   .btn-primary,
   .btn-secondary {
-    padding: 10px 15px;
-    font-size: 13px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-sm);
   }
 
   .products-list h3,
   .sales-list h3 {
-    font-size: 18px;
+    font-size: var(--font-base);
   }
 
   .products-list,
   .sales-list {
-    padding: 12px;
-    margin-bottom: 15px;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
   }
 
   table {
-    font-size: 12px;
+    font-size: var(--font-sm);
     display: block;
     overflow-x: auto;
     white-space: nowrap;
@@ -516,14 +516,14 @@ table .ganancia {
   }
 
   table tbody tr {
-    margin-bottom: 12px;
+    margin-bottom: var(--spacing-md);
     border: 1px solid #EB0463;
-    border-radius: 8px;
-    padding: 10px;
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
   }
 
   table td {
-    padding: 6px 0;
+    padding: var(--spacing-xs) 0;
     border-bottom: none;
     text-align: right;
     padding-right: 0;
@@ -537,28 +537,28 @@ table .ganancia {
   }
 
   .date-filter {
-    padding: 10px;
-    font-size: 14px;
-    margin-bottom: 15px;
+    padding: var(--spacing-sm);
+    font-size: var(--font-sm);
+    margin-bottom: var(--spacing-lg);
   }
 
   .resumen {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: var(--spacing-md);
   }
 
   .resumen-item {
-    padding: 15px;
-    border-radius: 8px;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
   }
 
   .resumen-item span {
-    font-size: 20px;
+    font-size: var(--font-lg);
   }
 
   .message {
-    padding: 12px 15px;
-    font-size: 13px;
-    margin-bottom: 15px;
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-sm);
+    margin-bottom: var(--spacing-md);
   }
 }

@@ -1,0 +1,386 @@
+/* Frontend/src/styles/responsive-uniform.css */
+/* Estilos uniformes para móvil y responsive */
+
+:root {
+  /* Espaciado uniforme */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.25rem;
+  --spacing-xl: 1.5rem;
+  
+  /* Tamaños de fuente móvil */
+  --font-xs: 0.75rem;
+  --font-sm: 0.875rem;
+  --font-base: 1rem;
+  --font-lg: 1.125rem;
+  --font-xl: 1.25rem;
+  
+  /* Border radius uniforme */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  
+  /* Colores */
+  --primary: #EB0463;
+  --dark: #0a0a0a;
+  --card: #1a1a1a;
+  --text: #ffffff;
+  --text-muted: #888888;
+  --success: #10b981;
+  --warning: #f5576c;
+}
+
+/* MÓVIL: Estilos base uniformes (320px+) */
+@media (max-width: 768px) {
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-size: var(--font-base);
+    line-height: 1.5;
+  }
+
+  /* Contenedores uniformes */
+  .container,
+  .form-container,
+  .tab-content,
+  .card,
+  .dashboard-card,
+  .form-section,
+  .products-list,
+  .sales-list,
+  .gastos-tabla,
+  .gastos-categoria {
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--primary);
+    background: var(--card);
+  }
+
+  /* Headers uniformes */
+  h1, h2, h3, h4, h5, h6 {
+    font-size: var(--font-lg);
+    font-weight: 600;
+    margin: var(--spacing-md) 0;
+    color: var(--primary);
+  }
+
+  h1 {
+    font-size: var(--font-xl);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  /* Inputs uniformes */
+  input,
+  select,
+  textarea {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-base);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-md);
+    background: var(--dark);
+    color: var(--text);
+    font-family: inherit;
+    margin-bottom: var(--spacing-md);
+    box-sizing: border-box;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(235, 4, 99, 0.3);
+  }
+
+  /* Botones uniformes */
+  button {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-base);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  button:last-child {
+    margin-bottom: 0;
+  }
+
+  .btn-primary,
+  .btn-actualizar,
+  .btn-exportar {
+    background: var(--primary);
+    color: var(--text);
+  }
+
+  .btn-primary:hover,
+  .btn-actualizar:hover,
+  .btn-exportar:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+
+  .btn-secondary {
+    background: #868f96;
+    color: var(--text);
+  }
+
+  .btn-success {
+    background: var(--success);
+    color: var(--dark);
+  }
+
+  .btn-warning {
+    background: var(--warning);
+    color: var(--text);
+  }
+
+  /* Tabs uniformes */
+  .tab-button {
+    padding: var(--spacing-md) !important;
+    font-size: var(--font-base) !important;
+    margin: 0 !important;
+    flex: 1;
+    text-align: center;
+  }
+
+  .tab-button.active {
+    background: var(--primary) !important;
+  }
+
+  /* Cards uniformes */
+  .dashboard-card {
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+  }
+
+  .dashboard-card h3 {
+    font-size: var(--font-sm);
+    margin-bottom: var(--spacing-md);
+    opacity: 0.9;
+  }
+
+  .dashboard-card p {
+    font-size: var(--font-xl);
+    font-weight: bold;
+    margin: var(--spacing-md) 0;
+  }
+
+  .dashboard-card small {
+    font-size: var(--font-xs);
+    display: block;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  /* Tablas uniformes */
+  table {
+    width: 100%;
+    font-size: var(--font-sm);
+  }
+
+  table th,
+  table td {
+    padding: var(--spacing-md);
+    text-align: left;
+  }
+
+  table th {
+    font-weight: 600;
+    background: var(--primary);
+    color: var(--text);
+  }
+
+  table td {
+    border-bottom: 1px solid #333;
+  }
+
+  /* Formularios uniformes */
+  .form-section form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .form-section label {
+    font-size: var(--font-sm);
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+    display: block;
+  }
+
+  /* Grid uniforme para 2 columnas */
+  .input-group {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  /* Espaciado uniforme entre secciones */
+  .tab-content {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .section {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  /* Mensajes uniformes */
+  .message {
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-sm);
+    font-weight: 600;
+  }
+
+  /* Selector período uniforme */
+  .periodo-selector {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .periodo-selector select,
+  .periodo-selector input {
+    width: 100%;
+  }
+
+  .periodo-selector button {
+    width: 100%;
+  }
+
+  /* Gastos lista uniforme */
+  .gastos-categoria-item {
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+    font-size: var(--font-sm);
+  }
+
+  /* Resumen uniforme */
+  .resumen {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  .resumen-item {
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    border: 1px solid var(--primary);
+  }
+
+  .resumen-item strong {
+    font-size: var(--font-sm);
+    color: var(--primary);
+    margin-bottom: var(--spacing-md);
+    display: block;
+  }
+
+  .resumen-item span {
+    font-size: var(--font-lg);
+    font-weight: bold;
+  }
+
+  /* Button groups uniformes */
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .button-group button {
+    margin: 0;
+    width: 100%;
+  }
+}
+
+/* Tablets (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .input-group {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .resumen {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  button {
+    width: auto;
+  }
+
+  .button-group {
+    flex-direction: row;
+  }
+
+  .periodo-selector {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .periodo-selector select,
+  .periodo-selector input {
+    width: auto;
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+/* Desktop (1025px+) */
+@media (min-width: 1025px) {
+  .input-group {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .resumen {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  button {
+    width: auto;
+  }
+
+  .button-group {
+    flex-direction: row;
+    gap: var(--spacing-lg);
+  }
+}
+
+/* Accesibilidad: Asegurar tamaño mínimo de touch targets */
+button,
+a[role="button"],
+input[type="button"],
+input[type="submit"] {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Hover states */
+button:active {
+  transform: scale(0.98);
+}
+
+/* Print styles */
+@media print {
+  button,
+  .no-print {
+    display: none;
+  }
+}
