@@ -432,3 +432,133 @@ table .ganancia {
     padding: 15px;
   }
 }
+
+/* Tabletas pequeñas y móviles */
+@media (max-width: 480px) {
+  .productos-management {
+    padding: 12px;
+  }
+
+  .productos-management h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .tabs {
+    padding: 6px;
+    gap: 5px;
+  }
+
+  .tab {
+    padding: 10px 12px;
+    font-size: 13px;
+    flex: 1;
+  }
+
+  .form-section {
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+  }
+
+  .form-section h3 {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+
+  .form-section input,
+  .form-section select {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .input-group {
+    gap: 10px;
+  }
+
+  .button-group {
+    gap: 8px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 10px 15px;
+    font-size: 13px;
+  }
+
+  .products-list h3,
+  .sales-list h3 {
+    font-size: 18px;
+  }
+
+  .products-list,
+  .sales-list {
+    padding: 12px;
+    margin-bottom: 15px;
+  }
+
+  table {
+    font-size: 12px;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  table thead {
+    display: none;
+  }
+
+  table tbody,
+  table tr,
+  table td {
+    display: block;
+    width: 100%;
+  }
+
+  table tbody tr {
+    margin-bottom: 12px;
+    border: 1px solid #EB0463;
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  table td {
+    padding: 6px 0;
+    border-bottom: none;
+    text-align: right;
+    padding-right: 0;
+  }
+
+  table td:before {
+    content: attr(data-label);
+    float: left;
+    font-weight: 700;
+    color: #EB0463;
+  }
+
+  .date-filter {
+    padding: 10px;
+    font-size: 14px;
+    margin-bottom: 15px;
+  }
+
+  .resumen {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .resumen-item {
+    padding: 15px;
+    border-radius: 8px;
+  }
+
+  .resumen-item span {
+    font-size: 20px;
+  }
+
+  .message {
+    padding: 12px 15px;
+    font-size: 13px;
+    margin-bottom: 15px;
+  }
+}

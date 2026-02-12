@@ -1,6 +1,7 @@
 // Frontend/src/components/admin/FinanzasManager.jsx
 import { useState, useEffect } from "react";
 import { getDashboard, getGastos, crearGasto, actualizarGasto, eliminarGasto, getMovimientos } from "../../services/finanzasService";
+import "./FinanzasManager.css";
 
 export default function FinanzasManager() {
   const [dashboard, setDashboard] = useState(null);
@@ -195,36 +196,36 @@ export default function FinanzasManager() {
   if (loading) return <div style={{padding: "2rem", color: "#fff"}}>Cargando...</div>;
 
   return (
-    <div style={{padding: "1.5rem", background: "#0a0a0a", minHeight: "100vh"}}>
-      <h1 style={{color: "#EB0463", marginBottom: "1.5rem"}}>💰 Finanzas</h1>
+    <div className="finanzas-container">
+      <h1>💰 Finanzas</h1>
 
       {/* Selector de periodo */}
-      <div style={{display: "flex", gap: "1rem", marginBottom: "1.5rem", alignItems: "center", flexWrap: "wrap"}}>
-        <select value={mes} onChange={(e) => setMes(e.target.value)} style={{padding: "0.5rem", background: "#1a1a1a", color: "#fff", border: "1px solid #333", borderRadius: "4px"}}>
+      <div className="periodo-selector">
+        <select value={mes} onChange={(e) => setMes(e.target.value)}>
           {Array.from({length: 12}, (_, i) => i + 1).map(m => (
             <option key={m} value={m.toString().padStart(2, '0')}>{m.toString().padStart(2, '0')}</option>
           ))}
         </select>
-        <select value={anio} onChange={(e) => setAnio(e.target.value)} style={{padding: "0.5rem", background: "#1a1a1a", color: "#fff", border: "1px solid #333", borderRadius: "4px"}}>
+        <select value={anio} onChange={(e) => setAnio(e.target.value)}>
           {[2024, 2025, 2026, 2027].map(a => (
             <option key={a} value={a}>{a}</option>
           ))}
         </select>
-        <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} style={{padding: "0.5rem", background: "#1a1a1a", color: "#fff", border: "1px solid #333", borderRadius: "4px"}} />
-        <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} style={{padding: "0.5rem", background: "#1a1a1a", color: "#fff", border: "1px solid #333", borderRadius: "4px"}} />
-        <button onClick={cargarDatos} style={{padding: "0.5rem 1rem", background: "#EB0463", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer"}}>Actualizar</button>
-        <button onClick={exportarExcel} style={{padding: "0.5rem 1rem", background: "#10b981", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold"}}>📊 Exportar Excel</button>
+        <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+        <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+        <button className="btn-actualizar" onClick={cargarDatos}>Actualizar</button>
+        <button className="btn-exportar" onClick={exportarExcel}>📊 Exportar</button>
       </div>
 
       {/* Tabs */}
-      <div style={{display: "flex", gap: "1rem", marginBottom: "1.5rem", borderBottom: "2px solid #333"}}>
-        <button onClick={() => setTabActiva("dashboard")} style={{padding: "0.75rem 1.5rem", background: tabActiva === "dashboard" ? "#EB0463" : "transparent", color: "#fff", border: "none", cursor: "pointer", borderBottom: tabActiva === "dashboard" ? "3px solid #EB0463" : "none"}}>
+      <div className="tabs-container">
+        <button className={`tab-button ${tabActiva === "dashboard" ? "active" : ""}`} onClick={() => setTabActiva("dashboard")}>
           Dashboard
         </button>
-        <button onClick={() => setTabActiva("gastos")} style={{padding: "0.75rem 1.5rem", background: tabActiva === "gastos" ? "#EB0463" : "transparent", color: "#fff", border: "none", cursor: "pointer", borderBottom: tabActiva === "gastos" ? "3px solid #EB0463" : "none"}}>
+        <button className={`tab-button ${tabActiva === "gastos" ? "active" : ""}`} onClick={() => setTabActiva("gastos")}>
           Gastos
         </button>
-        <button onClick={() => setTabActiva("movimientos")} style={{padding: "0.75rem 1.5rem", background: tabActiva === "movimientos" ? "#EB0463" : "transparent", color: "#fff", border: "none", cursor: "pointer", borderBottom: tabActiva === "movimientos" ? "3px solid #EB0463" : "none"}}>
+        <button className={`tab-button ${tabActiva === "movimientos" ? "active" : ""}`} onClick={() => setTabActiva("movimientos")}>
           Movimientos
         </button>
       </div>
@@ -232,52 +233,38 @@ export default function FinanzasManager() {
       {/* TAB DASHBOARD */}
       {tabActiva === "dashboard" && dashboard && (
         <div>
-          <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1rem", marginBottom: "2rem"}}>
-            <div style={{background: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)", padding: "1.5rem", borderRadius: "8px"}}>
-              <h3 style={{margin: 0, fontSize: "0.9rem", opacity: 0.9}}>Total Ingresos</h3>
-              <p style={{fontSize: "1.8rem", fontWeight: "bold", margin: "0.5rem 0 0 0"}}>{formatMoney(dashboard.ingresos.total)}</p>
-              <small style={{opacity: 0.8}}>Servicios: {formatMoney(dashboard.ingresos.servicios)}</small><br/>
-              <small style={{opacity: 0.8}}>Productos: {formatMoney(dashboard.ingresos.productos)}</small>
+          <div className="dashboard-grid">
+            <div className="dashboard-card card-ingresos">
+              <h3>Total Ingresos</h3>
+              <p>{formatMoney(dashboard.ingresos.total)}</p>
+              <small>Servicios: {formatMoney(dashboard.ingresos.servicios)}</small>
+              <small>Productos: {formatMoney(dashboard.ingresos.productos)}</small>
             </div>
-            <div style={{background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)", padding: "1.5rem", borderRadius: "8px"}}>
-              <h3 style={{margin: 0, fontSize: "0.9rem", opacity: 0.9}}>Total Gastos</h3>
-              <p style={{fontSize: "1.8rem", fontWeight: "bold", margin: "0.5rem 0 0 0"}}>{formatMoney(dashboard.gastos.total)}</p>
-              <small style={{opacity: 0.8}}>Manuales: {formatMoney(dashboard.gastos.manuales)}</small><br/>
-              <small style={{opacity: 0.8}}>Comisiones: {formatMoney(dashboard.gastos.comisiones)}</small>
+            <div className="dashboard-card card-gastos">
+              <h3>Total Gastos</h3>
+              <p>{formatMoney(dashboard.gastos.total)}</p>
+              <small>Manuales: {formatMoney(dashboard.gastos.manuales)}</small>
+              <small>Comisiones: {formatMoney(dashboard.gastos.comisiones)}</small>
             </div>
-            <div style={{background: dashboard.utilidadNeta >= 0 ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" : "linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)", padding: "1.5rem", borderRadius: "8px"}}>
-              <h3 style={{margin: 0, fontSize: "0.9rem", opacity: 0.9}}>Utilidad Neta (Acumulada)</h3>
-              <p style={{fontSize: "1.8rem", fontWeight: "bold", margin: "0.5rem 0 0 0"}}>{formatMoney(dashboard.utilidadNeta)}</p>
-              <small style={{opacity: 0.8}}>Mes actual: {formatMoney(dashboard.utilidadMesActual || 0)}</small><br/>
-              <small style={{opacity: 0.8}}>Meses anteriores: {formatMoney(dashboard.utilidadMesAnterior || 0)}</small>
-              <div style={{marginTop: "1rem", display: "flex", gap: "0.5rem", flexWrap: "wrap"}}>
-                <button 
-                  onClick={() => cerrarMes()} 
-                  style={{
-                    padding: "0.5rem 1rem", 
-                    background: "#fff", 
-                    color: "#667eea", 
-                    border: "none", 
-                    borderRadius: "4px", 
-                    cursor: "pointer",
-                    fontSize: "0.9rem",
-                    fontWeight: "bold"
-                  }}
-                >
-                  💾 Cerrar Mes
-                </button>
+            <div className={`dashboard-card ${dashboard.utilidadNeta >= 0 ? "card-utilidad" : "card-utilidad negative"}`}>
+              <h3>Utilidad Neta (Acumulada)</h3>
+              <p>{formatMoney(dashboard.utilidadNeta)}</p>
+              <small>Mes actual: {formatMoney(dashboard.utilidadMesActual || 0)}</small>
+              <small>Meses anteriores: {formatMoney(dashboard.utilidadMesAnterior || 0)}</small>
+              <div className="card-button">
+                <button onClick={() => cerrarMes()}>💾 Cerrar Mes</button>
               </div>
             </div>
           </div>
 
           {/* Gastos por categoría */}
           {dashboard.gastos.porCategoria.length > 0 && (
-            <div style={{background: "#1a1a1a", padding: "1.5rem", borderRadius: "8px"}}>
-              <h3 style={{color: "#fff", marginTop: 0}}>Gastos por Categoría</h3>
+            <div className="gastos-categoria">
+              <h3>Gastos por Categoría</h3>
               {dashboard.gastos.porCategoria.map(cat => (
-                <div key={cat.categoria} style={{display: "flex", justifyContent: "space-between", padding: "0.5rem 0", borderBottom: "1px solid #333"}}>
-                  <span style={{color: "#fff"}}>{cat.categoria}</span>
-                  <span style={{color: "#EB0463", fontWeight: "bold"}}>{formatMoney(cat.total)}</span>
+                <div key={cat.categoria} className="gastos-categoria-item">
+                  <span>{cat.categoria}</span>
+                  <span>{formatMoney(cat.total)}</span>
                 </div>
               ))}
             </div>
