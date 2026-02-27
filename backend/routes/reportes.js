@@ -48,15 +48,15 @@ router.get("/promociones-excel", async (req, res) => {
             COUNT(*) AS cantidad,
             SUM(
               CASE 
-                WHEN CAST(c.cilindraje AS INTEGER) BETWEEN 50 AND 405 THEN COALESCE(p.precio_cliente_bajo_cc, 0)
-                WHEN CAST(c.cilindraje AS INTEGER) > 405 THEN COALESCE(p.precio_cliente_alto_cc, 0)
+                WHEN CAST(c.cilindraje AS INTEGER) BETWEEN 0 AND 405 THEN COALESCE(p.precio_cliente_bajo_cc, 0)
+                WHEN CAST(c.cilindraje AS INTEGER) BETWEEN 406 AND 1300 THEN COALESCE(p.precio_cliente_alto_cc, 0)
                 ELSE COALESCE(p.precio_cliente_bajo_cc, COALESCE(p.precio_cliente_alto_cc, 0))
               END
             ) AS total_cliente,
             SUM(
               CASE 
-                WHEN CAST(c.cilindraje AS INTEGER) BETWEEN 50 AND 405 THEN COALESCE(p.precio_comision_bajo_cc, 0)
-                WHEN CAST(c.cilindraje AS INTEGER) > 405 THEN COALESCE(p.precio_comision_alto_cc, 0)
+                WHEN CAST(c.cilindraje AS INTEGER) BETWEEN 0 AND 405 THEN COALESCE(p.precio_comision_bajo_cc, 0)
+                WHEN CAST(c.cilindraje AS INTEGER) BETWEEN 406 AND 1300 THEN COALESCE(p.precio_comision_alto_cc, 0)
                 ELSE COALESCE(p.precio_comision_bajo_cc, COALESCE(p.precio_comision_alto_cc, 0))
               END
             ) AS total_base_comision
@@ -101,8 +101,8 @@ router.get("/promociones-excel", async (req, res) => {
     // Transformar para Excel
     const data = rows.map((r) => {
       const cc = Number(r.cilindraje || 0);
-      const bajo = !isNaN(cc) && cc >= 50 && cc <= 405;
-      const alto = !isNaN(cc) && cc > 405;
+      const bajo = !isNaN(cc) && cc >= 0 && cc <= 405;
+      const alto = !isNaN(cc) && cc >= 406 && cc <= 1300;
 
       const precioClienteAplicado = bajo
         ? r.precio_cliente_bajo_cc

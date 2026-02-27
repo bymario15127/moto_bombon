@@ -167,7 +167,7 @@ export default function TalleresManager() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Precio Bajo CC (100-405cc)</label>
+                  <label>Precio Bajo CC (0-405cc)</label>
                   <input
                     type="number"
                     value={formData.precio_bajo_cc}
@@ -179,7 +179,7 @@ export default function TalleresManager() {
                 </div>
 
                 <div className="form-group">
-                  <label>Precio Alto CC (405-1200cc)</label>
+                  <label>Precio Alto CC (406-1300cc)</label>
                   <input
                     type="number"
                     value={formData.precio_alto_cc}

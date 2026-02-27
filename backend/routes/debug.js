@@ -19,11 +19,11 @@ let db;
 
 const ccIsBajo = (cc) => {
   const n = Number(cc || 0);
-  return !Number.isNaN(n) && n >= 50 && n <= 405;
+  return !Number.isNaN(n) && n >= 0 && n <= 405;
 };
 const ccIsAlto = (cc) => {
   const n = Number(cc || 0);
-  return !Number.isNaN(n) && n > 405;
+  return !Number.isNaN(n) && n >= 406 && n <= 1300;
 };
 const normalize = (s) => String(s || '').trim().toLowerCase();
 

@@ -134,9 +134,9 @@ export default function ReservaForm() {
 
     // Validaciones básicas
     const ccNumber = parseInt(form.cilindraje);
-    const cilindrajeValido = !isNaN(ccNumber) && ccNumber >= 50 && ccNumber <= 2000;
+    const cilindrajeValido = !isNaN(ccNumber) && ccNumber >= 0 && ccNumber <= 1300;
     if (!cilindrajeValido) {
-      mostrarMensaje("Por favor ingresa un cilindraje válido (50 - 2000 cc)", "error");
+      mostrarMensaje("Por favor ingresa un cilindraje válido (0 - 1300 cc)", "error");
       setLoading(false);
       return;
     }
@@ -368,11 +368,11 @@ export default function ReservaForm() {
         <h3>Selecciona tu servicio</h3>
         {(() => {
           const ccNumber = parseInt(form.cilindraje);
-          const cilindrajeValido = !isNaN(ccNumber) && ccNumber >= 50 && ccNumber <= 2000;
+          const cilindrajeValido = !isNaN(ccNumber) && ccNumber >= 0 && ccNumber <= 1300;
           if (!cilindrajeValido) {
             return (
               <p className="aviso-cilindraje" style={{marginBottom: '16px', fontSize: '14px'}}>
-                Ingresa el <strong>cilindraje</strong> válido (50 - 2000 cc) para ver y seleccionar los servicios.
+                Ingresa el <strong>cilindraje</strong> válido (0 - 1300 cc) para ver y seleccionar los servicios.
               </p>
             );
           }
@@ -381,8 +381,8 @@ export default function ReservaForm() {
               {serviciosDisponibles.map((s) => {
                 // Determinar precio según cilindraje
                 const cc = ccNumber || 0;
-                const esBajoCC = cc >= 50 && cc <= 405;
-                const esAltoCC = cc > 405 && cc <= 1200;
+                const esBajoCC = cc >= 0 && cc <= 405;
+                const esAltoCC = cc >= 406 && cc <= 1300;
                 
                 // Determinar precio a mostrar
                 let precioMostrar = s.precio_mostrar || s.precio;

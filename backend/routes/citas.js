@@ -207,8 +207,8 @@ router.post("/", async (req, res) => {
     // Validar cilindraje si se proporciona
     if (cilindraje) {
       const cc = Number(cilindraje);
-      if (isNaN(cc) || cc < 50 || cc > 2000) {
-        return res.status(400).json({ error: "Cilindraje inválido. Debe estar entre 50 y 2000 cc" });
+      if (isNaN(cc) || cc < 0 || cc > 1300) {
+        return res.status(400).json({ error: "Cilindraje inválido. Debe estar entre 0 y 1300 cc" });
       }
     }
     
@@ -298,8 +298,8 @@ router.put("/:id", async (req, res) => {
       // Validar cilindraje si se está actualizando
       if (key === 'cilindraje' && value) {
         const cc = Number(value);
-        if (isNaN(cc) || cc < 50 || cc > 2000) {
-          return res.status(400).json({ error: "Cilindraje inválido. Debe estar entre 50 y 2000 cc" });
+        if (isNaN(cc) || cc < 0 || cc > 1300) {
+          return res.status(400).json({ error: "Cilindraje inválido. Debe estar entre 0 y 1300 cc" });
         }
       }
 

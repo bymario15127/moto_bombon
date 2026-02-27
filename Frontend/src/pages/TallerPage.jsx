@@ -122,7 +122,7 @@ export default function TallerPage() {
     const ccNumber = parseInt(form.cilindraje);
     if (isNaN(ccNumber)) return null;
     const limiteCC = 405;
-    const usaAlto = ccNumber > limiteCC;
+    const usaAlto = ccNumber >= 406 && ccNumber <= 1300;
     const valor = usaAlto ? tallerSeleccionado?.precio_alto_cc : tallerSeleccionado?.precio_bajo_cc;
     const fallback = tallerSeleccionado?.precio_bajo_cc ?? tallerSeleccionado?.precio_alto_cc;
     return formatCOP(valor ?? fallback);
@@ -140,9 +140,9 @@ export default function TallerPage() {
     }
 
     const ccNumber = parseInt(form.cilindraje);
-    const cilindrajeValido = !isNaN(ccNumber) && ccNumber >= 50 && ccNumber <= 2000;
+    const cilindrajeValido = !isNaN(ccNumber) && ccNumber >= 0 && ccNumber <= 1300;
     if (!cilindrajeValido) {
-      mostrarMensaje("Por favor ingresa un cilindraje válido (50 - 2000 cc)", "error");
+      mostrarMensaje("Por favor ingresa un cilindraje válido (0 - 1300 cc)", "error");
       setLoading(false);
       return;
     }

@@ -193,27 +193,27 @@ export default function ServiciosManager() {
                 </div>
 
                 <div className="form-group">
-                  <label>Precio Bajo CC (100-405cc)</label>
+                  <label>Precio Bajo CC (0-405cc)</label>
                   <input
                     type="number"
                     value={formData.precio_bajo_cc}
                     onChange={(e) => setFormData({...formData, precio_bajo_cc: e.target.value})}
                     min="0"
                     step="1000"
-                    placeholder="Precio para motos de 100 a 405 CC"
+                    placeholder="Precio para motos de 0 a 405 CC"
                     required
                   />
                 </div>
 
                 <div className="form-group">
-                  <label>Precio Alto CC (405-1200cc)</label>
+                  <label>Precio Alto CC (406-1300cc)</label>
                   <input
                     type="number"
                     value={formData.precio_alto_cc}
                     onChange={(e) => setFormData({...formData, precio_alto_cc: e.target.value})}
                     min="0"
                     step="1000"
-                    placeholder="Precio para motos de 405 a 1200 CC"
+                    placeholder="Precio para motos de 406 a 1300 CC"
                     required
                   />
                 </div>
@@ -244,7 +244,7 @@ export default function ServiciosManager() {
                 </div>
 
                 <div className="form-group">
-                  <label>Imagen para Alto CC (405-1200cc)</label>
+                  <label>Imagen para Alto CC (406-1300cc)</label>
                   <input type="file" accept="image/*" onChange={(e) => {
                     const file = e.target.files?.[0];
                     uploadFileToField(file, 'imagen_alto_cc');
