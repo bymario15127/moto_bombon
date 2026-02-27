@@ -1,13 +1,26 @@
 // backend/routes/promociones.js
 import express from "express";
-import { getDbFromRequest } from "../database/dbManager.js";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const router = express.Router();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let db;
+(async () => {
+  db = await open({
+    filename: path.join(__dirname, "../database/database.sqlite"),
+    driver: sqlite3.Database,
+  });
+})();
 
 // GET all promociones
 router.get("/", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const promociones = await db.all(
       `SELECT * FROM promociones ORDER BY fecha_inicio DESC`
     );
@@ -21,7 +34,6 @@ router.get("/", async (req, res) => {
 // GET single promocion
 router.get("/:id", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { id } = req.params;
     const promocion = await db.get(
       "SELECT * FROM promociones WHERE id = ?",
@@ -42,7 +54,6 @@ router.get("/:id", async (req, res) => {
 // POST create promocion
 router.post("/", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const {
       nombre,
       descripcion,
@@ -115,7 +126,6 @@ router.post("/", async (req, res) => {
 // PUT update promocion
 router.put("/:id", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { id } = req.params;
     const {
       nombre,
@@ -189,7 +199,6 @@ router.put("/:id", async (req, res) => {
 // DELETE promocion
 router.delete("/:id", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { id } = req.params;
 
     if (!id || isNaN(id)) {

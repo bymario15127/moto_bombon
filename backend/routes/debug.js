@@ -1,8 +1,21 @@
 // backend/routes/debug.js - Endpoint temporal para debug de diferencias
 import express from "express";
-import { getDbFromRequest } from "../database/dbManager.js";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const router = express.Router();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let db;
+(async () => {
+  db = await open({
+    filename: path.join(__dirname, "../database/database.sqlite"),
+    driver: sqlite3.Database,
+  });
+})();
 
 const ccIsBajo = (cc) => {
   const n = Number(cc || 0);
@@ -81,7 +94,6 @@ function calcularBaseComision(cita, ctx) {
 
 router.get("/comparar-ingresos", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { desde, hasta } = req.query;
     if (!desde || !hasta) {
       return res.status(400).json({ error: "Faltan parámetros desde/hasta" });

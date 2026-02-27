@@ -1,7 +1,13 @@
 // Frontend/src/services/finanzasService.js
-import { fetchWithSucursal, getHeaders } from './apiHelper.js';
-
 const API_URL = "/api/finanzas";
+
+const getAuthHeader = () => {
+  const token = localStorage.getItem("motobombon_token");
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`
+  };
+};
 
 // Dashboard financiero
 export const getDashboard = async (mes = null, anio = null, desde = null, hasta = null) => {
@@ -13,7 +19,9 @@ export const getDashboard = async (mes = null, anio = null, desde = null, hasta 
     if (hasta) params.append("hasta", hasta);
     
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await fetchWithSucursal(`${API_URL}/dashboard${queryString}`);
+    const response = await fetch(`${API_URL}/dashboard${queryString}`, {
+      headers: getAuthHeader()
+    });
     if (!response.ok) throw new Error("Error obteniendo dashboard");
     return response.json();
   } catch (error) {
@@ -32,7 +40,9 @@ export const getGastos = async (filtros = {}) => {
     if (filtros.hasta) params.append("hasta", filtros.hasta);
     
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await fetchWithSucursal(`${API_URL}/gastos${queryString}`);
+    const response = await fetch(`${API_URL}/gastos${queryString}`, {
+      headers: getAuthHeader()
+    });
     if (!response.ok) throw new Error("Error obteniendo gastos");
     return response.json();
   } catch (error) {
@@ -44,9 +54,9 @@ export const getGastos = async (filtros = {}) => {
 // Crear gasto
 export const crearGasto = async (gasto) => {
   try {
-    const response = await fetchWithSucursal(`${API_URL}/gastos`, {
+    const response = await fetch(`${API_URL}/gastos`, {
       method: "POST",
-      headers: getHeaders(),
+      headers: getAuthHeader(),
       body: JSON.stringify(gasto)
     });
     if (!response.ok) {
@@ -63,9 +73,9 @@ export const crearGasto = async (gasto) => {
 // Actualizar gasto
 export const actualizarGasto = async (id, gasto) => {
   try {
-    const response = await fetchWithSucursal(`${API_URL}/gastos/${id}`, {
+    const response = await fetch(`${API_URL}/gastos/${id}`, {
       method: "PUT",
-      headers: getHeaders(),
+      headers: getAuthHeader(),
       body: JSON.stringify(gasto)
     });
     if (!response.ok) {
@@ -82,9 +92,9 @@ export const actualizarGasto = async (id, gasto) => {
 // Eliminar gasto
 export const eliminarGasto = async (id) => {
   try {
-    const response = await fetchWithSucursal(`${API_URL}/gastos/${id}`, {
+    const response = await fetch(`${API_URL}/gastos/${id}`, {
       method: "DELETE",
-      headers: getHeaders()
+      headers: getAuthHeader()
     });
     if (!response.ok) {
       const error = await response.json();
@@ -107,7 +117,9 @@ export const getMovimientos = async (mes = null, anio = null, desde = null, hast
     if (hasta) params.append("hasta", hasta);
     
     const queryString = params.toString() ? `?${params.toString()}` : "";
-    const response = await fetchWithSucursal(`${API_URL}/movimientos${queryString}`);
+    const response = await fetch(`${API_URL}/movimientos${queryString}`, {
+      headers: getAuthHeader()
+    });
     if (!response.ok) throw new Error("Error obteniendo movimientos");
     return response.json();
   } catch (error) {

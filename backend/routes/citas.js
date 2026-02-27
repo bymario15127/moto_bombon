@@ -1,14 +1,95 @@
 // backend/routes/citas.js
 import express from "express";
-import { getDbFromRequest } from "../database/dbManager.js";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+import path from "path";
+import { fileURLToPath } from "url";
 import { procesarLavadaCliente } from "./clientes.js";
 
 const router = express.Router();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let db;
+(async () => {
+  db = await open({
+    filename: path.join(__dirname, "../database/database.sqlite"),
+    driver: sqlite3.Database,
+  });
+  
+  // 🔧 Optimizar SQLite para mejor concurrencia
+  try {
+    await db.exec("PRAGMA busy_timeout = 10000"); // Esperar 10 segundos si está bloqueada
+    await db.exec("PRAGMA journal_mode = WAL"); // Write-Ahead Logging para mejor concurrencia
+    await db.exec("PRAGMA synchronous = NORMAL"); // Balance entre velocidad y seguridad
+    await db.exec("PRAGMA cache_size = -64000"); // 64MB de caché
+    await db.exec("PRAGMA temp_store = MEMORY"); // Tablas temporales en RAM
+    console.log("✅ SQLite optimizado para múltiples conexiones");
+  } catch (e) {
+    console.warn("⚠️ No se pudo optimizar SQLite:", e.message);
+  }
+  // Ensure table and required columns exist in 'citas' to avoid runtime errors in older DBs
+  try {
+    // Crear tabla si no existe
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS citas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cliente TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        servicio TEXT NOT NULL,
+        telefono TEXT,
+        email TEXT,
+        comentarios TEXT,
+        estado TEXT DEFAULT 'pendiente',
+        placa TEXT,
+        marca TEXT,
+        modelo TEXT,
+        cilindraje INTEGER,
+        metodo_pago TEXT,
+        lavador_id INTEGER,
+        tipo_cliente TEXT DEFAULT 'cliente',
+        taller_id INTEGER,
+        promocion_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    const columns = await db.all("PRAGMA table_info(citas)");
+    const col = (n) => columns.some((c) => c.name === n);
+
+    const pending = [];
+    if (!col("email")) pending.push("ALTER TABLE citas ADD COLUMN email TEXT");
+    if (!col("placa")) pending.push("ALTER TABLE citas ADD COLUMN placa TEXT");
+    if (!col("marca")) pending.push("ALTER TABLE citas ADD COLUMN marca TEXT");
+    if (!col("modelo")) pending.push("ALTER TABLE citas ADD COLUMN modelo TEXT");
+    if (!col("cilindraje")) pending.push("ALTER TABLE citas ADD COLUMN cilindraje INTEGER");
+    if (!col("metodo_pago")) pending.push("ALTER TABLE citas ADD COLUMN metodo_pago TEXT");
+    if (!col("lavador_id")) pending.push("ALTER TABLE citas ADD COLUMN lavador_id INTEGER");
+    if (!col("tipo_cliente")) pending.push("ALTER TABLE citas ADD COLUMN tipo_cliente TEXT DEFAULT 'cliente'");
+    if (!col("taller_id")) pending.push("ALTER TABLE citas ADD COLUMN taller_id INTEGER");
+    if (!col("promocion_id")) pending.push("ALTER TABLE citas ADD COLUMN promocion_id INTEGER");
+
+    for (const stmt of pending) {
+      try {
+        await db.exec(stmt);
+      } catch (e) {
+        // If running concurrently or already applied, ignore duplicate errors
+        if (!/duplicate column|already exists/i.test(e.message || "")) {
+          console.error("Schema update error:", e.message);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Failed to verify/patch citas schema:", e.message);
+    // continue; server will still try, but POST may fail with clearer logs
+  }
+})();
+
 // GET all (solo del día actual por defecto)
 router.get("/", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     // Obtener fecha actual en formato YYYY-MM-DD en zona horaria de Colombia (UTC-5)
     const today = () => {
       const d = new Date();
@@ -67,7 +148,6 @@ router.get("/", async (req, res) => {
 // GET horarios ocupados para una fecha específica
 router.get("/ocupados/:fecha", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { fecha } = req.params;
     
     if (!fecha.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -93,7 +173,6 @@ const toMinutes = (hhmm) => {
 // POST create (hora y fecha opcionales; si no se envían, se registra para HOY y sin hora)
 router.post("/", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     console.log("📥 [POST /api/citas] Payload recibido:", req.body);
     const { cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id, promocion_id } = req.body;
     
@@ -154,12 +233,33 @@ router.post("/", async (req, res) => {
       }
     }
     
+    // Función para insertar con reintentos en caso de deadlock
+    const insertarConReintento = async (maxReintentos = 3) => {
+      let ultimoError;
+      for (let intento = 0; intento < maxReintentos; intento++) {
+        try {
+          const result = await db.run(
+            "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id, promocion_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null, tipo_cliente || "cliente", taller_id || null, promocion_id || null]
+          );
+          console.log("✅ Cita insertada ID=", result.lastID, promocion_id ? `(Promoción ID: ${promocion_id})` : "");
+          return result;
+        } catch (err) {
+          ultimoError = err;
+          if (intento < maxReintentos - 1 && (err.message?.includes("database is locked") || err.code === 'SQLITE_BUSY')) {
+            const espera = Math.random() * 500 + (intento * 200); // Backoff exponencial
+            console.log(`⏳ Base de datos bloqueada, reintentando en ${espera}ms (intento ${intento + 1}/${maxReintentos})`);
+            await new Promise(resolve => setTimeout(resolve, espera));
+            continue;
+          }
+          throw err;
+        }
+      }
+      throw ultimoError;
+    };
+    
     try {
-      const result = await db.run(
-        "INSERT INTO citas (cliente, servicio, fecha, hora, telefono, email, comentarios, estado, placa, marca, modelo, cilindraje, metodo_pago, lavador_id, tipo_cliente, taller_id, promocion_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [cliente, servicio, fechaFinal, horaFinal, telefono || "", email || "", comentarios || "", estado || "pendiente", placa || "", marca || "", modelo || "", cilindraje || null, metodo_pago || null, lavador_id || null, tipo_cliente || "cliente", taller_id || null, promocion_id || null]
-      );
-      console.log("✅ Cita insertada ID=", result.lastID, promocion_id ? `(Promoción ID: ${promocion_id})` : "");
+      const result = await insertarConReintento();
       return res.status(201).json({ id: result.lastID, message: "Cita creada exitosamente" });
     } catch (dbError) {
       console.error("❌ Error ejecutando INSERT en citas:", dbError);
@@ -177,7 +277,6 @@ router.post("/", async (req, res) => {
 // PUT update
 router.put("/:id", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { id } = req.params;
     const fields = req.body;
     
@@ -262,7 +361,7 @@ router.put("/:id", async (req, res) => {
       const telefono = fields.telefono || citaAnterior.telefono;
       
       if (email && cliente) {
-        const resultado = await procesarLavadaCliente(db, email, cliente, telefono);
+        const resultado = await procesarLavadaCliente(email, cliente, telefono);
         
         if (resultado.success && resultado.cuponGenerado) {
           console.log(`🎉 ¡Cupón generado para ${email}!`);
@@ -297,7 +396,6 @@ router.put("/:id", async (req, res) => {
 // DELETE (soft delete - marca como eliminada, no borra)
 router.delete("/:id", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { id } = req.params;
     
     if (!id || isNaN(id)) {
@@ -349,7 +447,6 @@ export default router;
 // GET /citas/papelera - Ver citas eliminadas
 router.get("/papelera/ver", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const columns = await db.all("PRAGMA table_info(citas)");
     const tieneDeletedAt = columns.some((c) => c.name === "deleted_at");
 
@@ -379,7 +476,6 @@ router.get("/papelera/ver", async (req, res) => {
 // POST /citas/papelera/recuperar/:id - Recuperar una cita
 router.post("/papelera/recuperar/:id", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { id } = req.params;
 
     if (!id || isNaN(id)) {
@@ -421,7 +517,6 @@ router.post("/papelera/recuperar/:id", async (req, res) => {
 // DELETE /citas/papelera/permanente/:id - Eliminar permanentemente
 router.delete("/papelera/permanente/:id", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { id } = req.params;
 
     if (!id || isNaN(id)) {

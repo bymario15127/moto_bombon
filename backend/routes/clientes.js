@@ -1,13 +1,27 @@
 // backend/routes/clientes.js
 import express from "express";
-import { getDbFromRequest } from "../database/dbManager.js";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+import path from "path";
+import { fileURLToPath } from "url";
 import { enviarCuponLavadaGratis, generarCodigoCupon } from "../services/emailService.js";
 
 const router = express.Router();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let db;
+(async () => {
+  db = await open({
+    filename: path.join(__dirname, "../database/database.sqlite"),
+    driver: sqlite3.Database,
+  });
+})();
+
 // Función auxiliar para registrar o actualizar cliente y verificar lavadas
 // NOTA: Solo se cuentan citas normales (taller_id IS NULL), no talleres aliados
-export async function procesarLavadaCliente(db, email, nombre, telefono) {
+export async function procesarLavadaCliente(email, nombre, telefono) {
   if (!email || !nombre) {
     return { success: false, error: 'Email y nombre son requeridos' };
   }
@@ -96,7 +110,6 @@ export async function procesarLavadaCliente(db, email, nombre, telefono) {
 // GET - Obtener información de un cliente por email
 router.get("/email/:email", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { email } = req.params;
     
     if (!email) {
@@ -134,7 +147,6 @@ router.get("/email/:email", async (req, res) => {
 // NOTA: Las estadísticas solo incluyen citas normales (taller_id IS NULL)
 router.get("/", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const clientes = await db.all('SELECT * FROM clientes ORDER BY lavadas_completadas DESC');
     
     // Agregar cupones y placa a cada cliente
@@ -169,7 +181,6 @@ router.get("/", async (req, res) => {
 // POST - Crear o actualizar cliente manualmente
 router.post("/", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { email, nombre, telefono } = req.body;
     
     if (!email || !nombre) {
@@ -203,7 +214,6 @@ router.post("/", async (req, res) => {
 // GET - Verificar cupón
 router.get("/cupon/:codigo", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { codigo } = req.params;
     
     const cupon = await db.get('SELECT * FROM cupones WHERE codigo = ?', [codigo]);
@@ -235,7 +245,6 @@ router.get("/cupon/:codigo", async (req, res) => {
 // POST - Usar cupón
 router.post("/cupon/:codigo/usar", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { codigo } = req.params;
     const { cita_id } = req.body;
     
@@ -288,7 +297,6 @@ router.post("/cupon/:codigo/usar", async (req, res) => {
 // POST - Fusionar dos clientes (para resolver duplicados)
 router.post("/fusionar", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     const { emailPrincipal, emailDuplicado } = req.body;
     
     if (!emailPrincipal || !emailDuplicado) {
@@ -349,7 +357,6 @@ router.post("/fusionar", async (req, res) => {
 // GET - Detectar clientes posiblemente duplicados
 router.get("/duplicados/detectar", async (req, res) => {
   try {
-    const db = getDbFromRequest(req);
     // Buscar clientes con nombres similares (primeras 3 letras del nombre)
     const duplicados = await db.all(`
       SELECT 

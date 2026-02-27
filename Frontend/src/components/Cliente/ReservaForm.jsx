@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { addCita, getCitas } from "../../services/citasService";
 import serviciosService from "../../services/serviciosService";
 
-export default function ReservaForm({ sucursalId }) {
+export default function ReservaForm() {
   const [form, setForm] = useState({
     cliente: "",
     telefono: "",
@@ -15,7 +15,6 @@ export default function ReservaForm({ sucursalId }) {
     comentarios: "",
     metodo_pago: "",
     servicioId: null,
-    sucursal_id: sucursalId, // Agregar sucursal_id al formulario
   });
   
   const [servicios, setServicios] = useState([]);
@@ -59,13 +58,6 @@ export default function ReservaForm({ sucursalId }) {
     loadServicios();
     loadMotosEnEspera();
   }, []);
-
-  // Actualizar sucursal_id cuando cambie el prop
-  useEffect(() => {
-    if (sucursalId) {
-      setForm(prev => ({ ...prev, sucursal_id: sucursalId }));
-    }
-  }, [sucursalId]);
 
   // Filtrar servicios según el cilindraje
   useEffect(() => {

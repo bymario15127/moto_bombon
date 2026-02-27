@@ -1,23 +1,21 @@
 // Frontend/src/services/talleresService.js
-import { fetchWithSucursal, getHeaders } from './apiHelper.js';
-
 class TalleresService {
   async getTalleres() {
-    const response = await fetchWithSucursal('/api/talleres');
+    const response = await fetch('/api/talleres');
     if (!response.ok) throw new Error('Error al obtener talleres');
     return response.json();
   }
 
   async getTalleresAdmin() {
-    const response = await fetchWithSucursal('/api/talleres/admin/all');
+    const response = await fetch('/api/talleres/admin/all');
     if (!response.ok) throw new Error('Error al obtener talleres');
     return response.json();
   }
 
   async createTaller(data) {
-    const response = await fetchWithSucursal('/api/talleres', {
+    const response = await fetch('/api/talleres', {
       method: 'POST',
-      headers: getHeaders(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
     if (!response.ok) throw new Error('Error al crear taller');
@@ -25,9 +23,9 @@ class TalleresService {
   }
 
   async updateTaller(id, data) {
-    const response = await fetchWithSucursal(`/api/talleres/${id}`, {
+    const response = await fetch(`/api/talleres/${id}`, {
       method: 'PUT',
-      headers: getHeaders(),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
     if (!response.ok) throw new Error('Error al actualizar taller');
@@ -35,7 +33,7 @@ class TalleresService {
   }
 
   async deleteTaller(id) {
-    const response = await fetchWithSucursal(`/api/talleres/${id}`, {
+    const response = await fetch(`/api/talleres/${id}`, {
       method: 'DELETE'
     });
     if (!response.ok) throw new Error('Error al eliminar taller');

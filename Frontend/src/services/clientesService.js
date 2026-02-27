@@ -1,11 +1,9 @@
 // Frontend/src/services/clientesService.js
-import { fetchWithSucursal, getHeaders } from './apiHelper.js';
-
 const API_URL = "/api/clientes";
 
 // Obtener todos los clientes ordenados por lavadas
 export const getClientes = async () => {
-  const response = await fetchWithSucursal(API_URL);
+  const response = await fetch(API_URL);
   if (!response.ok) {
     throw new Error("Error al obtener clientes");
   }
@@ -14,7 +12,7 @@ export const getClientes = async () => {
 
 // Obtener información de un cliente por email
 export const getClienteByEmail = async (email) => {
-  const response = await fetchWithSucursal(`${API_URL}/email/${encodeURIComponent(email)}`);
+  const response = await fetch(`${API_URL}/email/${encodeURIComponent(email)}`);
   if (!response.ok) {
     throw new Error("Error al obtener cliente");
   }
@@ -23,7 +21,7 @@ export const getClienteByEmail = async (email) => {
 
 // Verificar un cupón
 export const verificarCupon = async (codigo) => {
-  const response = await fetchWithSucursal(`${API_URL}/cupon/${codigo}`);
+  const response = await fetch(`${API_URL}/cupon/${codigo}`);
   if (!response.ok) {
     throw new Error("Error al verificar cupón");
   }
@@ -32,9 +30,11 @@ export const verificarCupon = async (codigo) => {
 
 // Usar/redimir un cupón
 export const usarCupon = async (codigo, citaId = null) => {
-  const response = await fetchWithSucursal(`${API_URL}/cupon/${codigo}/usar`, {
+  const response = await fetch(`${API_URL}/cupon/${codigo}/usar`, {
     method: "POST",
-    headers: getHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({ cita_id: citaId }),
   });
   if (!response.ok) {
@@ -45,9 +45,11 @@ export const usarCupon = async (codigo, citaId = null) => {
 
 // Crear o actualizar cliente
 export const guardarCliente = async (cliente) => {
-  const response = await fetchWithSucursal(API_URL, {
+  const response = await fetch(API_URL, {
     method: "POST",
-    headers: getHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(cliente),
   });
   if (!response.ok) {

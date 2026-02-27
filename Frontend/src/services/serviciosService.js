@@ -1,6 +1,4 @@
 // src/services/serviciosService.js
-import { fetchWithSucursal, getHeaders } from './apiHelper.js';
-
 // Use relative URLs - works in both dev (via Vite proxy) and prod (via Nginx proxy)
 const API_URL = "/api/servicios";
 const UPLOAD_URL = "/api/upload-image";
@@ -22,7 +20,7 @@ export async function getServicios({ force = false } = {}) {
     return serviciosCache;
   }
 
-  const res = await fetchWithSucursal(API_URL);
+  const res = await fetch(API_URL);
   if (!res.ok) {
     console.error("Error fetching servicios:", res.status);
     return serviciosCache || [];
@@ -36,9 +34,9 @@ export async function getServicios({ force = false } = {}) {
 }
 
 export async function addServicio(data) {
-  const res = await fetchWithSucursal(API_URL, {
+  const res = await fetch(API_URL, {
     method: "POST",
-    headers: getHeaders(),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   
@@ -53,9 +51,9 @@ export async function addServicio(data) {
 }
 
 export async function updateServicio(id, data) {
-  const res = await fetchWithSucursal(`${API_URL}/${id}`, {
+  const res = await fetch(`${API_URL}/${id}`, {
     method: "PUT",
-    headers: getHeaders(),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   
@@ -70,7 +68,7 @@ export async function updateServicio(id, data) {
 }
 
 export async function deleteServicio(id) {
-  const res = await fetchWithSucursal(`${API_URL}/${id}`, {
+  const res = await fetch(`${API_URL}/${id}`, {
     method: "DELETE",
   });
   

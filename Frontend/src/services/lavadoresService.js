@@ -1,11 +1,9 @@
 // src/services/lavadoresService.js
-import { fetchWithSucursal, getHeaders } from './apiHelper.js';
-
 // Use relative URLs - works in both dev (via Vite proxy) and prod (via Nginx proxy)
 const API_URL = "/api/lavadores";
 
 export async function getLavadores() {
-  const res = await fetchWithSucursal(API_URL);
+  const res = await fetch(API_URL);
   if (!res.ok) {
     console.error("Error fetching lavadores:", res.status);
     return [];
@@ -14,7 +12,7 @@ export async function getLavadores() {
 }
 
 export async function getLavadoresActivos() {
-  const res = await fetchWithSucursal(`${API_URL}/activos`);
+  const res = await fetch(`${API_URL}/activos`);
   if (!res.ok) {
     console.error("Error fetching lavadores activos:", res.status);
     return [];
@@ -23,9 +21,9 @@ export async function getLavadoresActivos() {
 }
 
 export async function addLavador(data) {
-  const res = await fetchWithSucursal(API_URL, {
+  const res = await fetch(API_URL, {
     method: "POST",
-    headers: getHeaders(),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   
@@ -39,9 +37,9 @@ export async function addLavador(data) {
 }
 
 export async function updateLavador(id, data) {
-  const res = await fetchWithSucursal(`${API_URL}/${id}`, {
+  const res = await fetch(`${API_URL}/${id}`, {
     method: "PUT",
-    headers: getHeaders(),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
   
@@ -55,7 +53,7 @@ export async function updateLavador(id, data) {
 }
 
 export async function deleteLavador(id) {
-  const res = await fetchWithSucursal(`${API_URL}/${id}`, {
+  const res = await fetch(`${API_URL}/${id}`, {
     method: "DELETE",
   });
   

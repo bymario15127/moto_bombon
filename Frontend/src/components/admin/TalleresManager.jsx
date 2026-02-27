@@ -253,7 +253,7 @@ export default function TalleresManager() {
         </div>
       )}
 
-      <style>{`
+      <style jsx>{`
         .talleres-manager {
           padding: 20px;
         }

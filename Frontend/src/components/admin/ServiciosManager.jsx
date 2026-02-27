@@ -237,7 +237,7 @@ export default function ServiciosManager() {
                   }} />
                   {formData.imagen_bajo_cc && (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
-                      <img src={formData.imagen_bajo_cc} alt="preview bajo cc" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #EB0463' }} />
+                      <img src={formData.imagen_bajo_cc} alt="preview bajo cc" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #EB0463' }} loading="lazy" />
                       <span style={{ fontSize: 12, color: '#6b7280' }}>✓ Imagen cargada</span>
                     </div>
                   )}
@@ -251,7 +251,7 @@ export default function ServiciosManager() {
                   }} />
                   {formData.imagen_alto_cc && (
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}>
-                      <img src={formData.imagen_alto_cc} alt="preview alto cc" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #EB0463' }} />
+                      <img src={formData.imagen_alto_cc} alt="preview alto cc" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #EB0463' }} loading="lazy" />
                       <span style={{ fontSize: 12, color: '#6b7280' }}>✓ Imagen cargada</span>
                     </div>
                   )}
@@ -279,16 +279,16 @@ export default function ServiciosManager() {
               {servicio.imagen_bajo_cc && servicio.imagen_alto_cc ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <div style={{ position: 'relative' }}>
-                    <img src={servicio.imagen_bajo_cc} alt={`${servicio.nombre} bajo CC`} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+                    <img src={servicio.imagen_bajo_cc} alt={`${servicio.nombre} bajo CC`} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} loading="lazy" />
                     <span style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '11px', padding: '2px 6px', borderRadius: 4 }}>Bajo CC</span>
                   </div>
                   <div style={{ position: 'relative' }}>
-                    <img src={servicio.imagen_alto_cc} alt={`${servicio.nombre} alto CC`} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+                    <img src={servicio.imagen_alto_cc} alt={`${servicio.nombre} alto CC`} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} loading="lazy" />
                     <span style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: '11px', padding: '2px 6px', borderRadius: 4 }}>Alto CC</span>
                   </div>
                 </div>
               ) : (
-                <img src={servicio.imagen} alt={servicio.nombre} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+                <img src={servicio.imagen} alt={servicio.nombre} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} loading="lazy" />
               )}
             </div>
             
